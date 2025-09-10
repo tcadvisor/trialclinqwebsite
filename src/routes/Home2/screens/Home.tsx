@@ -1,12 +1,13 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Search, CheckCircle2, Shield, ArrowRight, ChevronDownIcon, GridIcon, HelpCircleIcon, ShieldIcon, UserPlusIcon, LogInIcon } from "lucide-react";
+import { Search, CheckCircle2, Shield, ArrowRight, ChevronDownIcon, GridIcon, HelpCircleIcon, ShieldIcon, UserPlusIcon, LogInIcon, FileTextIcon, MegaphoneIcon, LayersIcon, LifeBuoyIcon } from "lucide-react";
 
 export default function Home() {
   const navigate = useNavigate();
   const [query, setQuery] = useState("Chronic Pain");
   const [location, setLocation] = useState("10090, Niagara falls, USA");
   const [isPFOpen, setIsPFOpen] = useState(false);
+  const [isSIOpen, setIsSIOpen] = useState(false);
 
   const dropdownItems = [
     {
@@ -34,6 +35,15 @@ export default function Home() {
       title: "Participant Login",
       description: "Manage your trial matches and track your enrollment progress.",
     },
+  ];
+
+  const providerItems = [
+    { icon: FileTextIcon, title: "Insider Blog", description: "Industry trends, site management tips, and recruitment insights." },
+    { icon: MegaphoneIcon, title: "Visibility/ Marketing Options", description: "Boost your trial listings and site visibility to eligible patients." },
+    { icon: LayersIcon, title: "Multicenter Listings", description: "View and manage your active multicenter trial sites." },
+    { icon: LifeBuoyIcon, title: "TrialCliniq Support Center", description: "Contact support or access onboarding guides for investigators." },
+    { icon: UserPlusIcon, title: "Create Provider Account", description: "Access your investigator or site admin dashboard." },
+    { icon: LogInIcon, title: "Provider Login", description: "Access your investigator or site admin dashboard." },
   ];
 
   const handleSearch = (e?: React.MouseEvent | React.FormEvent) => {
@@ -90,7 +100,34 @@ export default function Home() {
                 </div>
               )}
             </div>
-            <button className="hover:text-gray-900">Sites & Investigators</button>
+            <div
+              className="relative"
+              onMouseEnter={() => setIsSIOpen(true)}
+              onMouseLeave={() => setIsSIOpen(false)}
+            >
+              <button className="inline-flex items-center gap-1 hover:text-gray-900">
+                Sites & Investigators
+                <ChevronDownIcon className="w-4 h-4" />
+              </button>
+              {isSIOpen && (
+                <div className="absolute left-0 mt-3 w-[360px] bg-white rounded-2xl shadow-lg border p-2">
+                  <div className="py-2">
+                    {providerItems.map((item, i) => {
+                      const Icon = item.icon as any;
+                      return (
+                        <a key={i} href="#" className="flex items-start gap-3 px-3 py-3 rounded-lg hover:bg-gray-50">
+                          <Icon className="w-5 h-5 text-gray-600 mt-0.5" />
+                          <div>
+                            <div className="text-sm font-semibold text-gray-900">{item.title}</div>
+                            <div className="text-xs text-gray-600 leading-relaxed">{item.description}</div>
+                          </div>
+                        </a>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
             <button className="hover:text-gray-900">Contact Us</button>
             <button className="hover:text-gray-900">About Us</button>
           </nav>
