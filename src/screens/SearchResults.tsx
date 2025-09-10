@@ -212,10 +212,11 @@ export const SearchResults = (): JSX.Element => {
                   <div className="absolute top-full left-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
                     <div className="py-4">
                       {dropdownItems.map((dropdownItem, dropdownIndex) => (
-                        <a
+                        <Link
                           key={dropdownIndex}
-                          href="#"
+                          to={dropdownItem.to as string}
                           className="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors group"
+                          onClick={() => setIsDropdownOpen(false)}
                         >
                           <div className="flex-shrink-0 mt-1">
                             {(() => {
@@ -232,7 +233,7 @@ export const SearchResults = (): JSX.Element => {
                               {dropdownItem.description}
                             </p>
                           </div>
-                        </a>
+                        </Link>
                       ))}
                     </div>
                   </div>
