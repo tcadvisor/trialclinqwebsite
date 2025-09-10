@@ -230,7 +230,7 @@ export const SearchResults = (): JSX.Element => {
                           key={dropdownIndex}
                           to={dropdownItem.to as string}
                           className="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors group"
-                          onClick={() => setIsDropdownOpen(false)}
+                          onClick={() => setOpenMenu(null)}
                         >
                           <div className="flex-shrink-0 mt-1">
                             {(() => {
