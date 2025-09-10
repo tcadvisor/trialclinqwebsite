@@ -12,6 +12,7 @@ import MulticenterListings from "./screens/sites/MulticenterListings";
 import InvestigatorSupport from "./screens/support/InvestigatorSupport";
 import CreateAccount from "./screens/providers/CreateAccount";
 import ProviderLogin from "./screens/providers/Login";
+import Dashboard from "./screens/patients/Dashboard";
 
 function App() {
   return (
