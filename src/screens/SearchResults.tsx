@@ -59,6 +59,8 @@ const companyLinks = ["Terms of Conditions", "Contact Us", "About Us", "Privacy 
 
 export const SearchResults = (): JSX.Element => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [minAge, setMinAge] = useState<number>(0);
+  const [maxAge, setMaxAge] = useState<number>(100);
 
   const dropdownItems = [
     {
@@ -88,6 +90,89 @@ export const SearchResults = (): JSX.Element => {
     }
   ];
 
+  const parseAgeRange = (range: string): { min: number; max: number } => {
+    const match = range.match(/(\d+)\s*-\s*(\d+)/);
+    if (!match) return { min: 0, max: 120 };
+    return { min: parseInt(match[1], 10), max: parseInt(match[2], 10) };
+  };
+
+  const filteredTrials = trialResults.filter((t) => {
+    const { min, max } = parseAgeRange(t.ageRange);
+    return min <= maxAge && max >= minAge;
+  });
+
+
+
+  const RangeSlider: React.FC<{ min: number; max: number; onChange: (a: number, b: number) => void } > = ({ min, max, onChange }) => {
+    const trackRef = React.useRef<HTMLDivElement | null>(null);
+    const [dragging, setDragging] = useState<null | 'min' | 'max'>(null);
+
+    const percent = (v: number) => Math.min(100, Math.max(0, ((v - 0) / (100 - 0)) * 100));
+
+    const setFromClientX = (x: number) => {
+      const rect = trackRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const ratio = (x - rect.left) / rect.width;
+      const val = Math.round(Math.min(100, Math.max(0, ratio * 100)));
+      if (dragging === 'min') {
+        onChange(Math.min(val, max - 1), max);
+      } else if (dragging === 'max') {
+        onChange(min, Math.max(val, min + 1));
+      } else {
+        const distToMin = Math.abs(val - min);
+        const distToMax = Math.abs(val - max);
+        if (distToMin <= distToMax) onChange(Math.min(val, max - 1), max);
+        else onChange(min, Math.max(val, min + 1));
+      }
+    };
+
+    const onPointerMove = (e: PointerEvent) => setFromClientX(e.clientX);
+    const stopDrag = () => setDragging(null);
+
+    React.useEffect(() => {
+      if (dragging) {
+        window.addEventListener('pointermove', onPointerMove);
+        window.addEventListener('pointerup', stopDrag, { once: true });
+        return () => {
+          window.removeEventListener('pointermove', onPointerMove);
+          window.removeEventListener('pointerup', stopDrag as any);
+        };
+      }
+    }, [dragging, min, max]);
+
+    return (
+      <div
+        className="relative h-8 select-none"
+        ref={trackRef}
+        onPointerDown={(e) => {
+          e.preventDefault();
+          setDragging(null);
+          setFromClientX(e.clientX);
+        }}
+      >
+        <div className="absolute top-1/2 -translate-y-1/2 left-0 right-0 h-2 bg-gray-200 rounded" />
+        <div
+          className="absolute top-1/2 -translate-y-1/2 h-2 bg-blue-500 rounded"
+          style={{ left: `${percent(min)}%`, width: `${Math.max(0, percent(max) - percent(min))}%` }}
+        />
+        <button
+          type="button"
+          aria-label="Minimum age"
+          className="absolute top-1/2 -translate-y-1/2 -mt-1.5 w-4 h-4 rounded-full bg-white border border-gray-400 shadow cursor-pointer"
+          style={{ left: `calc(${percent(min)}% - 8px)` }}
+          onPointerDown={(e) => { e.stopPropagation(); setDragging('min'); }}
+        />
+        <button
+          type="button"
+          aria-label="Maximum age"
+          className="absolute top-1/2 -translate-y-1/2 -mt-1.5 w-4 h-4 rounded-full bg-white border border-gray-400 shadow cursor-pointer"
+          style={{ left: `calc(${percent(max)}% - 8px)` }}
+          onPointerDown={(e) => { e.stopPropagation(); setDragging('max'); }}
+        />
+      </div>
+    );
+  };
+
   return (
     <div className="flex flex-col w-full items-center relative bg-[#ffffff]">
       <header className="flex-col w-full justify-center gap-2.5 px-2.5 py-3 bg-gray-25 flex items-center relative flex-[0_0_auto]">
@@ -115,7 +200,7 @@ export const SearchResults = (): JSX.Element => {
                     <ChevronDownIcon className="absolute w-4 h-4 top-0 left-0" />
                   </div>
                 )}
-                
+
                 {/* Dropdown Menu */}
                 {item.label === "Patients and Families" && isDropdownOpen && (
                   <div className="absolute top-full left-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
@@ -190,7 +275,7 @@ export const SearchResults = (): JSX.Element => {
             Search
           </Button>
         </div>
-        <h1 className="text-2xl font-semibold mb-8">We found 7 clinical trials that match your search.</h1>
+        <h1 className="text-2xl font-semibold mb-8">We found {filteredTrials.length} clinical trial{filteredTrials.length === 1 ? '' : 's'} that match your search.</h1>
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           <aside className="lg:col-span-1">
             <Card>
@@ -206,13 +291,16 @@ export const SearchResults = (): JSX.Element => {
                   </div>
                   <div>
                     <h4 className="font-medium mb-2">Age Range</h4>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm">25yr</span>
-                      <div className="flex-1 h-2 bg-gray-200 rounded">
-                        <div className="h-2 bg-blue-500 rounded w-1/2"></div>
-                      </div>
-                      <span className="text-sm">50yr</span>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-sm">{minAge}yr</span>
+                      <span className="text-xs text-gray-500">to</span>
+                      <span className="text-sm">{maxAge}yr</span>
                     </div>
+                    <RangeSlider
+                      min={minAge}
+                      max={maxAge}
+                      onChange={(a, b) => { setMinAge(a); setMaxAge(b); }}
+                    />
                   </div>
                   <div>
                     <h4 className="font-medium mb-2">Study Phase</h4>
@@ -244,7 +332,7 @@ export const SearchResults = (): JSX.Element => {
             </Card>
           </aside>
           <div className="lg:col-span-3 space-y-6">
-            {trialResults.map((trial, index) => (
+            {filteredTrials.map((trial, index) => (
               <Card key={index}>
                 <CardContent className="p-6">
                   <div className="flex justify-between items-start mb-4">
