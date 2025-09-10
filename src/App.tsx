@@ -12,6 +12,7 @@ import SitesMulticenter from "./screens/sites/Multicenter";
 import SitesSupport from "./screens/sites/Support";
 import SitesCreateAccount from "./screens/sites/CreateAccount";
 import SitesLogin from "./screens/sites/Login";
+import SignIn from "./screens/auth/SignIn";
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
         <Route path="/patients/privacy" element={<Privacy />} />
         <Route path="/patients/volunteer" element={<Volunteer />} />
         <Route path="/patients/login" element={<Login />} />
+        <Route path="/signin" element={<SignIn />} />
         <Route path="/sites/blog" element={<SitesBlog />} />
         <Route path="/sites/visibility" element={<SitesVisibility />} />
         <Route path="/sites/multicenter" element={<SitesMulticenter />} />
