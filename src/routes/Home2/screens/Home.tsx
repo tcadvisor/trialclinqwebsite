@@ -51,7 +51,7 @@ export default function Home() {
             />
           </Link>
           <nav className="hidden md:flex items-center gap-8 text-sm">
-            <div className="relative group" onMouseLeave={() => setPatientsOpen(false)}>
+            <div className="relative group">
               <button
                 className="hover:text-gray-600 inline-flex items-center gap-1"
                 aria-haspopup="menu"
@@ -66,7 +66,7 @@ export default function Home() {
                   <div className="rounded-2xl border bg-white p-3 shadow-xl ring-1 ring-black/5">
                     <ul className="divide-y">
                       <li>
-                        <Link to="/patients/find-trial" className="flex gap-4 p-4 rounded-xl hover:bg-gray-50">
+                        <Link to="/patients/find-trial" onClick={() => setPatientsOpen(false)} className="flex gap-4 p-4 rounded-xl hover:bg-gray-50">
                           <div className="shrink-0 rounded-lg bg-blue-50 p-2"><Search className="h-5 w-5 text-blue-700" /></div>
                           <div>
                             <div className="font-medium">Find a clinical trial</div>
@@ -75,7 +75,7 @@ export default function Home() {
                         </Link>
                       </li>
                       <li>
-                        <Link to="/patients/faq" className="flex gap-4 p-4 rounded-xl hover:bg-gray-50">
+                        <Link to="/patients/faq" onClick={() => setPatientsOpen(false)} className="flex gap-4 p-4 rounded-xl hover:bg-gray-50">
                           <div className="shrink-0 rounded-lg bg-blue-50 p-2"><HelpCircle className="h-5 w-5 text-blue-700" /></div>
                           <div>
                             <div className="font-medium">Frequently Asked Questions</div>
@@ -84,7 +84,7 @@ export default function Home() {
                         </Link>
                       </li>
                       <li>
-                        <Link to="/patients/privacy" className="flex gap-4 p-4 rounded-xl hover:bg-gray-50">
+                        <Link to="/patients/privacy" onClick={() => setPatientsOpen(false)} className="flex gap-4 p-4 rounded-xl hover:bg-gray-50">
                           <div className="shrink-0 rounded-lg bg-blue-50 p-2"><Shield className="h-5 w-5 text-blue-700" /></div>
                           <div>
                             <div className="font-medium">Consent & Data Privacy</div>
@@ -93,7 +93,7 @@ export default function Home() {
                         </Link>
                       </li>
                       <li>
-                        <Link to="/patients/volunteer" className="flex gap-4 p-4 rounded-xl hover:bg-gray-50">
+                        <Link to="/patients/volunteer" onClick={() => setPatientsOpen(false)} className="flex gap-4 p-4 rounded-xl hover:bg-gray-50">
                           <div className="shrink-0 rounded-lg bg-blue-50 p-2"><UserPlus className="h-5 w-5 text-blue-700" /></div>
                           <div>
                             <div className="font-medium">Become a clinical trial volunteer</div>
@@ -102,7 +102,7 @@ export default function Home() {
                         </Link>
                       </li>
                       <li>
-                        <Link to="/patients/login" className="flex gap-4 p-4 rounded-xl hover:bg-gray-50">
+                        <Link to="/patients/login" onClick={() => setPatientsOpen(false)} className="flex gap-4 p-4 rounded-xl hover:bg-gray-50">
                           <div className="shrink-0 rounded-lg bg-blue-50 p-2"><LogIn className="h-5 w-5 text-blue-700" /></div>
                           <div>
                             <div className="font-medium">Participant Login</div>
