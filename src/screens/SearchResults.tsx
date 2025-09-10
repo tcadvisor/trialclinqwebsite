@@ -203,8 +203,14 @@ export const SearchResults = (): JSX.Element => {
               <div
                 key={index}
                 className="inline-flex items-center justify-center gap-1 px-4 py-2 relative flex-[0_0_auto] rounded"
-                onMouseEnter={() => item.label === "Patients and Families" && setIsDropdownOpen(true)}
-                onClick={() => item.label === "Patients and Families" && setIsDropdownOpen((v) => !v)}
+                onMouseEnter={() => {
+                  if (item.label === "Patients and Families") setOpenMenu("patients");
+                  if (item.label === "Sites & Investigators") setOpenMenu("sites");
+                }}
+                onClick={() => {
+                  if (item.label === "Patients and Families") setOpenMenu((m) => (m === "patients" ? null : "patients"));
+                  if (item.label === "Sites & Investigators") setOpenMenu((m) => (m === "sites" ? null : "sites"));
+                }}
               >
                 <div className="relative w-fit mt-[-1.00px] font-text-lg-medium font-[number:var(--text-lg-medium-font-weight)] text-[#181d27] text-[length:var(--text-lg-medium-font-size)] text-center tracking-[var(--text-lg-medium-letter-spacing)] leading-[var(--text-lg-medium-line-height)] whitespace-nowrap [font-style:var(--text-lg-medium-font-style)] cursor-pointer">
                   {item.label}
