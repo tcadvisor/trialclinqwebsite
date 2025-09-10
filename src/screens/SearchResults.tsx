@@ -225,9 +225,15 @@ export const SearchResults = (): JSX.Element => {
                 onMouseEnter={() => setActiveDropdown(item.label === "Patients and Families" ? 'pf' : item.label === "Sites & Investigators" ? 'si' : null)}
                 onMouseLeave={() => setActiveDropdown(null)}
               >
-                <div className="relative w-fit mt-[-1.00px] font-text-lg-medium font-[number:var(--text-lg-medium-font-weight)] text-[#181d27] text-[length:var(--text-lg-medium-font-size)] text-center tracking-[var(--text-lg-medium-letter-spacing)] leading-[var(--text-lg-medium-line-height)] whitespace-nowrap [font-style:var(--text-lg-medium-font-style)] cursor-pointer">
-                  {item.label}
-                </div>
+                {item.label === "Contact Us" ? (
+                  <Link to="/contact" className="relative w-fit mt-[-1.00px] font-text-lg-medium font-[number:var(--text-lg-medium-font-weight)] text-[#181d27] text-[length:var(--text-lg-medium-font-size)] text-center tracking-[var(--text-lg-medium-letter-spacing)] leading-[var(--text-lg-medium-line-height)] whitespace-nowrap [font-style:var(--text-lg-medium-font-style)] cursor-pointer">
+                    {item.label}
+                  </Link>
+                ) : (
+                  <div className="relative w-fit mt-[-1.00px] font-text-lg-medium font-[number:var(--text-lg-medium-font-weight)] text-[#181d27] text-[length:var(--text-lg-medium-font-size)] text-center tracking-[var(--text-lg-medium-letter-spacing)] leading-[var(--text-lg-medium-line-height)] whitespace-nowrap [font-style:var(--text-lg-medium-font-style)] cursor-pointer">
+                    {item.label}
+                  </div>
+                )}
                 {item.hasDropdown && (
                   <div className="relative w-4 h-4 bg-[#dde1fd] rounded-[99px] overflow-hidden cursor-pointer">
                     <ChevronDownIcon className="absolute w-4 h-4 top-0 left-0" />
