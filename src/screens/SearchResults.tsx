@@ -59,6 +59,8 @@ const companyLinks = ["Terms of Conditions", "Contact Us", "About Us", "Privacy 
 
 export const SearchResults = (): JSX.Element => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [minAge, setMinAge] = useState<number>(25);
+  const [maxAge, setMaxAge] = useState<number>(50);
 
   const dropdownItems = [
     {
@@ -88,6 +90,33 @@ export const SearchResults = (): JSX.Element => {
     }
   ];
 
+  const parseAgeRange = (range: string): { min: number; max: number } => {
+    const match = range.match(/(\d+)\s*-\s*(\d+)/);
+    if (!match) return { min: 0, max: 120 };
+    return { min: parseInt(match[1], 10), max: parseInt(match[2], 10) };
+  };
+
+  const filteredTrials = trialResults.filter((t) => {
+    const { min, max } = parseAgeRange(t.ageRange);
+    return min <= maxAge && max >= minAge;
+  });
+
+  const handleMinChange = (value: number) => {
+    if (value >= maxAge) {
+      setMinAge(maxAge - 1);
+    } else {
+      setMinAge(value);
+    }
+  };
+
+  const handleMaxChange = (value: number) => {
+    if (value <= minAge) {
+      setMaxAge(minAge + 1);
+    } else {
+      setMaxAge(value);
+    }
+  };
+
   return (
     <div className="flex flex-col w-full items-center relative bg-[#ffffff]">
       <header className="flex-col w-full justify-center gap-2.5 px-2.5 py-3 bg-gray-25 flex items-center relative flex-[0_0_auto]">
@@ -115,7 +144,7 @@ export const SearchResults = (): JSX.Element => {
                     <ChevronDownIcon className="absolute w-4 h-4 top-0 left-0" />
                   </div>
                 )}
-                
+
                 {/* Dropdown Menu */}
                 {item.label === "Patients and Families" && isDropdownOpen && (
                   <div className="absolute top-full left-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
@@ -190,7 +219,7 @@ export const SearchResults = (): JSX.Element => {
             Search
           </Button>
         </div>
-        <h1 className="text-2xl font-semibold mb-8">We found 7 clinical trials that match your search.</h1>
+        <h1 className="text-2xl font-semibold mb-8">We found {filteredTrials.length} clinical trial{filteredTrials.length === 1 ? '' : 's'} that match your search.</h1>
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           <aside className="lg:col-span-1">
             <Card>
@@ -206,12 +235,36 @@ export const SearchResults = (): JSX.Element => {
                   </div>
                   <div>
                     <h4 className="font-medium mb-2">Age Range</h4>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm">25yr</span>
-                      <div className="flex-1 h-2 bg-gray-200 rounded">
-                        <div className="h-2 bg-blue-500 rounded w-1/2"></div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-sm">{minAge}yr</span>
+                      <span className="text-xs text-gray-500">to</span>
+                      <span className="text-sm">{maxAge}yr</span>
+                    </div>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-gray-600 w-16">Min age</span>
+                        <input
+                          type="range"
+                          min={0}
+                          max={100}
+                          value={minAge}
+                          onChange={(e) => handleMinChange(parseInt(e.target.value, 10))}
+                          className="w-full"
+                        />
+                        <span className="text-xs text-gray-600 w-10 text-right">{minAge}</span>
                       </div>
-                      <span className="text-sm">50yr</span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-gray-600 w-16">Max age</span>
+                        <input
+                          type="range"
+                          min={minAge + 1}
+                          max={100}
+                          value={maxAge}
+                          onChange={(e) => handleMaxChange(parseInt(e.target.value, 10))}
+                          className="w-full"
+                        />
+                        <span className="text-xs text-gray-600 w-10 text-right">{maxAge}</span>
+                      </div>
                     </div>
                   </div>
                   <div>
@@ -244,7 +297,7 @@ export const SearchResults = (): JSX.Element => {
             </Card>
           </aside>
           <div className="lg:col-span-3 space-y-6">
-            {trialResults.map((trial, index) => (
+            {filteredTrials.map((trial, index) => (
               <Card key={index}>
                 <CardContent className="p-6">
                   <div className="flex justify-between items-start mb-4">
