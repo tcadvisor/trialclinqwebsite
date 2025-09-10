@@ -38,12 +38,12 @@ export default function Home() {
   ];
 
   const providerItems = [
-    { icon: FileTextIcon, title: "Insider Blog", description: "Industry trends, site management tips, and recruitment insights." },
-    { icon: MegaphoneIcon, title: "Visibility/ Marketing Options", description: "Boost your trial listings and site visibility to eligible patients." },
-    { icon: LayersIcon, title: "Multicenter Listings", description: "View and manage your active multicenter trial sites." },
-    { icon: LifeBuoyIcon, title: "TrialCliniq Support Center", description: "Contact support or access onboarding guides for investigators." },
-    { icon: UserPlusIcon, title: "Create Provider Account", description: "Access your investigator or site admin dashboard." },
-    { icon: LogInIcon, title: "Provider Login", description: "Access your investigator or site admin dashboard." },
+    { icon: FileTextIcon, title: "Insider Blog", description: "Industry trends, site management tips, and recruitment insights.", to: "/providers/blog" },
+    { icon: MegaphoneIcon, title: "Visibility/ Marketing Options", description: "Boost your trial listings and site visibility to eligible patients.", to: "/providers/marketing" },
+    { icon: LayersIcon, title: "Multicenter Listings", description: "View and manage your active multicenter trial sites.", to: "/providers/multicenter" },
+    { icon: LifeBuoyIcon, title: "TrialCliniq Support Center", description: "Contact support or access onboarding guides for investigators.", to: "/providers/support" },
+    { icon: UserPlusIcon, title: "Create Provider Account", description: "Access your investigator or site admin dashboard.", to: "/providers/create-account" },
+    { icon: LogInIcon, title: "Provider Login", description: "Access your investigator or site admin dashboard.", to: "/providers/login" },
   ];
 
   const handleSearch = (e?: React.MouseEvent | React.FormEvent) => {
