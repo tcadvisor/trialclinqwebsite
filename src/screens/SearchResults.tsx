@@ -5,7 +5,7 @@ import { Card, CardContent } from "../components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { Badge } from "../components/ui/badge";
 import { Separator } from "../components/ui/separator";
-import { ChevronDownIcon, MapPinIcon, ClockIcon, UsersIcon, GridIcon, HelpCircleIcon, ShieldIcon, UserPlusIcon, LogInIcon } from "lucide-react";
+import { ChevronDownIcon, MapPinIcon, ClockIcon, UsersIcon, GridIcon, HelpCircleIcon, ShieldIcon, UserPlusIcon, LogInIcon, FileTextIcon, MegaphoneIcon, LayersIcon, LifeBuoyIcon } from "lucide-react";
 
 const navigationItems = [
   { label: "Patients and Families", hasDropdown: true },
@@ -58,7 +58,7 @@ const solutionsLinks = ["Find a study", "More about trials", "How TrialCliniq he
 const companyLinks = ["Terms of Conditions", "Contact Us", "About Us", "Privacy Policy"];
 
 export const SearchResults = (): JSX.Element => {
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [activeDropdown, setActiveDropdown] = useState<null | 'pf' | 'si'>(null);
   const [minAge, setMinAge] = useState<number>(0);
   const [maxAge, setMaxAge] = useState<number>(100);
 
@@ -88,6 +88,39 @@ export const SearchResults = (): JSX.Element => {
       title: "Participant Login",
       description: "Manage your trial matches and track your enrollment progress."
     }
+  ];
+
+  const providerItems = [
+    {
+      icon: FileTextIcon,
+      title: "Insider Blog",
+      description: "Industry trends, site management tips, and recruitment insights.",
+    },
+    {
+      icon: MegaphoneIcon,
+      title: "Visibility/ Marketing Options",
+      description: "Boost your trial listings and site visibility to eligible patients.",
+    },
+    {
+      icon: LayersIcon,
+      title: "Multicenter Listings",
+      description: "View and manage your active multicenter trial sites.",
+    },
+    {
+      icon: LifeBuoyIcon,
+      title: "TrialCliniq Support Center",
+      description: "Contact support or access onboarding guides for investigators.",
+    },
+    {
+      icon: UserPlusIcon,
+      title: "Create Provider Account",
+      description: "Access your investigator or site admin dashboard.",
+    },
+    {
+      icon: LogInIcon,
+      title: "Provider Login",
+      description: "Access your investigator or site admin dashboard.",
+    },
   ];
 
   const parseAgeRange = (range: string): { min: number; max: number } => {
@@ -189,8 +222,8 @@ export const SearchResults = (): JSX.Element => {
               <div
                 key={index}
                 className="inline-flex items-center justify-center gap-1 px-4 py-2 relative flex-[0_0_auto] rounded"
-                onMouseEnter={() => item.label === "Patients and Families" && setIsDropdownOpen(true)}
-                onMouseLeave={() => item.label === "Patients and Families" && setIsDropdownOpen(false)}
+                onMouseEnter={() => setActiveDropdown(item.label === "Patients and Families" ? 'pf' : item.label === "Sites & Investigators" ? 'si' : null)}
+                onMouseLeave={() => setActiveDropdown(null)}
               >
                 <div className="relative w-fit mt-[-1.00px] font-text-lg-medium font-[number:var(--text-lg-medium-font-weight)] text-[#181d27] text-[length:var(--text-lg-medium-font-size)] text-center tracking-[var(--text-lg-medium-letter-spacing)] leading-[var(--text-lg-medium-line-height)] whitespace-nowrap [font-style:var(--text-lg-medium-font-style)] cursor-pointer">
                   {item.label}
@@ -202,7 +235,7 @@ export const SearchResults = (): JSX.Element => {
                 )}
 
                 {/* Dropdown Menu */}
-                {item.label === "Patients and Families" && isDropdownOpen && (
+                {item.label === "Patients and Families" && activeDropdown === 'pf' && (
                   <div className="absolute top-full left-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
                     <div className="py-4">
                       {dropdownItems.map((dropdownItem, dropdownIndex) => (
@@ -214,6 +247,35 @@ export const SearchResults = (): JSX.Element => {
                           <div className="flex-shrink-0 mt-1">
                             {(() => {
                               const Icon = dropdownItem.icon;
+                              return <Icon className="w-5 h-5 text-gray-600 group-hover:text-gray-900" />;
+                            })()}
+                          </div>
+
+                          <div className="flex-1">
+                            <h4 className="text-sm font-semibold text-gray-900 mb-1">
+                              {dropdownItem.title}
+                            </h4>
+                            <p className="text-xs text-gray-600 leading-relaxed">
+                              {dropdownItem.description}
+                            </p>
+                          </div>
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {item.label === "Sites & Investigators" && activeDropdown === 'si' && (
+                  <div className="absolute top-full left-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                    <div className="py-4">
+                      {providerItems.map((dropdownItem, dropdownIndex) => (
+                        <a
+                          key={dropdownIndex}
+                          href="#"
+                          className="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors group"
+                        >
+                          <div className="flex-shrink-0 mt-1">
+                            {(() => {
+                              const Icon = dropdownItem.icon as any;
                               return <Icon className="w-5 h-5 text-gray-600 group-hover:text-gray-900" />;
                             })()}
                           </div>
