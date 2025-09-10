@@ -128,7 +128,7 @@ export default function Home() {
                 </div>
               )}
             </div>
-            <button className="hover:text-gray-900">Contact Us</button>
+            <Link to="/contact" className="hover:text-gray-900">Contact Us</Link>
             <button className="hover:text-gray-900">About Us</button>
           </nav>
           <div className="flex items-center gap-3">
