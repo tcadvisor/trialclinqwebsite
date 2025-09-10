@@ -252,6 +252,32 @@ export const SearchResults = (): JSX.Element => {
                     </div>
                   </div>
                 )}
+
+                {item.label === "Sites & Investigators" && openMenu === "sites" && (
+                  <div className="absolute top-full left-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                    <div className="py-4">
+                      {dropdownItemsSites.map((dropdownItem, dropdownIndex) => (
+                        <Link
+                          key={dropdownIndex}
+                          to={dropdownItem.to as string}
+                          className="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors group"
+                          onClick={() => setOpenMenu(null)}
+                        >
+                          <div className="flex-shrink-0 mt-1">
+                            {(() => {
+                              const Icon = dropdownItem.icon as any;
+                              return <Icon className="w-5 h-5 text-gray-600 group-hover:text-gray-900" />;
+                            })()}
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="text-sm font-semibold text-gray-900 mb-1">{dropdownItem.title}</h4>
+                            <p className="text-xs text-gray-600 leading-relaxed">{dropdownItem.description}</p>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
