@@ -1,11 +1,40 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Search, CheckCircle2, Shield, ArrowRight } from "lucide-react";
+import { Search, CheckCircle2, Shield, ArrowRight, ChevronDownIcon, GridIcon, HelpCircleIcon, ShieldIcon, UserPlusIcon, LogInIcon } from "lucide-react";
 
 export default function Home() {
   const navigate = useNavigate();
   const [query, setQuery] = useState("Chronic Pain");
   const [location, setLocation] = useState("10090, Niagara falls, USA");
+  const [isPFOpen, setIsPFOpen] = useState(false);
+
+  const dropdownItems = [
+    {
+      icon: GridIcon,
+      title: "Find a clinical trial",
+      description: "Search active clinical trials near you by using filters and get matched instantly.",
+    },
+    {
+      icon: HelpCircleIcon,
+      title: "Frequently Asked Questions",
+      description: "Find answers to common questions and resources for navigating your clinical trial journey.",
+    },
+    {
+      icon: ShieldIcon,
+      title: "Consent & Data Privacy",
+      description: "Learn how your personal health data is securely collected, protected, and used for clinical trial matching.",
+    },
+    {
+      icon: UserPlusIcon,
+      title: "Become a clinical trial volunteer",
+      description: "Sign up to receive personalized clinical trial matches based on your health profile and location.",
+    },
+    {
+      icon: LogInIcon,
+      title: "Participant Login",
+      description: "Manage your trial matches and track your enrollment progress.",
+    },
+  ];
 
   const handleSearch = (e?: React.MouseEvent | React.FormEvent) => {
     if (e) e.preventDefault();
@@ -32,8 +61,35 @@ export default function Home() {
               className="h-8 w-auto"
             />
           </Link>
-          <nav className="hidden md:flex items-center gap-6 text-sm text-gray-700">
-            <button className="hover:text-gray-900">Patients and Families</button>
+          <nav className="hidden md:flex items-center gap-6 text-sm text-gray-700 relative">
+            <div
+              className="relative"
+              onMouseEnter={() => setIsPFOpen(true)}
+              onMouseLeave={() => setIsPFOpen(false)}
+            >
+              <button className="inline-flex items-center gap-1 hover:text-gray-900">
+                Patients and Families
+                <ChevronDownIcon className="w-4 h-4" />
+              </button>
+              {isPFOpen && (
+                <div className="absolute left-0 mt-3 w-[340px] bg-white rounded-2xl shadow-lg border p-2">
+                  <div className="py-2">
+                    {dropdownItems.map((item, i) => {
+                      const Icon = item.icon as any;
+                      return (
+                        <a key={i} href="#" className="flex items-start gap-3 px-3 py-3 rounded-lg hover:bg-gray-50">
+                          <Icon className="w-5 h-5 text-gray-600 mt-0.5" />
+                          <div>
+                            <div className="text-sm font-semibold text-gray-900">{item.title}</div>
+                            <div className="text-xs text-gray-600 leading-relaxed">{item.description}</div>
+                          </div>
+                        </a>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
             <button className="hover:text-gray-900">Sites & Investigators</button>
             <button className="hover:text-gray-900">Contact Us</button>
             <button className="hover:text-gray-900">About Us</button>
