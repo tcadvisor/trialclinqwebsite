@@ -95,6 +95,15 @@ export const SearchResults = (): JSX.Element => {
     }
   ];
 
+  const dropdownItemsSites = [
+    { icon: NewspaperIcon, title: "Insider Blog", description: "Industry trends, site management tips, and recruitment insights.", to: "/sites/blog" },
+    { icon: MegaphoneIcon, title: "Visibility/ Marketing Options", description: "Boost your trial listings and site visibility to eligible patients.", to: "/sites/visibility" },
+    { icon: Building2Icon, title: "Multicenter Listings", description: "View and manage your active multicenter trial sites.", to: "/sites/multicenter" },
+    { icon: HelpCircleIcon, title: "TrialCliniq Support Center", description: "Contact support or access onboarding guides for investigators.", to: "/sites/support" },
+    { icon: UserPlusIcon, title: "Create Provider Account", description: "Access your investigator or site admin dashboard.", to: "/sites/create-account" },
+    { icon: LogInIcon, title: "Provider Login", description: "Access your investigator or site admin dashboard.", to: "/sites/login" },
+  ];
+
   const parseAgeRange = (range: string): { min: number; max: number } => {
     const match = range.match(/(\d+)\s*-\s*(\d+)/);
     if (!match) return { min: 0, max: 120 };
