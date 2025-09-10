@@ -59,6 +59,9 @@ const companyLinks = ["Terms of Conditions", "Contact Us", "About Us", "Privacy 
 
 export const SearchResults = (): JSX.Element => {
   const [activeDropdown, setActiveDropdown] = useState<null | 'pf' | 'si'>(null);
+  const hoverTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const openMenu = (key: 'pf' | 'si') => { if (hoverTimer.current) clearTimeout(hoverTimer.current); setActiveDropdown(key); };
+  const closeMenuDelayed = () => { if (hoverTimer.current) clearTimeout(hoverTimer.current); hoverTimer.current = setTimeout(() => setActiveDropdown(null), 150); };
   const [minAge, setMinAge] = useState<number>(0);
   const [maxAge, setMaxAge] = useState<number>(100);
 
@@ -222,8 +225,8 @@ export const SearchResults = (): JSX.Element => {
               <div
                 key={index}
                 className="inline-flex items-center justify-center gap-1 px-4 py-2 relative flex-[0_0_auto] rounded"
-                onMouseEnter={() => setActiveDropdown(item.label === "Patients and Families" ? 'pf' : item.label === "Sites & Investigators" ? 'si' : null)}
-                onMouseLeave={() => setActiveDropdown(null)}
+                onMouseEnter={() => item.label === "Patients and Families" ? openMenu('pf') : item.label === "Sites & Investigators" ? openMenu('si') : undefined}
+                onMouseLeave={closeMenuDelayed}
               >
                 {item.label === "Contact Us" ? (
                   <Link to="/contact" className="relative w-fit mt-[-1.00px] font-text-lg-medium font-[number:var(--text-lg-medium-font-weight)] text-[#181d27] text-[length:var(--text-lg-medium-font-size)] text-center tracking-[var(--text-lg-medium-letter-spacing)] leading-[var(--text-lg-medium-line-height)] whitespace-nowrap [font-style:var(--text-lg-medium-font-style)] cursor-pointer">
@@ -242,7 +245,9 @@ export const SearchResults = (): JSX.Element => {
 
                 {/* Dropdown Menu */}
                 {item.label === "Patients and Families" && activeDropdown === 'pf' && (
-                  <div className="absolute top-full left-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                  <div className="absolute top-full left-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50"
+                       onMouseEnter={() => openMenu('pf')}
+                       onMouseLeave={closeMenuDelayed}>
                     <div className="py-4">
                       {dropdownItems.map((dropdownItem, dropdownIndex) => (
                         <Link
@@ -271,7 +276,9 @@ export const SearchResults = (): JSX.Element => {
                   </div>
                 )}
                 {item.label === "Sites & Investigators" && activeDropdown === 'si' && (
-                  <div className="absolute top-full left-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                  <div className="absolute top-full left-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50"
+                       onMouseEnter={() => openMenu('si')}
+                       onMouseLeave={closeMenuDelayed}>
                     <div className="py-4">
                       {providerItems.map((dropdownItem, dropdownIndex) => (
                         <Link
