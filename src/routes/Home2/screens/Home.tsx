@@ -20,26 +20,31 @@ export default function Home() {
       icon: GridIcon,
       title: "Find a clinical trial",
       description: "Search active clinical trials near you by using filters and get matched instantly.",
+      to: "/patients/find-trial",
     },
     {
       icon: HelpCircleIcon,
       title: "Frequently Asked Questions",
       description: "Find answers to common questions and resources for navigating your clinical trial journey.",
+      to: "/patients/faq",
     },
     {
       icon: ShieldIcon,
       title: "Consent & Data Privacy",
       description: "Learn how your personal health data is securely collected, protected, and used for clinical trial matching.",
+      to: "/patients/privacy",
     },
     {
       icon: UserPlusIcon,
       title: "Become a clinical trial volunteer",
       description: "Sign up to receive personalized clinical trial matches based on your health profile and location.",
+      to: "/patients/volunteer",
     },
     {
       icon: LogInIcon,
       title: "Participant Login",
       description: "Manage your trial matches and track your enrollment progress.",
+      to: "/patients/login",
     },
   ];
 
@@ -95,7 +100,7 @@ export default function Home() {
                     {dropdownItems.map((item, i) => {
                       const Icon = item.icon as any;
                       return (
-                        <Link key={i} to="#" className="flex items-start gap-3 px-3 py-3 rounded-lg hover:bg-gray-50">
+                        <Link key={i} to={(item as any).to} className="flex items-start gap-3 px-3 py-3 rounded-lg hover:bg-gray-50">
                           <Icon className="w-5 h-5 text-gray-600 mt-0.5" />
                           <div>
                             <div className="text-sm font-semibold text-gray-900">{item.title}</div>
