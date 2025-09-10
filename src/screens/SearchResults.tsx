@@ -59,7 +59,8 @@ const companyLinks = ["Terms of Conditions", "Contact Us", "About Us", "Privacy 
 
 export const SearchResults = (): JSX.Element => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [age, setAge] = useState<number>(0);
+  const [minAge, setMinAge] = useState<number>(0);
+  const [maxAge, setMaxAge] = useState<number>(100);
 
   const dropdownItems = [
     {
@@ -97,7 +98,7 @@ export const SearchResults = (): JSX.Element => {
 
   const filteredTrials = trialResults.filter((t) => {
     const { min, max } = parseAgeRange(t.ageRange);
-    return max >= age;
+    return min <= maxAge && max >= minAge;
   });
 
 
@@ -220,19 +221,34 @@ export const SearchResults = (): JSX.Element => {
                   </div>
                   <div>
                     <h4 className="font-medium mb-2">Age Range</h4>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs text-gray-500">0</span>
-                      <span className="text-xs text-gray-500">100</span>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-sm">{minAge}yr</span>
+                      <span className="text-xs text-gray-500">to</span>
+                      <span className="text-sm">{maxAge}yr</span>
                     </div>
-                    <input
-                      type="range"
-                      min={0}
-                      max={100}
-                      value={age}
-                      onChange={(e) => setAge(parseInt(e.target.value, 10))}
-                      className="w-full"
-                    />
-                    <div className="mt-2 text-sm text-gray-700">Selected: {age}+</div>
+                    <div className="relative h-6">
+                      <div className="absolute top-1/2 -translate-y-1/2 left-0 right-0 h-2 bg-gray-200 rounded" />
+                      <div
+                        className="absolute top-1/2 -translate-y-1/2 h-2 bg-blue-500 rounded"
+                        style={{ left: `${minAge}%`, width: `${Math.max(0, maxAge - minAge)}%` }}
+                      />
+                      <input
+                        type="range"
+                        min={0}
+                        max={100}
+                        value={minAge}
+                        onChange={(e) => setMinAge(Math.min(parseInt(e.target.value, 10), maxAge - 1))}
+                        className="absolute top-0 left-0 w-full bg-transparent"
+                      />
+                      <input
+                        type="range"
+                        min={0}
+                        max={100}
+                        value={maxAge}
+                        onChange={(e) => setMaxAge(Math.max(parseInt(e.target.value, 10), minAge + 1))}
+                        className="absolute top-0 left-0 w-full bg-transparent"
+                      />
+                    </div>
                   </div>
                   <div>
                     <h4 className="font-medium mb-2">Study Phase</h4>
