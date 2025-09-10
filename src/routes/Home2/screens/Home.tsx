@@ -147,7 +147,7 @@ export default function Home() {
             <button className="hover:text-gray-900">About Us</button>
           </nav>
           <div className="flex items-center gap-3">
-            <button className="px-4 py-2 text-sm rounded-full border border-gray-300 hover:bg-gray-50">Sign in</button>
+            <Link to="/patients/login" className="px-4 py-2 text-sm rounded-full border border-gray-300 hover:bg-gray-50">Sign in</Link>
             <Link to="/get-started" className="px-4 py-2 text-sm rounded-full bg-blue-600 text-white hover:bg-blue-700">Get Started</Link>
           </div>
         </div>
