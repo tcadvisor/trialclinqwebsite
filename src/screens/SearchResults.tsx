@@ -252,7 +252,7 @@ export const SearchResults = (): JSX.Element => {
                       {dropdownItems.map((dropdownItem, dropdownIndex) => (
                         <Link
                           key={dropdownIndex}
-                          to="#"
+                          to={(dropdownItems as any)[dropdownIndex].to as any}
                           className="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors group"
                         >
                           <div className="flex-shrink-0 mt-1">
