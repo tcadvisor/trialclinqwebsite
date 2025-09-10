@@ -222,7 +222,7 @@ export const SearchResults = (): JSX.Element => {
                 )}
 
                 {/* Dropdown Menu */}
-                {item.label === "Patients and Families" && isDropdownOpen && (
+                {item.label === "Patients and Families" && openMenu === "patients" && (
                   <div className="absolute top-full left-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
                     <div className="py-4">
                       {dropdownItems.map((dropdownItem, dropdownIndex) => (
