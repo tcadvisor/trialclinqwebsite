@@ -7,6 +7,7 @@ export default function Home() {
   const [query, setQuery] = useState("Chronic Pain");
   const [location, setLocation] = useState("10090, Niagara falls, USA");
   const [showBanner, setShowBanner] = useState(true);
+  const [patientsOpen, setPatientsOpen] = useState(false);
   const faq = useMemo(
     () => [
       {
@@ -50,17 +51,22 @@ export default function Home() {
             />
           </Link>
           <nav className="hidden md:flex items-center gap-8 text-sm">
-            <div className="relative group">
-              <button className="hover:text-gray-600 inline-flex items-center gap-1" aria-haspopup="menu" aria-expanded="false">
+            <div className="relative group" onMouseLeave={() => setPatientsOpen(false)}>
+              <button
+                className="hover:text-gray-600 inline-flex items-center gap-1"
+                aria-haspopup="menu"
+                aria-expanded={patientsOpen}
+                onClick={() => setPatientsOpen((v) => !v)}
+              >
                 Patients and Families
-                <span className="ml-1 text-gray-400 group-hover:rotate-180 transition-transform">▾</span>
+                <span className={`ml-1 text-gray-400 transition-transform ${patientsOpen ? "rotate-180" : "group-hover:rotate-180"}`}>▾</span>
               </button>
-              <div className="invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-opacity duration-150">
+              <div className={`${patientsOpen ? "visible opacity-100" : "invisible opacity-0 group-hover:visible group-hover:opacity-100"} transition-opacity duration-150`}>
                 <div className="absolute left-0 top-full mt-3 w-[520px]">
                   <div className="rounded-2xl border bg-white p-3 shadow-xl ring-1 ring-black/5">
                     <ul className="divide-y">
                       <li>
-                        <Link to="/search-results" className="flex gap-4 p-4 rounded-xl hover:bg-gray-50">
+                        <Link to="/patients/find-trial" className="flex gap-4 p-4 rounded-xl hover:bg-gray-50">
                           <div className="shrink-0 rounded-lg bg-blue-50 p-2"><Search className="h-5 w-5 text-blue-700" /></div>
                           <div>
                             <div className="font-medium">Find a clinical trial</div>
@@ -69,34 +75,34 @@ export default function Home() {
                         </Link>
                       </li>
                       <li>
-                        <a href="#faq" className="flex gap-4 p-4 rounded-xl hover:bg-gray-50">
+                        <Link to="/patients/faq" className="flex gap-4 p-4 rounded-xl hover:bg-gray-50">
                           <div className="shrink-0 rounded-lg bg-blue-50 p-2"><HelpCircle className="h-5 w-5 text-blue-700" /></div>
                           <div>
                             <div className="font-medium">Frequently Asked Questions</div>
                             <div className="text-gray-600 text-sm">Find answers to common questions and resources for navigating your clinical trial journey.</div>
                           </div>
-                        </a>
+                        </Link>
                       </li>
                       <li>
-                        <a href="#trusted" className="flex gap-4 p-4 rounded-xl hover:bg-gray-50">
+                        <Link to="/patients/privacy" className="flex gap-4 p-4 rounded-xl hover:bg-gray-50">
                           <div className="shrink-0 rounded-lg bg-blue-50 p-2"><Shield className="h-5 w-5 text-blue-700" /></div>
                           <div>
                             <div className="font-medium">Consent & Data Privacy</div>
                             <div className="text-gray-600 text-sm">Learn how your personal health data is securely collected, protected, and used for clinical trial matching.</div>
                           </div>
-                        </a>
+                        </Link>
                       </li>
                       <li>
-                        <a href="#journey" className="flex gap-4 p-4 rounded-xl hover:bg-gray-50">
+                        <Link to="/patients/volunteer" className="flex gap-4 p-4 rounded-xl hover:bg-gray-50">
                           <div className="shrink-0 rounded-lg bg-blue-50 p-2"><UserPlus className="h-5 w-5 text-blue-700" /></div>
                           <div>
                             <div className="font-medium">Become a clinical trial volunteer</div>
                             <div className="text-gray-600 text-sm">Sign up to receive personalized clinical trial matches based on your health profile and location.</div>
                           </div>
-                        </a>
+                        </Link>
                       </li>
                       <li>
-                        <Link to="/" className="flex gap-4 p-4 rounded-xl hover:bg-gray-50">
+                        <Link to="/patients/login" className="flex gap-4 p-4 rounded-xl hover:bg-gray-50">
                           <div className="shrink-0 rounded-lg bg-blue-50 p-2"><LogIn className="h-5 w-5 text-blue-700" /></div>
                           <div>
                             <div className="font-medium">Participant Login</div>
