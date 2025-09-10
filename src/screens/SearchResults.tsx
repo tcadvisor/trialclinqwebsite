@@ -58,7 +58,7 @@ const solutionsLinks = ["Find a study", "More about trials", "How TrialCliniq he
 const companyLinks = ["Terms of Conditions", "Contact Us", "About Us", "Privacy Policy"];
 
 export const SearchResults = (): JSX.Element => {
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [openMenu, setOpenMenu] = useState<null | "patients" | "sites">(null);
   const [minAge, setMinAge] = useState<number>(0);
   const [maxAge, setMaxAge] = useState<number>(100);
 
