@@ -195,7 +195,6 @@ export const SearchResults = (): JSX.Element => {
                 key={index}
                 className="inline-flex items-center justify-center gap-1 px-4 py-2 relative flex-[0_0_auto] rounded"
                 onMouseEnter={() => item.label === "Patients and Families" && setIsDropdownOpen(true)}
-                onMouseLeave={() => item.label === "Patients and Families" && setIsDropdownOpen(false)}
                 onClick={() => item.label === "Patients and Families" && setIsDropdownOpen((v) => !v)}
               >
                 <div className="relative w-fit mt-[-1.00px] font-text-lg-medium font-[number:var(--text-lg-medium-font-weight)] text-[#181d27] text-[length:var(--text-lg-medium-font-size)] text-center tracking-[var(--text-lg-medium-letter-spacing)] leading-[var(--text-lg-medium-line-height)] whitespace-nowrap [font-style:var(--text-lg-medium-font-style)] cursor-pointer">
