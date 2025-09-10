@@ -59,8 +59,7 @@ const companyLinks = ["Terms of Conditions", "Contact Us", "About Us", "Privacy 
 
 export const SearchResults = (): JSX.Element => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [minAge, setMinAge] = useState<number>(25);
-  const [maxAge, setMaxAge] = useState<number>(50);
+  const [age, setAge] = useState<number>(0);
 
   const dropdownItems = [
     {
@@ -98,24 +97,10 @@ export const SearchResults = (): JSX.Element => {
 
   const filteredTrials = trialResults.filter((t) => {
     const { min, max } = parseAgeRange(t.ageRange);
-    return min <= maxAge && max >= minAge;
+    return max >= age;
   });
 
-  const handleMinChange = (value: number) => {
-    if (value >= maxAge) {
-      setMinAge(maxAge - 1);
-    } else {
-      setMinAge(value);
-    }
-  };
 
-  const handleMaxChange = (value: number) => {
-    if (value <= minAge) {
-      setMaxAge(minAge + 1);
-    } else {
-      setMaxAge(value);
-    }
-  };
 
   return (
     <div className="flex flex-col w-full items-center relative bg-[#ffffff]">
@@ -235,37 +220,19 @@ export const SearchResults = (): JSX.Element => {
                   </div>
                   <div>
                     <h4 className="font-medium mb-2">Age Range</h4>
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-sm">{minAge}yr</span>
-                      <span className="text-xs text-gray-500">to</span>
-                      <span className="text-sm">{maxAge}yr</span>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs text-gray-500">0</span>
+                      <span className="text-xs text-gray-500">100</span>
                     </div>
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs text-gray-600 w-16">Min age</span>
-                        <input
-                          type="range"
-                          min={0}
-                          max={100}
-                          value={minAge}
-                          onChange={(e) => handleMinChange(parseInt(e.target.value, 10))}
-                          className="w-full"
-                        />
-                        <span className="text-xs text-gray-600 w-10 text-right">{minAge}</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs text-gray-600 w-16">Max age</span>
-                        <input
-                          type="range"
-                          min={minAge + 1}
-                          max={100}
-                          value={maxAge}
-                          onChange={(e) => handleMaxChange(parseInt(e.target.value, 10))}
-                          className="w-full"
-                        />
-                        <span className="text-xs text-gray-600 w-10 text-right">{maxAge}</span>
-                      </div>
-                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={100}
+                      value={age}
+                      onChange={(e) => setAge(parseInt(e.target.value, 10))}
+                      className="w-full"
+                    />
+                    <div className="mt-2 text-sm text-gray-700">Selected: {age}+</div>
                   </div>
                   <div>
                     <h4 className="font-medium mb-2">Study Phase</h4>
