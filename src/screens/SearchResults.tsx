@@ -66,27 +66,32 @@ export const SearchResults = (): JSX.Element => {
     {
       icon: GridIcon,
       title: "Find a clinical trial",
-      description: "Search active clinical trials near you by using filters and get matched instantly."
+      description: "Search active clinical trials near you by using filters and get matched instantly.",
+      to: "/patients/find-trial",
     },
     {
       icon: HelpCircleIcon,
       title: "Frequently Asked Questions",
-      description: "Find answers to common questions and resources for navigating your clinical trial journey."
+      description: "Find answers to common questions and resources for navigating your clinical trial journey.",
+      to: "/patients/faq",
     },
     {
       icon: ShieldIcon,
       title: "Consent & Data Privacy",
-      description: "Learn how your personal health data is securely collected, protected, and used for clinical trial matching."
+      description: "Learn how your personal health data is securely collected, protected, and used for clinical trial matching.",
+      to: "/patients/privacy",
     },
     {
       icon: UserPlusIcon,
       title: "Become a clinical trial volunteer",
-      description: "Sign up to receive personalized clinical trial matches based on your health profile and location."
+      description: "Sign up to receive personalized clinical trial matches based on your health profile and location.",
+      to: "/patients/volunteer",
     },
     {
       icon: LogInIcon,
       title: "Participant Login",
-      description: "Manage your trial matches and track your enrollment progress."
+      description: "Manage your trial matches and track your enrollment progress.",
+      to: "/patients/login",
     }
   ];
 
@@ -191,6 +196,7 @@ export const SearchResults = (): JSX.Element => {
                 className="inline-flex items-center justify-center gap-1 px-4 py-2 relative flex-[0_0_auto] rounded"
                 onMouseEnter={() => item.label === "Patients and Families" && setIsDropdownOpen(true)}
                 onMouseLeave={() => item.label === "Patients and Families" && setIsDropdownOpen(false)}
+                onClick={() => item.label === "Patients and Families" && setIsDropdownOpen((v) => !v)}
               >
                 <div className="relative w-fit mt-[-1.00px] font-text-lg-medium font-[number:var(--text-lg-medium-font-weight)] text-[#181d27] text-[length:var(--text-lg-medium-font-size)] text-center tracking-[var(--text-lg-medium-letter-spacing)] leading-[var(--text-lg-medium-line-height)] whitespace-nowrap [font-style:var(--text-lg-medium-font-style)] cursor-pointer">
                   {item.label}
