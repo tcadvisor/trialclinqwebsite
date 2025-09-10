@@ -8,6 +8,12 @@ export default function Home() {
   const [location, setLocation] = useState("10090, Niagara falls, USA");
   const [isPFOpen, setIsPFOpen] = useState(false);
   const [isSIOpen, setIsSIOpen] = useState(false);
+  const pfTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const siTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const openPF = () => { if (pfTimer.current) clearTimeout(pfTimer.current); setIsPFOpen(true); };
+  const closePFDelayed = () => { if (pfTimer.current) clearTimeout(pfTimer.current); pfTimer.current = setTimeout(() => setIsPFOpen(false), 150); };
+  const openSI = () => { if (siTimer.current) clearTimeout(siTimer.current); setIsSIOpen(true); };
+  const closeSIDelayed = () => { if (siTimer.current) clearTimeout(siTimer.current); siTimer.current = setTimeout(() => setIsSIOpen(false), 150); };
 
   const dropdownItems = [
     {
@@ -74,15 +80,17 @@ export default function Home() {
           <nav className="hidden md:flex items-center gap-6 text-sm text-gray-700 relative">
             <div
               className="relative"
-              onMouseEnter={() => setIsPFOpen(true)}
-              onMouseLeave={() => setIsPFOpen(false)}
+              onMouseEnter={openPF}
+              onMouseLeave={closePFDelayed}
             >
               <button className="inline-flex items-center gap-1 hover:text-gray-900">
                 Patients and Families
                 <ChevronDownIcon className="w-4 h-4" />
               </button>
               {isPFOpen && (
-                <div className="absolute left-0 mt-3 w-[340px] bg-white rounded-2xl shadow-lg border p-2">
+                <div className="absolute left-0 mt-3 w-[340px] bg-white rounded-2xl shadow-lg border p-2"
+                     onMouseEnter={openPF}
+                     onMouseLeave={closePFDelayed}>
                   <div className="py-2">
                     {dropdownItems.map((item, i) => {
                       const Icon = item.icon as any;
@@ -102,15 +110,17 @@ export default function Home() {
             </div>
             <div
               className="relative"
-              onMouseEnter={() => setIsSIOpen(true)}
-              onMouseLeave={() => setIsSIOpen(false)}
+              onMouseEnter={openSI}
+              onMouseLeave={closeSIDelayed}
             >
               <button className="inline-flex items-center gap-1 hover:text-gray-900">
                 Sites & Investigators
                 <ChevronDownIcon className="w-4 h-4" />
               </button>
               {isSIOpen && (
-                <div className="absolute left-0 mt-3 w-[360px] bg-white rounded-2xl shadow-lg border p-2">
+                <div className="absolute left-0 mt-3 w-[360px] bg-white rounded-2xl shadow-lg border p-2"
+                     onMouseEnter={openSI}
+                     onMouseLeave={closeSIDelayed}>
                   <div className="py-2">
                     {providerItems.map((item, i) => {
                       const Icon = item.icon as any;
