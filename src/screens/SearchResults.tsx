@@ -23,6 +23,18 @@ export const SearchResults = (): JSX.Element => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [minAge, setMinAge] = useState<number>(0);
   const [maxAge, setMaxAge] = useState<number>(100);
+  const { search } = useLocation();
+
+  const { conditionLabel, locationLabel } = useMemo(() => {
+    const params = new URLSearchParams(search);
+    const q = params.get("q")?.trim();
+    const loc = params.get("loc")?.trim();
+    // Defaults align with Home page defaults for direct visits
+    return {
+      conditionLabel: q && q.length > 0 ? q : "Chronic Pain",
+      locationLabel: loc && loc.length > 0 ? loc : "10090, Niagara falls, USA",
+    };
+  }, [search]);
 
   const dropdownItems = [
     {
