@@ -11,7 +11,7 @@ export default function Login(): JSX.Element {
     e.preventDefault();
     setError(null);
     const eNorm = email.trim().toLowerCase();
-    if (eNorm === "test" && password === "test") {
+    if ((eNorm === "chandler@test.com" || eNorm === "test") && password === "test") {
       navigate("/patients/dashboard");
       return;
     }
