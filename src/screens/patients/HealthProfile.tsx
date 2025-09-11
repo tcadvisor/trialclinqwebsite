@@ -61,7 +61,7 @@ function formatDate(ts: number): string {
   return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
 }
 
-function Documents(): JSX.Element {
+function Documents({ onCountChange }: { onCountChange?: (count: number) => void }): JSX.Element {
   const [category, setCategory] = useState<DocCategory>("Diagnostic Reports");
   const [query, setQuery] = useState("");
   const [docs, setDocs] = useState<DocItem[]>(() => {
