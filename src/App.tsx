@@ -12,6 +12,7 @@ import MulticenterListings from "./screens/sites/MulticenterListings";
 import InvestigatorSupport from "./screens/support/InvestigatorSupport";
 import CreateAccount from "./screens/providers/CreateAccount";
 import ProviderLogin from "./screens/providers/Login";
+import Dashboard from "./screens/patients/Dashboard";
 
 function App() {
   return (
@@ -30,6 +31,7 @@ function App() {
         <Route path="/support/investigators" element={<InvestigatorSupport />} />
         <Route path="/providers/create" element={<CreateAccount />} />
         <Route path="/providers/login" element={<ProviderLogin />} />
+        <Route path="/patients/dashboard" element={<Dashboard />} />
       </Routes>
     </Router>
   );
