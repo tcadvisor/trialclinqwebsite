@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Search, CheckCircle2, Shield, UserRound, ArrowRight, HelpCircle, UserPlus, LogIn, FileText, Megaphone, Layers, LifeBuoy } from "lucide-react";
+import HeaderActions from "../../../components/HeaderActions";
 
 export default function Home() {
   const navigate = useNavigate();
@@ -193,8 +194,7 @@ export default function Home() {
             <a href="#faq" className="hover:text-gray-600">About Us</a>
           </nav>
           <div className="flex items-center gap-3">
-            <Link to="/patients/login" className="px-4 py-2 text-sm rounded-full border border-blue-600 text-blue-700 hover:bg-blue-50">Sign in</Link>
-            <Link to="/patients/volunteer" className="px-4 py-2 text-sm rounded-full bg-blue-600 text-white hover:bg-blue-700">Get Started</Link>
+            <HeaderActions />
           </div>
         </div>
       </header>
