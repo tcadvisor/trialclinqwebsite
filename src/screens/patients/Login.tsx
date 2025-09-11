@@ -1,5 +1,6 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { login } from "../../lib/auth";
 
 export default function Login(): JSX.Element {
   const navigate = useNavigate();
@@ -12,12 +13,8 @@ export default function Login(): JSX.Element {
     setError(null);
     const eNorm = email.trim().toLowerCase();
     if ((eNorm === "chandler@test.com" || eNorm === "test") && password === "test") {
-      try {
-        const name = eNorm.includes("@") ? eNorm.split("@")[0] : eNorm;
-        // Lazy auth: store session for this browser
-        const { login } = require("../../lib/auth");
-        login({ email: eNorm, name });
-      } catch {}
+      const name = eNorm.includes("@") ? eNorm.split("@")[0] : eNorm;
+      login({ email: eNorm, name });
       navigate("/patients/dashboard");
       return;
     }
