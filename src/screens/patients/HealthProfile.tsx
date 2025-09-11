@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { supabase } from "../../lib/supabaseClient";
 import {
   PencilIcon,
   Trash2Icon,
@@ -367,6 +368,34 @@ export default function HealthProfile(): JSX.Element {
     }
   });
 
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [fullName, setFullName] = useState<string | null>(null);
+
+  useEffect(() => {
+    let ignore = false;
+    (async () => {
+      const { data } = await supabase.auth.getUser();
+      const u = data.user;
+      if (!u) return;
+      if (!ignore) setUserEmail(u.email ?? null);
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", u.id)
+        .maybeSingle();
+      if (!ignore) setFullName(profile?.full_name ?? null);
+    })();
+    return () => { ignore = true; };
+  }, []);
+
+  const initials = (fullName ?? userEmail ?? "")
+    .split(/\s+/)
+    .map((s) => s[0])
+    .filter(Boolean)
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
   const Allergies: { name: string; note?: string }[] = [
     { name: "Pollen", note: "Itchy nose and watery eyes" },
     { name: "Caffeine", note: "Sore throat" },
@@ -392,15 +421,15 @@ export default function HealthProfile(): JSX.Element {
             <Link to="/patients/faq" className="hover:text-gray-600">Help Center</Link>
           </nav>
           <div className="flex items-center gap-3">
-            <button className="h-9 px-3 rounded-full border bg-white text-gray-700 hover:bg-gray-50">OB</button>
+            <button className="h-9 px-3 rounded-full border bg-white text-gray-700 hover:bg-gray-50">{initials || "OB"}</button>
           </div>
         </div>
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-8">
         <h1 className="text-2xl sm:text-3xl font-semibold">Health Profile</h1>
-        <div className="mt-1 text-gray-700">Olivia Brian</div>
-        <div className="text-sm text-gray-500">olivia.br@example.com</div>
+        <div className="mt-1 text-gray-700">{fullName ?? ""}</div>
+        <div className="text-sm text-gray-500">{userEmail ?? ""}</div>
 
         <div className="mt-6 flex items-center gap-6 text-sm">
           <button
@@ -444,7 +473,7 @@ export default function HealthProfile(): JSX.Element {
                         <span className="text-sm">Email</span>
                       </div>
                       <div className="text-sm text-gray-900 flex items-center gap-2">
-                        <span>olivia.br@example.com</span>
+                        <span>{userEmail ?? "—"}</span>
                         <span className="text-amber-600 text-xs">Not verified</span>
                         <button className="text-[#1033e5] text-xs underline">Verify Now</button>
                       </div>
