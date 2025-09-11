@@ -1,30 +1,21 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { supabase } from "../../lib/supabaseClient";
 
 export default function Login(): JSX.Element {
   const navigate = useNavigate();
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
-  const [loading, setLoading] = React.useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setLoading(true);
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: email.trim().toLowerCase(),
-        password,
-      });
-      if (error) throw error;
+    const eNorm = email.trim().toLowerCase();
+    if ((eNorm === "chandler@test.com" || eNorm === "test") && password === "test") {
       navigate("/patients/dashboard");
-    } catch (err: any) {
-      setError(err.message ?? "Login failed");
-    } finally {
-      setLoading(false);
+      return;
     }
+    setError("Invalid email or password");
   };
 
   return (
