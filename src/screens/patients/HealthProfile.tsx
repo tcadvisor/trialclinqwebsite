@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { PencilIcon, Trash2Icon, PlusIcon, CheckCircle2, MailIcon, PhoneIcon, UserIcon, CalendarIcon, WeighingScaleIcon as WeightIcon } from "lucide-react";
+import { PencilIcon, Trash2Icon, PlusIcon, CheckCircle2, MailIcon, PhoneIcon, UserIcon, CalendarIcon, WeightIcon } from "lucide-react";
 
 const Section: React.FC<{ title: string; children: React.ReactNode; right?: React.ReactNode }>=({ title, children, right })=> (
   <div className="rounded-xl border bg-white">
