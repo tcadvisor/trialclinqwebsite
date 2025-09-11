@@ -194,23 +194,7 @@ export default function Home() {
             <a href="#faq" className="hover:text-gray-600">About Us</a>
           </nav>
           <div className="flex items-center gap-3">
-            {isAuthenticated ? (
-              <>
-                <Link to="/patients/dashboard" className="px-4 py-2 text-sm rounded-full bg-blue-600 text-white hover:bg-blue-700">Dashboard</Link>
-                <Link
-                  to="/patients/health-profile"
-                  aria-label="Profile"
-                  className="inline-flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-gray-50"
-                >
-                  <UserRound className="h-5 w-5 text-gray-700" />
-                </Link>
-              </>
-            ) : (
-              <>
-                <Link to="/patients/login" className="px-4 py-2 text-sm rounded-full border border-blue-600 text-blue-700 hover:bg-blue-50">Sign in</Link>
-                <Link to="/patients/volunteer" className="px-4 py-2 text-sm rounded-full bg-blue-600 text-white hover:bg-blue-700">Get Started</Link>
-              </>
-            )}
+            <HeaderActions />
           </div>
         </div>
       </header>
