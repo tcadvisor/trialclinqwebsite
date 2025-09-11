@@ -57,15 +57,8 @@ export const SearchResults = (): JSX.Element => {
     }
   ];
 
-  const parseAgeRange = (range: string): { min: number; max: number } => {
-    const match = range.match(/(\d+)\s*-\s*(\d+)/);
-    if (!match) return { min: 0, max: 120 };
-    return { min: parseInt(match[1], 10), max: parseInt(match[2], 10) };
-  };
-
-  const filteredTrials = trialResults.filter((t) => {
-    const { min, max } = parseAgeRange(t.ageRange);
-    return min <= maxAge && max >= minAge;
+  const filteredTrials = trials.filter((t) => {
+    return t.minAge <= maxAge && t.maxAge >= minAge;
   });
 
 
