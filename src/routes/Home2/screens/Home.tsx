@@ -5,7 +5,6 @@ import HeaderActions from "../../../components/HeaderActions";
 
 export default function Home() {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
   const [query, setQuery] = useState("Chronic Pain");
   const [location, setLocation] = useState("10090, Niagara falls, USA");
   const [showBanner, setShowBanner] = useState(true);
