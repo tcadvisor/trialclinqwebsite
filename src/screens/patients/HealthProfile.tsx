@@ -78,7 +78,8 @@ function Documents({ onCountChange }: { onCountChange?: (count: number) => void 
 
   useEffect(() => {
     localStorage.setItem("tc_docs", JSON.stringify(docs));
-  }, [docs]);
+    onCountChange?.(docs.length);
+  }, [docs, onCountChange]);
 
   const filtered = useMemo(() => {
     const list = docs.filter((d) => d.category === category && d.name.toLowerCase().includes(query.toLowerCase()));
