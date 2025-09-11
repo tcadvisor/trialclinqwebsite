@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Search, CheckCircle2, Shield, UserRound, ArrowRight, HelpCircle, UserPlus, LogIn, FileText, Megaphone, Layers, LifeBuoy } from "lucide-react";
-import { useAuth } from "../../../lib/auth";
+import HeaderActions from "../../../components/HeaderActions";
 
 export default function Home() {
   const navigate = useNavigate();
