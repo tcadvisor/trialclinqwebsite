@@ -69,9 +69,15 @@ export const SearchResults = (): JSX.Element => {
     }
   ];
 
-  const filteredTrials = trials.filter((t) => {
-    return t.minAge <= maxAge && t.maxAge >= minAge;
-  });
+  const filteredTrials = useMemo(() => {
+    const params = new URLSearchParams(search);
+    const q = params.get("q")?.trim().toLowerCase();
+    return trials.filter((t) => {
+      const ageOk = t.minAge <= maxAge && t.maxAge >= minAge;
+      const queryOk = !q || q.length === 0 || t.title.toLowerCase().includes(q);
+      return ageOk && queryOk;
+    });
+  }, [search, minAge, maxAge]);
 
 
 
