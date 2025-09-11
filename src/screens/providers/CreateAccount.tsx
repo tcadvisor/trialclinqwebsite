@@ -1,5 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import SiteHeader from "../../components/SiteHeader";
 
 export default function CreateAccount(): JSX.Element {
   return (
