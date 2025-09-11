@@ -189,7 +189,7 @@ export default function Home() {
                 </div>
               </div>
             </div>
-            <a href="#journey" className="hover:text-gray-600">Contact Us</a>
+            <Link to="/contact" className="hover:text-gray-600">Contact Us</Link>
             <a href="#faq" className="hover:text-gray-600">About Us</a>
           </nav>
           <div className="flex items-center gap-3">
@@ -424,7 +424,7 @@ export default function Home() {
 
           <div className="mt-10 rounded-3xl bg-gradient-to-r from-blue-100 via-emerald-100 to-purple-100 p-10 text-center">
             <h4 className="text-2xl font-semibold mb-4">Couldn't find answers?</h4>
-            <Link to="#contact" className="inline-flex items-center gap-2 rounded-full bg-gray-900 px-6 py-3 text-white hover:bg-black">Contact Us <ArrowRight className="h-4 w-4" /></Link>
+            <Link to="/contact" className="inline-flex items-center gap-2 rounded-full bg-gray-900 px-6 py-3 text-white hover:bg-black">Contact Us <ArrowRight className="h-4 w-4" /></Link>
           </div>
         </div>
       </section>
@@ -467,7 +467,13 @@ export default function Home() {
                 "About Us",
                 "Privacy Policy",
               ].map((t) => (
-                <li key={t}><a href="#" className="hover:text-gray-900">{t}</a></li>
+                <li key={t}>
+                  {t === "Contact Us" ? (
+                    <Link to="/contact" className="hover:text-gray-900">Contact Us</Link>
+                  ) : (
+                    <a href="#" className="hover:text-gray-900">{t}</a>
+                  )}
+                </li>
               ))}
             </ul>
           </div>
