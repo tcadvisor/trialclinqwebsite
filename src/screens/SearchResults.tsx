@@ -6,51 +6,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Badge } from "../components/ui/badge";
 import { Separator } from "../components/ui/separator";
 import { ChevronDownIcon, MapPinIcon, ClockIcon, UsersIcon, GridIcon, HelpCircleIcon, ShieldIcon, UserPlusIcon, LogInIcon } from "lucide-react";
+import { trials } from "../lib/trials";
 
 const navigationItems = [
   { label: "Patients and Families", hasDropdown: true },
   { label: "Sites & Investigators", hasDropdown: true },
   { label: "Contact Us", hasDropdown: false },
   { label: "About Us", hasDropdown: false },
-];
-
-const trialResults = [
-  {
-    title: "Agorain, New Treatment for Chronic Neuropathy Pain",
-    location: "Amherst, NY - Multiple locations",
-    phase: "Phase II",
-    ageRange: "35-80 yrs",
-    type: "Interventional",
-  },
-  {
-    title: "Mindfulness-Based Therapy for Chronic Pain Relief",
-    location: "Niagara Falls, NY",
-    phase: "Phase I",
-    ageRange: "18-40 yrs",
-    type: "Interventional",
-  },
-  {
-    title: "Chronic Neuropathic Pain Study Using Non-Invasive Nerve Stimulation",
-    location: "Buffalo, NY",
-    phase: "Phase II",
-    ageRange: "45-80 yrs",
-    type: "Observational",
-  },
-  {
-    title:
-      "Investigating the impact of a plant-based CBD therapy on quality of life and pain levels in patients with chronic musculoskeletal and neuropathic pain.",
-    location: "Rochester, NY",
-    phase: "Phase II",
-    ageRange: "30-80 yrs",
-    type: "Interventional",
-  },
-  {
-    title: "Mobile Health Coaching App for Chronic Pain Self-Management",
-    location: "Lockport, NY",
-    phase: "Phase II",
-    ageRange: "20-60 yrs",
-    type: "Observational",
-  },
 ];
 
 const solutionsLinks = ["Find a study", "More about trials", "How TrialCliniq help", "Blog"];
