@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Mail, Phone, Send } from "lucide-react";
+import SiteHeader from "../../components/SiteHeader";
 
 export default function ContactUs() {
   const reasons = useMemo(
@@ -57,27 +58,7 @@ export default function ContactUs() {
 
   return (
     <div className="min-h-screen bg-white text-gray-900">
-      <header className="border-b bg-white/80 backdrop-blur sticky top-0 z-30">
-        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <img
-              alt="TrialCliniq"
-              className="h-8 w-auto"
-              src="https://c.animaapp.com/mf3cenl8GIzqBa/img/igiwdhcu2mb98arpst9kn-2.png"
-            />
-          </Link>
-          <nav className="hidden md:flex items-center gap-6 text-sm">
-            <Link to="/" className="hover:text-gray-600">Home</Link>
-            <Link to="/patients/find-trial" className="hover:text-gray-600">Find a Trial</Link>
-            <Link to="/patients/faq" className="hover:text-gray-600">FAQ</Link>
-            <span className="text-gray-900 font-medium">Contact</span>
-          </nav>
-          <div className="flex items-center gap-3">
-            <Link to="/patients/login" className="px-4 py-2 text-sm rounded-full border border-blue-600 text-blue-700 hover:bg-blue-50">Sign in</Link>
-            <Link to="/patients/volunteer" className="px-4 py-2 text-sm rounded-full bg-blue-600 text-white hover:bg-blue-700">Get Started</Link>
-          </div>
-        </div>
-      </header>
+      <SiteHeader active="contact" />
 
       <main className="px-4">
         <section className="max-w-5xl mx-auto pt-12 pb-8">

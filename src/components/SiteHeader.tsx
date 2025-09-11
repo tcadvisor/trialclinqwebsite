@@ -1,7 +1,9 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import HeaderActions from "./HeaderActions";
 
 type ActiveKey = "home" | "find" | "faq" | "contact" | undefined;
+
 
 function NavItem({ to, label, active }: { to: string; label: string; active: boolean }) {
   if (active) {
@@ -31,10 +33,7 @@ export default function SiteHeader({ active }: { active?: ActiveKey }) {
           <NavItem to="/patients/faq" label="FAQ" active={active === "faq"} />
           <NavItem to="/contact" label="Contact" active={active === "contact"} />
         </nav>
-        <div className="flex items-center gap-3">
-          <Link to="/patients/login" className="px-4 py-2 text-sm rounded-full border border-blue-600 text-blue-700 hover:bg-blue-50">Sign in</Link>
-          <Link to="/patients/volunteer" className="px-4 py-2 text-sm rounded-full bg-blue-600 text-white hover:bg-blue-700">Get Started</Link>
-        </div>
+        <HeaderActions />
       </div>
     </header>
   );
