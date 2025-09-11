@@ -41,6 +41,7 @@ function App() {
         <Route path="/patients/health-profile" element={<HealthProfile />} />
         <Route path="/patients/settings" element={<Settings />} />
         <Route path="/trials/:slug" element={<TrialDetails />} />
+        <Route path="/contact" element={<ContactUs />} />
       </Routes>
     </Router>
   );
