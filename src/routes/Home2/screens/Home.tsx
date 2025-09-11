@@ -467,7 +467,13 @@ export default function Home() {
                 "About Us",
                 "Privacy Policy",
               ].map((t) => (
-                <li key={t}><a href="#" className="hover:text-gray-900">{t}</a></li>
+                <li key={t}>
+                  {t === "Contact Us" ? (
+                    <Link to="/contact" className="hover:text-gray-900">Contact Us</Link>
+                  ) : (
+                    <a href="#" className="hover:text-gray-900">{t}</a>
+                  )}
+                </li>
               ))}
             </ul>
           </div>
