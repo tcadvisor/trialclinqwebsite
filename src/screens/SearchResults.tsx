@@ -318,9 +318,10 @@ export const SearchResults = (): JSX.Element => {
                     <Select
                       value={phase}
                       onValueChange={(v) => {
-                        setPhase(v as any);
+                        const mapped = v === "any" ? "" : (v as any);
+                        setPhase(mapped as any);
                         const params = new URLSearchParams(search);
-                        if (v) params.set("phase", v);
+                        if (mapped) params.set("phase", mapped as string);
                         else params.delete("phase");
                         navigate({ search: params.toString() ? `?${params.toString()}` : "" }, { replace: false });
                       }}
@@ -329,7 +330,7 @@ export const SearchResults = (): JSX.Element => {
                         <SelectValue placeholder="Any phase" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Any phase</SelectItem>
+                        <SelectItem value="any">Any phase</SelectItem>
                         <SelectItem value="phase1">Phase I</SelectItem>
                         <SelectItem value="phase2">Phase II</SelectItem>
                         <SelectItem value="phase3">Phase III</SelectItem>
@@ -341,9 +342,10 @@ export const SearchResults = (): JSX.Element => {
                     <Select
                       value={trialType}
                       onValueChange={(v) => {
-                        setTrialType(v as any);
+                        const mapped = v === "any" ? "" : (v as any);
+                        setTrialType(mapped as any);
                         const params = new URLSearchParams(search);
-                        if (v) params.set("type", v);
+                        if (mapped) params.set("type", mapped as string);
                         else params.delete("type");
                         navigate({ search: params.toString() ? `?${params.toString()}` : "" }, { replace: false });
                       }}
@@ -352,7 +354,7 @@ export const SearchResults = (): JSX.Element => {
                         <SelectValue placeholder="Any type" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Any type</SelectItem>
+                        <SelectItem value="any">Any type</SelectItem>
                         <SelectItem value="interventional">Interventional</SelectItem>
                         <SelectItem value="observational">Observational</SelectItem>
                       </SelectContent>
