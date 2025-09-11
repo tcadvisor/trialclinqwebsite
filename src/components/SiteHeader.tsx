@@ -5,6 +5,30 @@ import { UserRound } from "lucide-react";
 
 type ActiveKey = "home" | "find" | "faq" | "contact" | undefined;
 
+function HeaderActions() {
+  const { isAuthenticated } = useAuth();
+  if (isAuthenticated) {
+    return (
+      <div className="flex items-center gap-3">
+        <Link to="/patients/dashboard" className="px-4 py-2 text-sm rounded-full bg-blue-600 text-white hover:bg-blue-700">Dashboard</Link>
+        <Link
+          to="/patients/health-profile"
+          aria-label="Profile"
+          className="inline-flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-gray-50"
+        >
+          <UserRound className="h-5 w-5 text-gray-700" />
+        </Link>
+      </div>
+    );
+  }
+  return (
+    <div className="flex items-center gap-3">
+      <Link to="/patients/login" className="px-4 py-2 text-sm rounded-full border border-blue-600 text-blue-700 hover:bg-blue-50">Sign in</Link>
+      <Link to="/patients/volunteer" className="px-4 py-2 text-sm rounded-full bg-blue-600 text-white hover:bg-blue-700">Get Started</Link>
+    </div>
+  );
+}
+
 function NavItem({ to, label, active }: { to: string; label: string; active: boolean }) {
   if (active) {
     return <span className="text-gray-900 font-medium">{label}</span>;
