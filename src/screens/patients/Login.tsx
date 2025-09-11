@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { login } from "../../lib/auth";
+import { login, getUser } from "../../lib/auth";
 
 export default function Login(): JSX.Element {
   const navigate = useNavigate();
