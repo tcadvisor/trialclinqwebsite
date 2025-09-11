@@ -4,16 +4,27 @@ import { useAuth } from "../../lib/auth";
 
 export default function Login(): JSX.Element {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { isAuthenticated, signIn } = useAuth();
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (isAuthenticated) {
+      const from = (location.state as any)?.from?.pathname || "/patients/dashboard";
+      navigate(from, { replace: true });
+    }
+  }, [isAuthenticated, navigate, location.state]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     const eNorm = email.trim().toLowerCase();
     if ((eNorm === "chandler@test.com" || eNorm === "test") && password === "test") {
-      navigate("/patients/dashboard");
+      signIn({ email: eNorm, role: "patient" });
+      const from = (location.state as any)?.from?.pathname || "/patients/dashboard";
+      navigate(from, { replace: true });
       return;
     }
     setError("Invalid email or password");
