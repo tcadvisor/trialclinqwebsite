@@ -17,6 +17,7 @@ import TrialDetails from "./screens/TrialDetails";
 import EligibleTrials from "./screens/patients/EligibleTrials";
 import HealthProfile from "./screens/patients/HealthProfile";
 import Settings from "./screens/patients/Settings";
+import ContactUs from "./screens/support/ContactUs";
 
 function App() {
   return (
