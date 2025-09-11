@@ -424,7 +424,7 @@ export default function Home() {
 
           <div className="mt-10 rounded-3xl bg-gradient-to-r from-blue-100 via-emerald-100 to-purple-100 p-10 text-center">
             <h4 className="text-2xl font-semibold mb-4">Couldn't find answers?</h4>
-            <Link to="#contact" className="inline-flex items-center gap-2 rounded-full bg-gray-900 px-6 py-3 text-white hover:bg-black">Contact Us <ArrowRight className="h-4 w-4" /></Link>
+            <Link to="/contact" className="inline-flex items-center gap-2 rounded-full bg-gray-900 px-6 py-3 text-white hover:bg-black">Contact Us <ArrowRight className="h-4 w-4" /></Link>
           </div>
         </div>
       </section>
