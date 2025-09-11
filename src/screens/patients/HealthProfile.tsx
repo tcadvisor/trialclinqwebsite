@@ -252,6 +252,110 @@ function Documents({ onCountChange }: { onCountChange?: (count: number) => void 
   );
 }
 
+function ConnectedEHR(): JSX.Element {
+  type Vendor = { id: string; brand: string; name: string; portals: number; isNew?: boolean };
+  const [query, setQuery] = useState("");
+  const [showAll, setShowAll] = useState(false);
+
+  const vendors: Vendor[] = [
+    { id: "cmc", brand: "Meditech Expanse", name: "Citizens Medical Center", portals: 1, isNew: true },
+    { id: "tea", brand: "athenahealth", name: "Texas Endovascular Associates", portals: 1 },
+    { id: "mdacc", brand: "Epic", name: "MD Anderson Cancer Center", portals: 2 },
+    { id: "mshs", brand: "Oracle", name: "Mount Sinai Health System", portals: 1 },
+    { id: "sutter", brand: "Epic", name: "Sutter Health", portals: 3 },
+    { id: "uhs", brand: "Cerner", name: "Universal Health Services", portals: 1 },
+  ];
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return vendors;
+    return vendors.filter(v =>
+      v.name.toLowerCase().includes(q) || v.brand.toLowerCase().includes(q)
+    );
+  }, [query]);
+
+  const list = showAll ? filtered : filtered.slice(0, 4);
+
+  const onConnectNow = () => {
+    document.getElementById("available-ehrs")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  return (
+    <div className="mt-6 space-y-6">
+      <Section title="Current Integrations">
+        <div className="rounded-xl border bg-white">
+          <div className="p-6 sm:p-10">
+            <div className="mx-auto max-w-3xl rounded-2xl border bg-gray-50 px-6 py-10 text-center">
+              <div className="text-gray-900 font-medium">No connected health records yet.</div>
+              <p className="mt-2 text-sm text-gray-600">
+                Connect your electronic health record to improve your trial matches and save time
+                filling out medical history forms.
+              </p>
+              <button onClick={onConnectNow} className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#1033e5] px-4 py-2 text-white text-sm hover:bg-blue-700">
+                Connect Now
+              </button>
+            </div>
+            <div className="mt-4 flex items-start gap-2 text-xs text-gray-600">
+              <Shield className="h-4 w-4 text-gray-500" />
+              <p>
+                Your connected health records are encrypted and securely stored in compliance with HIPAA standards. You can disconnect access at any time.
+              </p>
+            </div>
+          </div>
+        </div>
+      </Section>
+
+      <Section
+        title="Available EMR/EHRs"
+        right={
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowAll(true)}
+              className="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm hover:bg-gray-50"
+            >
+              View all
+            </button>
+          </div>
+        }
+      >
+        <div id="available-ehrs" className="space-y-4">
+          <div className="relative">
+            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search healthcare systems or providers"
+              className="w-full rounded-full border pl-9 pr-3 py-2 text-sm focus:outline-none"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {list.map((v) => (
+              <div key={v.id} className="relative rounded-xl border bg-white p-4">
+                <button aria-label={`connect ${v.name}`} className="absolute right-2 top-2 h-7 w-7 rounded-full border text-gray-700 hover:bg-gray-50 flex items-center justify-center">
+                  <PlusIcon className="h-4 w-4" />
+                </button>
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-800">{v.brand}</span>
+                  {v.isNew && <span className="inline-flex items-center rounded-md bg-amber-100 text-amber-800 px-2 py-0.5 text-[11px] font-medium">New</span>}
+                </div>
+                <div className="mt-2 font-medium text-gray-900 leading-snug">{v.name}</div>
+                <div className="mt-4">
+                  <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-1 text-xs text-gray-700">{v.portals} {v.portals === 1 ? "portal" : "portals"}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex items-center justify-end text-xs text-gray-500">
+            <span>Powered by Health Gorilla</span>
+          </div>
+        </div>
+      </Section>
+    </div>
+  );
+}
+
 export default function HealthProfile(): JSX.Element {
   const [activeTab, setActiveTab] = useState<"overview" | "documents" | "ehr">("overview");
   const [docCount, setDocCount] = useState<number>(() => {
