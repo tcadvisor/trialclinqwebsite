@@ -437,7 +437,7 @@ export default function HealthProfile(): JSX.Element {
           </>
         )}
 
-        {activeTab === "documents" && <Documents />}
+        {activeTab === "documents" && <Documents onCountChange={setDocCount} />}
 
         {activeTab === "ehr" && (
           <div className="mt-6 rounded-xl border bg-white p-4 text-sm text-gray-600">Connect your EHR/EMR provider to sync medical records.</div>
