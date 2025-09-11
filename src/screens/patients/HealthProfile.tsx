@@ -11,7 +11,9 @@ import {
   CalendarIcon,
   WeightIcon,
   EyeIcon,
-  DownloadIcon
+  DownloadIcon,
+  Shield,
+  Search as SearchIcon
 } from "lucide-react";
 
 const Section: React.FC<{ title: string; children: React.ReactNode; right?: React.ReactNode }> = ({ title, children, right }) => (
