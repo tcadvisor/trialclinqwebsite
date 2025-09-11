@@ -1,5 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { trials } from "../../lib/trials";
 
 export default function Dashboard(): JSX.Element {
   return (
