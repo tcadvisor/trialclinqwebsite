@@ -236,11 +236,11 @@ export const SearchResults = (): JSX.Element => {
         <div className="flex items-center gap-4 mb-8 p-4 bg-gray-50 rounded-lg">
           <div className="flex items-center gap-2">
             <MapPinIcon className="w-4 h-4 text-gray-500" />
-            <span className="text-sm">Chronic Pain</span>
+            <span className="text-sm">{conditionLabel}</span>
           </div>
           <div className="flex items-center gap-2">
             <MapPinIcon className="w-4 h-4 text-gray-500" />
-            <span className="text-sm">10950, Niagara falls, USA</span>
+            <span className="text-sm">{locationLabel}</span>
           </div>
           <div className="flex items-center gap-2">
             <ClockIcon className="w-4 h-4 text-gray-500" />
