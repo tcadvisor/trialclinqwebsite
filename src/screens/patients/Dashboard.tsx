@@ -15,9 +15,9 @@ export default function Dashboard(): JSX.Element {
             />
           </Link>
           <nav className="hidden md:flex items-center gap-6 text-sm">
-            <Link to="#" className="hover:text-gray-600">Dashboard</Link>
-            <Link to="#" className="hover:text-gray-600">Eligible Trials</Link>
-            <Link to="#" className="hover:text-gray-600">Health Profile</Link>
+            <Link to="/patients/dashboard" className="hover:text-gray-600">Dashboard</Link>
+            <Link to="/patients/eligible" className="hover:text-gray-600">Eligible Trials</Link>
+            <Link to="/patients/health-profile" className="hover:text-gray-600">Health Profile</Link>
             <Link to="/patients/faq" className="hover:text-gray-600">Help Center</Link>
           </nav>
           <div className="flex items-center gap-3">
