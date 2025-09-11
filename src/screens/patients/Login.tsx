@@ -9,11 +9,8 @@ export default function Login(): JSX.Element {
   const [error, setError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    try {
-      const { getUser } = require("../../lib/auth");
-      const u = getUser();
-      if (u) navigate("/patients/dashboard");
-    } catch {}
+    const u = getUser();
+    if (u) navigate("/patients/dashboard");
   }, [navigate]);
 
   const handleSubmit = (e: React.FormEvent) => {
