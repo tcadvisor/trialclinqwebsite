@@ -37,10 +37,10 @@ function App() {
         <Route path="/support/investigators" element={<InvestigatorSupport />} />
         <Route path="/providers/create" element={<CreateAccount />} />
         <Route path="/providers/login" element={<ProviderLogin />} />
-        <Route path="/patients/dashboard" element={<Dashboard />} />
-        <Route path="/patients/eligible" element={<EligibleTrials />} />
-        <Route path="/patients/health-profile" element={<HealthProfile />} />
-        <Route path="/patients/settings" element={<Settings />} />
+        <Route path="/patients/dashboard" element={<RequireAuth><Dashboard /></RequireAuth>} />
+        <Route path="/patients/eligible" element={<RequireAuth><EligibleTrials /></RequireAuth>} />
+        <Route path="/patients/health-profile" element={<RequireAuth><HealthProfile /></RequireAuth>} />
+        <Route path="/patients/settings" element={<RequireAuth><Settings /></RequireAuth>} />
         <Route path="/trials/:slug" element={<TrialDetails />} />
         <Route path="/contact" element={<ContactUs />} />
       </Routes>
