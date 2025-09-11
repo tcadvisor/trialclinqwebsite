@@ -1,5 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { trials } from "../../lib/trials";
 
 export default function Dashboard(): JSX.Element {
   return (
@@ -91,55 +92,26 @@ export default function Dashboard(): JSX.Element {
                 </tr>
               </thead>
               <tbody>
-                {[
-                  {
-                    title: "Agorain, New Treatment for ...",
-                    id: "NCT06084521",
-                    status: "Recruiting",
-                    phase: "Phase II",
-                    score: "90%",
-                    interventions: "Agorain 50mg / 100mg",
-                  },
-                  {
-                    title: "Investigating Non-Opioid Pain ...",
-                    id: "NCT05872145",
-                    status: "Recruiting",
-                    phase: "Phase I",
-                    score: "90%",
-                    interventions: "Agorain 50mg / 100mg",
-                  },
-                  {
-                    title: "Exploring Novel Interventions ...",
-                    id: "NCT059340...",
-                    status: "Recruiting",
-                    phase: "Phase IV",
-                    score: "90%",
-                    interventions: "Agorain 50mg / 100mg",
-                  },
-                  {
-                    title: "A Randomized Study of ...",
-                    id: "NCT060459...",
-                    status: "Recruiting",
-                    phase: "Phase I",
-                    score: "90%",
-                    interventions: "Agorain 50mg / 100mg",
-                  },
-                ].map((row, idx) => (
-                  <tr key={idx} className="border-t">
-                    <td className="px-4 py-3">{row.title}</td>
-                    <td className="px-4 py-3 text-gray-600">{row.id}</td>
+                {trials.map((t) => (
+                  <tr key={t.slug} className="border-t">
                     <td className="px-4 py-3">
-                      <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-700">
-                        {row.status}
+                      <Link to={`/trials/${t.slug}`} className="text-gray-900 hover:underline">
+                        {t.title}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3 text-gray-600">{t.nctId}</td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${t.status === 'Now Recruiting' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
+                        {t.status === 'Now Recruiting' ? 'Recruiting' : t.status}
                       </span>
                     </td>
                     <td className="px-4 py-3">
                       <span className="inline-flex items-center rounded-full bg-violet-100 px-2 py-1 text-xs font-medium text-violet-700">
-                        {row.phase}
+                        {t.phase}
                       </span>
                     </td>
-                    <td className="px-4 py-3">{row.score}</td>
-                    <td className="px-4 py-3 text-gray-600">{row.interventions}</td>
+                    <td className="px-4 py-3">{t.aiScore}%</td>
+                    <td className="px-4 py-3 text-gray-600">{t.interventions.join(' / ')}</td>
                     <td className="px-4 py-3 text-right">
                       <button className="rounded-lg border px-3 py-1.5 text-xs hover:bg-gray-50">Contact centre</button>
                     </td>
@@ -147,7 +119,7 @@ export default function Dashboard(): JSX.Element {
                 ))}
               </tbody>
             </table>
-            <div className="border-t px-4 py-3 text-sm text-gray-600">View All Trials</div>
+            <Link to="/search-results" className="border-t px-4 py-3 block text-sm text-gray-600 hover:bg-gray-50">View All Trials</Link>
           </div>
         </section>
       </main>

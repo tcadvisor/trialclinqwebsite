@@ -6,51 +6,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Badge } from "../components/ui/badge";
 import { Separator } from "../components/ui/separator";
 import { ChevronDownIcon, MapPinIcon, ClockIcon, UsersIcon, GridIcon, HelpCircleIcon, ShieldIcon, UserPlusIcon, LogInIcon } from "lucide-react";
+import { trials } from "../lib/trials";
 
 const navigationItems = [
   { label: "Patients and Families", hasDropdown: true },
   { label: "Sites & Investigators", hasDropdown: true },
   { label: "Contact Us", hasDropdown: false },
   { label: "About Us", hasDropdown: false },
-];
-
-const trialResults = [
-  {
-    title: "Agorain, New Treatment for Chronic Neuropathy Pain",
-    location: "Amherst, NY - Multiple locations",
-    phase: "Phase II",
-    ageRange: "35-80 yrs",
-    type: "Interventional",
-  },
-  {
-    title: "Mindfulness-Based Therapy for Chronic Pain Relief",
-    location: "Niagara Falls, NY",
-    phase: "Phase I",
-    ageRange: "18-40 yrs",
-    type: "Interventional",
-  },
-  {
-    title: "Chronic Neuropathic Pain Study Using Non-Invasive Nerve Stimulation",
-    location: "Buffalo, NY",
-    phase: "Phase II",
-    ageRange: "45-80 yrs",
-    type: "Observational",
-  },
-  {
-    title:
-      "Investigating the impact of a plant-based CBD therapy on quality of life and pain levels in patients with chronic musculoskeletal and neuropathic pain.",
-    location: "Rochester, NY",
-    phase: "Phase II",
-    ageRange: "30-80 yrs",
-    type: "Interventional",
-  },
-  {
-    title: "Mobile Health Coaching App for Chronic Pain Self-Management",
-    location: "Lockport, NY",
-    phase: "Phase II",
-    ageRange: "20-60 yrs",
-    type: "Observational",
-  },
 ];
 
 const solutionsLinks = ["Find a study", "More about trials", "How TrialCliniq help", "Blog"];
@@ -95,15 +57,8 @@ export const SearchResults = (): JSX.Element => {
     }
   ];
 
-  const parseAgeRange = (range: string): { min: number; max: number } => {
-    const match = range.match(/(\d+)\s*-\s*(\d+)/);
-    if (!match) return { min: 0, max: 120 };
-    return { min: parseInt(match[1], 10), max: parseInt(match[2], 10) };
-  };
-
-  const filteredTrials = trialResults.filter((t) => {
-    const { min, max } = parseAgeRange(t.ageRange);
-    return min <= maxAge && max >= minAge;
+  const filteredTrials = trials.filter((t) => {
+    return t.minAge <= maxAge && t.maxAge >= minAge;
   });
 
 
@@ -342,20 +297,24 @@ export const SearchResults = (): JSX.Element => {
               <Card key={index}>
                 <CardContent className="p-6">
                   <div className="flex justify-between items-start mb-4">
-                    <h3 className="text-lg font-semibold text-[#1033e5] mb-2">{trial.title}</h3>
+                    <Link to={`/trials/${trial.slug}`} className="hover:underline">
+                      <h3 className="text-lg font-semibold text-[#1033e5] mb-2">{trial.title}</h3>
+                    </Link>
                     <Button size="sm" className="bg-gray-900 text-white rounded-full">
                       Check my eligibility
                     </Button>
                   </div>
-                  <div className="flex items-center gap-2 mb-4">
-                    <MapPinIcon className="w-4 h-4 text-gray-500" />
-                    <span className="text-sm text-gray-600">{trial.location}</span>
-                  </div>
-                  <div className="flex gap-4">
-                    <Badge variant="secondary">{trial.phase}</Badge>
-                    <Badge variant="secondary">{trial.ageRange}</Badge>
-                    <Badge variant="secondary">{trial.type}</Badge>
-                  </div>
+                  <Link to={`/trials/${trial.slug}`} className="block">
+                    <div className="flex items-center gap-2 mb-4">
+                      <MapPinIcon className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm text-gray-600">{trial.location}</span>
+                    </div>
+                    <div className="flex gap-4">
+                      <Badge variant="secondary">{trial.phase}</Badge>
+                      <Badge variant="secondary">{`${trial.minAge}-${trial.maxAge} yrs`}</Badge>
+                      <Badge variant="secondary">{trial.type}</Badge>
+                    </div>
+                  </Link>
                 </CardContent>
               </Card>
             ))}
