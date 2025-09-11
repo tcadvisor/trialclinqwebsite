@@ -189,7 +189,7 @@ export default function Home() {
                 </div>
               </div>
             </div>
-            <a href="#journey" className="hover:text-gray-600">Contact Us</a>
+            <Link to="/contact" className="hover:text-gray-600">Contact Us</Link>
             <a href="#faq" className="hover:text-gray-600">About Us</a>
           </nav>
           <div className="flex items-center gap-3">
