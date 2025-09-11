@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useMemo, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
@@ -23,6 +23,45 @@ export const SearchResults = (): JSX.Element => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [minAge, setMinAge] = useState<number>(0);
   const [maxAge, setMaxAge] = useState<number>(100);
+  const { search } = useLocation();
+  const navigate = useNavigate();
+
+  const { conditionLabel, locationLabel, initialPhase, initialType } = useMemo(() => {
+    const params = new URLSearchParams(search);
+    const q = params.get("q")?.trim();
+    const loc = params.get("loc")?.trim();
+    const phaseParam = params.get("phase")?.toLowerCase() || "";
+    const typeParam = params.get("type")?.toLowerCase() || "";
+
+    const toPhaseKey = (v: string): "phase1" | "phase2" | "phase3" | "" => {
+      if (/(^|\s)phase\s*1\b|^phase1$/.test(v)) return "phase1";
+      if (/(^|\s)phase\s*2\b|^phase2$/.test(v)) return "phase2";
+      if (/(^|\s)phase\s*3\b|^phase3$/.test(v)) return "phase3";
+      return "";
+    };
+
+    const toTypeKey = (v: string): "interventional" | "observational" | "" => {
+      if (/interventional/.test(v)) return "interventional";
+      if (/observational/.test(v)) return "observational";
+      return "";
+    };
+
+    // Defaults align with Home page defaults for direct visits
+    return {
+      conditionLabel: q && q.length > 0 ? q : "Chronic Pain",
+      locationLabel: loc && loc.length > 0 ? loc : "10090, Niagara falls, USA",
+      initialPhase: toPhaseKey(phaseParam),
+      initialType: toTypeKey(typeParam),
+    };
+  }, [search]);
+
+  const [phase, setPhase] = useState<"phase1" | "phase2" | "phase3" | "">(initialPhase);
+  const [trialType, setTrialType] = useState<"interventional" | "observational" | "">(initialType);
+
+  React.useEffect(() => {
+    setPhase(initialPhase);
+    setTrialType(initialType);
+  }, [initialPhase, initialType]);
 
   const dropdownItems = [
     {
@@ -57,9 +96,20 @@ export const SearchResults = (): JSX.Element => {
     }
   ];
 
-  const filteredTrials = trials.filter((t) => {
-    return t.minAge <= maxAge && t.maxAge >= minAge;
-  });
+  const filteredTrials = useMemo(() => {
+    const params = new URLSearchParams(search);
+    const q = params.get("q")?.trim().toLowerCase();
+
+    const phaseLabel = phase === "phase1" ? "Phase I" : phase === "phase2" ? "Phase II" : phase === "phase3" ? "Phase III" : "";
+
+    return trials.filter((t) => {
+      const ageOk = t.minAge <= maxAge && t.maxAge >= minAge;
+      const queryOk = !q || q.length === 0 || t.title.toLowerCase().includes(q);
+      const phaseOk = !phaseLabel || t.phase === phaseLabel;
+      const typeOk = !trialType || t.type.toLowerCase() === trialType;
+      return ageOk && queryOk && phaseOk && typeOk;
+    });
+  }, [search, minAge, maxAge, phase, trialType]);
 
 
 
@@ -218,11 +268,11 @@ export const SearchResults = (): JSX.Element => {
         <div className="flex items-center gap-4 mb-8 p-4 bg-gray-50 rounded-lg">
           <div className="flex items-center gap-2">
             <MapPinIcon className="w-4 h-4 text-gray-500" />
-            <span className="text-sm">Chronic Pain</span>
+            <span className="text-sm">{conditionLabel}</span>
           </div>
           <div className="flex items-center gap-2">
             <MapPinIcon className="w-4 h-4 text-gray-500" />
-            <span className="text-sm">10950, Niagara falls, USA</span>
+            <span className="text-sm">{locationLabel}</span>
           </div>
           <div className="flex items-center gap-2">
             <ClockIcon className="w-4 h-4 text-gray-500" />
@@ -265,11 +315,22 @@ export const SearchResults = (): JSX.Element => {
                   </div>
                   <div>
                     <h4 className="font-medium mb-2">Study Phase</h4>
-                    <Select>
+                    <Select
+                      value={phase}
+                      onValueChange={(v) => {
+                        const mapped = v === "any" ? "" : (v as any);
+                        setPhase(mapped as any);
+                        const params = new URLSearchParams(search);
+                        if (mapped) params.set("phase", mapped as string);
+                        else params.delete("phase");
+                        navigate({ search: params.toString() ? `?${params.toString()}` : "" }, { replace: false });
+                      }}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Any phase" />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="any">Any phase</SelectItem>
                         <SelectItem value="phase1">Phase I</SelectItem>
                         <SelectItem value="phase2">Phase II</SelectItem>
                         <SelectItem value="phase3">Phase III</SelectItem>
@@ -278,11 +339,22 @@ export const SearchResults = (): JSX.Element => {
                   </div>
                   <div>
                     <h4 className="font-medium mb-2">Trial Type</h4>
-                    <Select>
+                    <Select
+                      value={trialType}
+                      onValueChange={(v) => {
+                        const mapped = v === "any" ? "" : (v as any);
+                        setTrialType(mapped as any);
+                        const params = new URLSearchParams(search);
+                        if (mapped) params.set("type", mapped as string);
+                        else params.delete("type");
+                        navigate({ search: params.toString() ? `?${params.toString()}` : "" }, { replace: false });
+                      }}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Any type" />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="any">Any type</SelectItem>
                         <SelectItem value="interventional">Interventional</SelectItem>
                         <SelectItem value="observational">Observational</SelectItem>
                       </SelectContent>
