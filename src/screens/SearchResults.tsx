@@ -297,20 +297,24 @@ export const SearchResults = (): JSX.Element => {
               <Card key={index}>
                 <CardContent className="p-6">
                   <div className="flex justify-between items-start mb-4">
-                    <h3 className="text-lg font-semibold text-[#1033e5] mb-2">{trial.title}</h3>
+                    <Link to={`/trials/${trial.slug}`} className="hover:underline">
+                      <h3 className="text-lg font-semibold text-[#1033e5] mb-2">{trial.title}</h3>
+                    </Link>
                     <Button size="sm" className="bg-gray-900 text-white rounded-full">
                       Check my eligibility
                     </Button>
                   </div>
-                  <div className="flex items-center gap-2 mb-4">
-                    <MapPinIcon className="w-4 h-4 text-gray-500" />
-                    <span className="text-sm text-gray-600">{trial.location}</span>
-                  </div>
-                  <div className="flex gap-4">
-                    <Badge variant="secondary">{trial.phase}</Badge>
-                    <Badge variant="secondary">{trial.ageRange}</Badge>
-                    <Badge variant="secondary">{trial.type}</Badge>
-                  </div>
+                  <Link to={`/trials/${trial.slug}`} className="block">
+                    <div className="flex items-center gap-2 mb-4">
+                      <MapPinIcon className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm text-gray-600">{trial.location}</span>
+                    </div>
+                    <div className="flex gap-4">
+                      <Badge variant="secondary">{trial.phase}</Badge>
+                      <Badge variant="secondary">{`${trial.minAge}-${trial.maxAge} yrs`}</Badge>
+                      <Badge variant="secondary">{trial.type}</Badge>
+                    </div>
+                  </Link>
                 </CardContent>
               </Card>
             ))}
