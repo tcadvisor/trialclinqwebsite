@@ -305,9 +305,10 @@ export default function HealthProfile(): JSX.Element {
           </button>
           <button
             onClick={() => setActiveTab("documents")}
-            className={`relative pb-2 ${activeTab === "documents" ? "border-b-2 border-[#1033e5] text-gray-900" : "text-gray-600"}`}
+            className={`relative pb-2 flex items-center gap-2 ${activeTab === "documents" ? "border-b-2 border-[#1033e5] text-gray-900" : "text-gray-600"}`}
           >
             Documents
+            <span className="ml-1 inline-flex items-center justify-center px-1.5 h-5 text-xs rounded-full bg-gray-100">{docCount}</span>
           </button>
           <button
             onClick={() => setActiveTab("ehr")}
