@@ -14,6 +14,7 @@ import CreateAccount from "./screens/providers/CreateAccount";
 import ProviderLogin from "./screens/providers/Login";
 import Dashboard from "./screens/patients/Dashboard";
 import TrialDetails from "./screens/TrialDetails";
+import EligibleTrials from "./screens/patients/EligibleTrials";
 
 function App() {
   return (
@@ -33,6 +34,7 @@ function App() {
         <Route path="/providers/create" element={<CreateAccount />} />
         <Route path="/providers/login" element={<ProviderLogin />} />
         <Route path="/patients/dashboard" element={<Dashboard />} />
+        <Route path="/patients/eligible" element={<EligibleTrials />} />
         <Route path="/trials/:slug" element={<TrialDetails />} />
       </Routes>
     </Router>
