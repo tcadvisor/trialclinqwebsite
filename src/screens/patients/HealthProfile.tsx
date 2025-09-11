@@ -252,6 +252,14 @@ function Documents({ onCountChange }: { onCountChange?: (count: number) => void 
 
 export default function HealthProfile(): JSX.Element {
   const [activeTab, setActiveTab] = useState<"overview" | "documents" | "ehr">("overview");
+  const [docCount, setDocCount] = useState<number>(() => {
+    try {
+      const raw = localStorage.getItem("tc_docs");
+      return raw ? (JSON.parse(raw) as unknown[]).length : 0;
+    } catch {
+      return 0;
+    }
+  });
 
   const Allergies: { name: string; note?: string }[] = [
     { name: "Pollen", note: "Itchy nose and watery eyes" },
