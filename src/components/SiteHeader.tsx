@@ -1,5 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { useAuth } from "../lib/auth";
+import { UserRound } from "lucide-react";
 
 type ActiveKey = "home" | "find" | "faq" | "contact" | undefined;
 
