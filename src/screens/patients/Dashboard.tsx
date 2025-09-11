@@ -119,7 +119,7 @@ export default function Dashboard(): JSX.Element {
                 ))}
               </tbody>
             </table>
-            <div className="border-t px-4 py-3 text-sm text-gray-600">View All Trials</div>
+            <Link to="/search-results" className="border-t px-4 py-3 block text-sm text-gray-600 hover:bg-gray-50">View All Trials</Link>
           </div>
         </section>
       </main>
