@@ -16,6 +16,7 @@ import Dashboard from "./screens/patients/Dashboard";
 import TrialDetails from "./screens/TrialDetails";
 import EligibleTrials from "./screens/patients/EligibleTrials";
 import HealthProfile from "./screens/patients/HealthProfile";
+import Settings from "./screens/patients/Settings";
 
 function App() {
   return (
