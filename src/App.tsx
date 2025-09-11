@@ -38,6 +38,7 @@ function App() {
         <Route path="/patients/dashboard" element={<Dashboard />} />
         <Route path="/patients/eligible" element={<EligibleTrials />} />
         <Route path="/patients/health-profile" element={<HealthProfile />} />
+        <Route path="/patients/settings" element={<Settings />} />
         <Route path="/trials/:slug" element={<TrialDetails />} />
       </Routes>
     </Router>
