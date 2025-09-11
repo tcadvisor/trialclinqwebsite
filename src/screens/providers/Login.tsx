@@ -1,6 +1,5 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
-import React from "react";
 import { supabase } from "../../lib/supabaseClient";
 
 export default function ProviderLogin(): JSX.Element {
