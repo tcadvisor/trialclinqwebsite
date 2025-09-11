@@ -17,6 +17,7 @@ import TrialDetails from "./screens/TrialDetails";
 import EligibleTrials from "./screens/patients/EligibleTrials";
 import HealthProfile from "./screens/patients/HealthProfile";
 import Settings from "./screens/patients/Settings";
+import ContactUs from "./screens/support/ContactUs";
 
 function App() {
   return (
@@ -40,6 +41,7 @@ function App() {
         <Route path="/patients/health-profile" element={<HealthProfile />} />
         <Route path="/patients/settings" element={<Settings />} />
         <Route path="/trials/:slug" element={<TrialDetails />} />
+        <Route path="/contact" element={<ContactUs />} />
       </Routes>
     </Router>
   );
