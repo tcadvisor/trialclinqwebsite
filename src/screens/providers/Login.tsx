@@ -17,7 +17,7 @@ export default function ProviderLogin(): JSX.Element {
     try {
       const { error } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
       if (error) throw error;
-      navigate("/providers/login");
+      navigate("/patients/dashboard");
     } catch (err: any) {
       setError(err.message ?? "Login failed");
     } finally {
