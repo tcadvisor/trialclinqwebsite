@@ -12,6 +12,12 @@ export default function Login(): JSX.Element {
     setError(null);
     const eNorm = email.trim().toLowerCase();
     if ((eNorm === "chandler@test.com" || eNorm === "test") && password === "test") {
+      try {
+        const name = eNorm.includes("@") ? eNorm.split("@")[0] : eNorm;
+        // Lazy auth: store session for this browser
+        const { login } = require("../../lib/auth");
+        login({ email: eNorm, name });
+      } catch {}
       navigate("/patients/dashboard");
       return;
     }
