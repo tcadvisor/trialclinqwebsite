@@ -33,6 +33,7 @@ function App() {
         <Route path="/providers/create" element={<CreateAccount />} />
         <Route path="/providers/login" element={<ProviderLogin />} />
         <Route path="/patients/dashboard" element={<Dashboard />} />
+        <Route path="/trials/:slug" element={<TrialDetails />} />
       </Routes>
     </Router>
   );
