@@ -14,6 +14,7 @@ import CreateAccount from "./screens/providers/CreateAccount";
 import ProviderLogin from "./screens/providers/Login";
 import SiteInformation from "./screens/providers/SiteInformation";
 import InvestigatorInformation from "./screens/providers/InvestigatorInformation";
+import ProviderWelcome from "./screens/providers/Welcome";
 import Dashboard from "./screens/patients/Dashboard";
 import TrialDetails from "./screens/TrialDetails";
 import EligibleTrials from "./screens/patients/EligibleTrials";
@@ -46,6 +47,7 @@ function App() {
         <Route path="/providers/login" element={<ProviderLogin />} />
         <Route path="/providers/site-information" element={<SiteInformation />} />
         <Route path="/providers/investigator-information" element={<InvestigatorInformation />} />
+        <Route path="/providers/welcome" element={<ProviderWelcome />} />
         <Route path="/patients/dashboard" element={<RequireAuth><Dashboard /></RequireAuth>} />
         <Route path="/patients/eligible" element={<RequireAuth><EligibleTrials /></RequireAuth>} />
         <Route path="/patients/health-profile" element={<RequireAuth><HealthProfile /></RequireAuth>} />
