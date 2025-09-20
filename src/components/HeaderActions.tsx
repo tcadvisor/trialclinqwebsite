@@ -51,9 +51,23 @@ export default function HeaderActions() {
   }
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="relative flex items-center gap-3" ref={menuRef}>
       <Link to="/patients/login" className="px-4 py-2 text-sm rounded-full border border-blue-600 text-blue-700 hover:bg-blue-50">Sign in</Link>
-      <Link to="/patients/volunteer" className="px-4 py-2 text-sm rounded-full bg-blue-600 text-white hover:bg-blue-700">Get Started</Link>
+      <button
+        className="px-4 py-2 text-sm rounded-full bg-blue-600 text-white hover:bg-blue-700"
+        onClick={() => setOpen((v) => !v)}
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={open}
+      >
+        Get Started
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full mt-2 w-56 rounded-lg border bg-white shadow-md">
+          <Link to="/patients/volunteer" className="block px-3 py-2 text-sm hover:bg-gray-50">Sign up as Volunteer</Link>
+          <Link to="/providers/create" className="block px-3 py-2 text-sm hover:bg-gray-50">Sign up as Researcher</Link>
+        </div>
+      )}
     </div>
   );
 }
