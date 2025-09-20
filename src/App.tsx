@@ -31,6 +31,7 @@ function App() {
         <Route path="/patients/faq" element={<Faq />} />
         <Route path="/patients/privacy" element={<Privacy />} />
         <Route path="/patients/volunteer" element={<Volunteer />} />
+        <Route path="/patients/consent" element={<Consent />} />
         <Route path="/patients/login" element={<Login />} />
         <Route path="/sites/blog" element={<InsiderBlog />} />
         <Route path="/sites/visibility" element={<VisibilityOptions />} />
