@@ -32,6 +32,7 @@ export default function HeaderActions() {
         </button>
         {open && (
           <div className="absolute right-0 top-full mt-2 w-44 rounded-lg border bg-white shadow-md">
+            <Link to="/patients/health-profile" className="block px-3 py-2 text-sm hover:bg-gray-50">Health Profile</Link>
             <Link to="/patients/settings" className="block px-3 py-2 text-sm hover:bg-gray-50">Settings</Link>
             <button
               className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-gray-50"
