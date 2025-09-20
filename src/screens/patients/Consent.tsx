@@ -74,7 +74,7 @@ export default function Consent(): JSX.Element {
           <button
             disabled={!allChecked}
             className={`inline-flex items-center justify-center rounded-full px-5 py-2 text-white text-sm font-medium transition-colors ${allChecked ? "bg-blue-600 hover:bg-blue-700" : "bg-blue-400 cursor-not-allowed"}`}
-            onClick={() => navigate("/patients/health-profile")}
+            onClick={() => navigate("/patients/connect")}
             type="button"
           >
             Sign and Continue

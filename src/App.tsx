@@ -19,6 +19,7 @@ import HealthProfile from "./screens/patients/HealthProfile";
 import Settings from "./screens/patients/Settings";
 import ContactUs from "./screens/support/ContactUs";
 import Consent from "./screens/patients/Consent";
+import Connect from "./screens/patients/Connect";
 import { RequireAuth } from "./lib/auth";
 
 function App() {
@@ -32,6 +33,7 @@ function App() {
         <Route path="/patients/privacy" element={<Privacy />} />
         <Route path="/patients/volunteer" element={<Volunteer />} />
         <Route path="/patients/consent" element={<Consent />} />
+        <Route path="/patients/connect" element={<Connect />} />
         <Route path="/patients/login" element={<Login />} />
         <Route path="/sites/blog" element={<InsiderBlog />} />
         <Route path="/sites/visibility" element={<VisibilityOptions />} />
