@@ -111,7 +111,7 @@ export default function SiteInformation(): JSX.Element {
 
           <div className="flex items-center justify-between pt-2">
             <button type="button" onClick={()=>navigate(-1)} className="rounded-full border px-5 py-2 text-sm hover:bg-gray-50">Back</button>
-            <button type="button" onClick={()=>navigate("/providers/login")} className="rounded-full bg-[#1033e5] px-5 py-2 text-sm text-white hover:bg-blue-700">Continue</button>
+            <button type="button" onClick={()=>navigate("/providers/investigator-information")} className="rounded-full bg-[#1033e5] px-5 py-2 text-sm text-white hover:bg-blue-700">Continue</button>
           </div>
 
           <div className="text-xs text-gray-600 flex items-center gap-2"><span role="img" aria-label="lock">🔒</span> Your data stays private and protected with HIPAA-compliant security.</div>
