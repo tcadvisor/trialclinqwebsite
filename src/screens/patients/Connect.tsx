@@ -141,6 +141,7 @@ export default function Connect(): JSX.Element {
             <div>
               <label className="block text-sm font-medium mb-2">Upload medical documents*</label>
               <UploadBox onFiles={(files)=> setDocCount((prev)=> prev + (files ? files.length : 0))} />
+              {docCount > 0 && (<div className="mt-1 text-xs text-gray-600">{docCount} document(s) added</div>)}
             </div>
           </div>
 
