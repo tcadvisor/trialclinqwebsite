@@ -1,5 +1,5 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import SiteHeader from "../../components/SiteHeader";
 
 export default function Volunteer(): JSX.Element {
@@ -22,6 +22,8 @@ export default function Volunteer(): JSX.Element {
           <input className="w-full border rounded px-3 py-2" placeholder="Location (city, state)" />
           <button className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700" type="submit">Sign up</button>
         </form>
+        <p className="text-sm text-gray-600 mt-4">Already have an account? <Link to="/patients/login" className="text-blue-600 hover:underline">Log in</Link></p>
+        <p className="text-sm text-gray-600 mt-2">Are you a researcher? <Link to="/providers/create" className="text-blue-600 hover:underline">Create a clinical site account</Link></p>
       </main>
     </div>
   );

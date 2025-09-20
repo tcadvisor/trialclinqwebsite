@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import AvatarMenu from "../../components/AvatarMenu";
 import { Settings as SettingsIcon, ShieldCheck, Bell, Lock } from "lucide-react";
 
 export default function Settings(): JSX.Element {
@@ -22,7 +23,7 @@ export default function Settings(): JSX.Element {
             <Link to="/patients/settings" aria-label="Settings" className="h-9 w-9 grid place-items-center rounded-full border bg-white text-gray-700 hover:bg-gray-50">
               <SettingsIcon className="w-4 h-4" />
             </Link>
-            <button className="h-9 px-3 rounded-full border bg-white text-gray-700 hover:bg-gray-50">OB</button>
+            <AvatarMenu />
           </div>
         </div>
       </header>

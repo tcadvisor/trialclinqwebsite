@@ -12,11 +12,15 @@ import MulticenterListings from "./screens/sites/MulticenterListings";
 import InvestigatorSupport from "./screens/support/InvestigatorSupport";
 import CreateAccount from "./screens/providers/CreateAccount";
 import ProviderLogin from "./screens/providers/Login";
+import SiteInformation from "./screens/providers/SiteInformation";
+import InvestigatorInformation from "./screens/providers/InvestigatorInformation";
+import ProviderWelcome from "./screens/providers/Welcome";
 import Dashboard from "./screens/patients/Dashboard";
 import TrialDetails from "./screens/TrialDetails";
 import EligibleTrials from "./screens/patients/EligibleTrials";
 import HealthProfile from "./screens/patients/HealthProfile";
 import Settings from "./screens/patients/Settings";
+import Welcome from "./screens/patients/Welcome";
 import ContactUs from "./screens/support/ContactUs";
 import Consent from "./screens/patients/Consent";
 import Connect from "./screens/patients/Connect";
@@ -41,10 +45,14 @@ function App() {
         <Route path="/support/investigators" element={<InvestigatorSupport />} />
         <Route path="/providers/create" element={<CreateAccount />} />
         <Route path="/providers/login" element={<ProviderLogin />} />
+        <Route path="/providers/site-information" element={<SiteInformation />} />
+        <Route path="/providers/investigator-information" element={<InvestigatorInformation />} />
+        <Route path="/providers/welcome" element={<ProviderWelcome />} />
         <Route path="/patients/dashboard" element={<RequireAuth><Dashboard /></RequireAuth>} />
         <Route path="/patients/eligible" element={<RequireAuth><EligibleTrials /></RequireAuth>} />
         <Route path="/patients/health-profile" element={<RequireAuth><HealthProfile /></RequireAuth>} />
         <Route path="/patients/settings" element={<RequireAuth><Settings /></RequireAuth>} />
+        <Route path="/patients/welcome" element={<Welcome />} />
         <Route path="/trials/:slug" element={<TrialDetails />} />
         <Route path="/contact" element={<ContactUs />} />
       </Routes>
