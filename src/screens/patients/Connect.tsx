@@ -1,5 +1,5 @@
 import React from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import SiteHeader from "../../components/SiteHeader";
 
 function UploadBox({ onFiles }: { onFiles: (files: FileList | null) => void }) {
