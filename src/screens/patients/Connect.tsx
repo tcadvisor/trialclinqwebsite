@@ -23,19 +23,32 @@ function UploadBox({ onFiles }: { onFiles: (files: FileList | null) => void }) {
 
 export default function Connect(): JSX.Element {
   const navigate = useNavigate();
+  // Existing state
   const [condition, setCondition] = React.useState("");
   const [healthy, setHealthy] = React.useState(false);
   const [year, setYear] = React.useState("");
   const [meds, setMeds] = React.useState("");
   const [docCount, setDocCount] = React.useState(0);
+  // New profile fields
+  const [dob, setDob] = React.useState("");
+  const [zip, setZip] = React.useState("");
+  const [distance, setDistance] = React.useState("");
+  const [gender, setGender] = React.useState<"Male" | "Female" | "">("");
+  const [race, setRace] = React.useState("");
+  const [language, setLanguage] = React.useState("");
+  const [agree1, setAgree1] = React.useState(false);
+  const [agree2, setAgree2] = React.useState(false);
 
   const years = React.useMemo(() => {
     const now = new Date().getFullYear();
     return Array.from({ length: 80 }, (_, i) => String(now - i));
   }, []);
 
+  const canSubmit = agree1 && agree2;
+
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!canSubmit) return;
     navigate("/patients/login");
   }
 
@@ -43,8 +56,8 @@ export default function Connect(): JSX.Element {
     <div className="min-h-screen bg-white text-gray-900">
       <SiteHeader />
       <main className="max-w-3xl mx-auto px-4 py-10">
-        <h1 className="text-center text-3xl font-semibold">Connect to clinical trials</h1>
-        <p className="mt-2 text-center text-gray-600">Tell us about any medical conditions you’ve been diagnosed with. This helps us find clinical trials that fit your health needs.</p>
+        <h1 className="text-center text-3xl font-semibold">Let’s get your basic health profile</h1>
+        <p className="mt-2 text-center text-gray-600">We need some necessary information including your medical details in order to properly sign you up</p>
         <div className="mt-4 flex items-center justify-center gap-2 text-xs text-gray-600">
           <button className="inline-flex items-center gap-1 rounded-full border px-3 py-1 hover:bg-gray-50" type="button">Why are we asking this? <span className="text-gray-400">ⓘ</span></button>
         </div>
@@ -61,6 +74,48 @@ export default function Connect(): JSX.Element {
         </div>
 
         <form onSubmit={onSubmit} className="mt-6 space-y-5">
+          {/* Basic profile card */}
+          <div className="rounded-2xl border bg-white p-5 shadow-sm space-y-5">
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium">Date of Birth*</label>
+                <input type="date" value={dob} onChange={(e)=>setDob(e.target.value)} className="mt-2 w-full rounded-full border px-4 py-2" placeholder="Select date of birth" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium">Travel Distance*</label>
+                <select value={distance} onChange={(e)=>setDistance(e.target.value)} className="mt-2 w-full rounded-full border px-4 py-2">
+                  <option value="">How far can you travel</option>
+                  {["5 miles","10 miles","25 miles","50 miles","100 miles","Any"].map((d)=> (<option key={d} value={d}>{d}</option>))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium">Location*</label>
+                <input value={zip} onChange={(e)=>setZip(e.target.value)} className="mt-2 w-full rounded-full border px-4 py-2" placeholder="Search with zipcode" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium">Biological Gender*</label>
+                <div className="mt-2 inline-flex items-center gap-2">
+                  <button type="button" onClick={()=>setGender("Male")} className={`px-4 py-2 rounded-full border ${gender === "Male" ? "bg-gray-900 text-white" : "bg-white"}`}>Male</button>
+                  <button type="button" onClick={()=>setGender("Female")} className={`px-4 py-2 rounded-full border ${gender === "Female" ? "bg-gray-900 text-white" : "bg-white"}`}>Female</button>
+                </div>
+              </div>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium">Race*</label>
+                <select value={race} onChange={(e)=>setRace(e.target.value)} className="mt-2 w-full rounded-full border px-4 py-2">
+                  <option value="">Select your race</option>
+                  {["Asian","Black / African American","White","Native American","Pacific Islander","Other","Prefer not to say"].map((r)=> (<option key={r} value={r}>{r}</option>))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium">Primary Language Spoken*</label>
+                <input value={language} onChange={(e)=>setLanguage(e.target.value)} className="mt-2 w-full rounded-full border px-4 py-2" placeholder="Search your preferred language(s) for trial communication." />
+              </div>
+            </div>
+          </div>
+
+          {/* Conditions card (existing) */}
           <div className="rounded-2xl border bg-white p-5 shadow-sm space-y-5">
             <div>
               <label className="block text-sm font-medium">Primary Condition(s)*</label>
@@ -87,10 +142,19 @@ export default function Connect(): JSX.Element {
               <label className="block text-sm font-medium mb-2">Upload medical documents*</label>
               <UploadBox onFiles={(files)=> setDocCount((prev)=> prev + (files ? files.length : 0))} />
             </div>
-            <div className="pt-2">
-              <button className="w-full rounded-full bg-[#1033e5] px-6 py-3 text-white font-medium hover:bg-blue-700">Create Volunteer Account</button>
-              <div className="mt-2 text-center text-xs text-gray-600">Your data stays private and protected with HIPAA-compliant security.</div>
-            </div>
+          </div>
+
+          {/* Consents + submit */}
+          <div className="space-y-3">
+            <label className="flex items-center gap-2 text-sm text-gray-700">
+              <input type="checkbox" className="rounded" checked={agree1} onChange={(e)=>setAgree1(e.target.checked)} /> I have read and agree to the Consent to Enroll and Privacy Policy.
+            </label>
+            <label className="flex items-center gap-2 text-sm text-gray-700">
+              <input type="checkbox" className="rounded" checked={agree2} onChange={(e)=>setAgree2(e.target.checked)} /> I consent to share my (or the volunteer’s) health data for clinical trial matching under HIPAA-compliant protocols.
+            </label>
+            <div className="text-xs text-gray-600">You may revoke consent at any time in Settings</div>
+            <button disabled={!canSubmit} className={`w-full rounded-full px-6 py-3 text-white font-medium ${canSubmit ? "bg-[#1033e5] hover:bg-blue-700" : "bg-blue-400 cursor-not-allowed"}`}>Create Volunteer Account</button>
+            <div className="text-center text-xs text-gray-600">Your data stays private and protected with HIPAA-compliant security.</div>
           </div>
         </form>
       </main>
