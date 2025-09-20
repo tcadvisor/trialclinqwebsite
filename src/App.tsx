@@ -17,6 +17,7 @@ import TrialDetails from "./screens/TrialDetails";
 import EligibleTrials from "./screens/patients/EligibleTrials";
 import HealthProfile from "./screens/patients/HealthProfile";
 import Settings from "./screens/patients/Settings";
+import Welcome from "./screens/patients/Welcome";
 import ContactUs from "./screens/support/ContactUs";
 import Consent from "./screens/patients/Consent";
 import Connect from "./screens/patients/Connect";
@@ -45,6 +46,7 @@ function App() {
         <Route path="/patients/eligible" element={<RequireAuth><EligibleTrials /></RequireAuth>} />
         <Route path="/patients/health-profile" element={<RequireAuth><HealthProfile /></RequireAuth>} />
         <Route path="/patients/settings" element={<RequireAuth><Settings /></RequireAuth>} />
+        <Route path="/patients/welcome" element={<Welcome />} />
         <Route path="/trials/:slug" element={<TrialDetails />} />
         <Route path="/contact" element={<ContactUs />} />
       </Routes>

@@ -49,7 +49,7 @@ export default function Connect(): JSX.Element {
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!canSubmit) return;
-    navigate("/patients/login");
+    navigate("/patients/welcome");
   }
 
   return (
