@@ -16,7 +16,7 @@ export default function InvestigatorInformation(): JSX.Element {
         <h1 className="text-3xl font-semibold text-center">Investigator Information</h1>
         <p className="mt-2 text-center text-gray-600">Enter your site's contact and location details for trial coordination</p>
 
-        <form className="mt-6 rounded-2xl border bg-white p-5 shadow-sm space-y-4" onSubmit={(e)=>{e.preventDefault(); navigate("/providers/login");}}>
+        <form className="mt-6 rounded-2xl border bg-white p-5 shadow-sm space-y-4" onSubmit={(e)=>{e.preventDefault(); navigate("/providers/welcome");}}>
           <div>
             <label className="block text-xs font-medium text-gray-700">Investigator Name*</label>
             <input className="mt-2 w-full rounded-full border px-4 h-10 text-sm" placeholder="Enter full name of the site investigator" />
