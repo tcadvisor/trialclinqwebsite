@@ -1,6 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import SiteHeader from "../../components/SiteHeader";
+import { useAuth } from "../../lib/auth";
 
 function UploadBox({ onFiles }: { onFiles: (files: FileList | null) => void }) {
   const inputRef = React.useRef<HTMLInputElement | null>(null);
@@ -23,6 +24,7 @@ function UploadBox({ onFiles }: { onFiles: (files: FileList | null) => void }) {
 
 export default function Connect(): JSX.Element {
   const navigate = useNavigate();
+  const { signIn } = useAuth();
   // Existing state
   const [condition, setCondition] = React.useState("");
   const [healthy, setHealthy] = React.useState(false);
@@ -49,6 +51,7 @@ export default function Connect(): JSX.Element {
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!canSubmit) return;
+    signIn({ email: "volunteer@trialcliniq.com", role: "patient" });
     navigate("/patients/welcome");
   }
 
