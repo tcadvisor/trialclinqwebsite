@@ -203,19 +203,19 @@ export const SearchResults = (): JSX.Element => {
                 <Card key={`${nctId}-${index}`}>
                   <CardContent className="p-6">
                     <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
-                      <a href={detailUrl} target="_blank" rel="noreferrer" className="hover:underline flex-1 min-w-0">
+                      <Link to={`/study/${nctId}`} className="hover:underline flex-1 min-w-0">
                         <h3 className="text-lg font-semibold text-[#1033e5] mb-1 break-words leading-snug">{title}</h3>
-                      </a>
+                      </Link>
                       <div className="flex items-center gap-2">
                         {overallStatus && <Badge variant="secondary">{overallStatus}</Badge>}
-                        <a href={detailUrl} target="_blank" rel="noreferrer">
+                        <Link to={`/study/${nctId}`}>
                           <Button size="sm" className="bg-gray-900 text-white rounded-full whitespace-nowrap">
-                            View on ClinicalTrials.gov
+                            View details
                           </Button>
-                        </a>
+                        </Link>
                       </div>
                     </div>
-                    <a href={detailUrl} target="_blank" rel="noreferrer" className="block">
+                    <Link to={`/study/${nctId}`} className="block">
                       {nearest && (
                         <div className="flex items-center gap-2 mb-3">
                           <MapPinIcon className="w-4 h-4 text-gray-500" />
@@ -231,7 +231,7 @@ export const SearchResults = (): JSX.Element => {
                         )}
                         {sponsor && <Badge variant="secondary">{sponsor}</Badge>}
                       </div>
-                    </a>
+                    </Link>
                   </CardContent>
                 </Card>
               );
