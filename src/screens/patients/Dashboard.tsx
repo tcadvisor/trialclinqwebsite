@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { trials } from "../../lib/trials";
-import HeaderActions from "../../components/HeaderActions";
+import PatientHeader from "../../components/PatientHeader";
 import { useAuth } from "../../lib/auth";
 import { computeProfileCompletion } from "../../lib/profile";
 
@@ -23,24 +23,7 @@ export default function Dashboard(): JSX.Element {
   }, []);
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
-      <header className="sticky top-0 z-30 bg-white/80 backdrop-blur border-b">
-        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <img
-              alt="TrialCliniq"
-              className="h-8 w-auto"
-              src="https://c.animaapp.com/mf3cenl8GIzqBa/img/igiwdhcu2mb98arpst9kn-2.png"
-            />
-          </Link>
-          <nav className="hidden md:flex items-center gap-6 text-sm">
-            <Link to="/patients/dashboard" className="hover:text-gray-600">Dashboard</Link>
-            <Link to="/patients/eligible" className="hover:text-gray-600">Eligible Trials</Link>
-            <Link to="/patients/health-profile" className="hover:text-gray-600">Health Profile</Link>
-            <Link to="/patients/faq" className="hover:text-gray-600">Help Center</Link>
-          </nav>
-          <HeaderActions />
-        </div>
-      </header>
+      <PatientHeader />
 
       <main className="max-w-6xl mx-auto px-4 py-8">
         <h1 className="text-2xl sm:text-3xl font-semibold">Welcome back, {name}</h1>
