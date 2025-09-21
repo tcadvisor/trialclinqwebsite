@@ -1,14 +1,20 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { Search, Loader2 } from "lucide-react";
+import { Search, Loader2, Plus } from "lucide-react";
 import SiteHeader from "../../components/SiteHeader";
 import { CtgovStudy, fetchStudies, ctgovStudyDetailUrl, formatNearestSitePreview, fetchStudyByNctId } from "../../lib/ctgov";
+import { addTrial, getAddedTrials, isTrialAdded } from "../../lib/providerTrials";
 
 export default function ProviderTrials(): JSX.Element {
   const [query, setQuery] = React.useState("");
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string>("");
   const [studies, setStudies] = React.useState<CtgovStudy[]>([]);
+  const [added, setAdded] = React.useState<Record<string, boolean>>(() => {
+    const map: Record<string, boolean> = {};
+    getAddedTrials().forEach((t) => { if (t.nctId) map[t.nctId] = true; });
+    return map;
+  });
 
   const runSearch = React.useCallback(async () => {
     const q = query.trim();
@@ -95,32 +101,39 @@ export default function ProviderTrials(): JSX.Element {
                 <div className="p-4 text-sm border border-red-200 bg-red-50 text-red-700 rounded">{error}</div>
               )}
               {!loading && !error && studies.length > 0 && (
-                <ul className="space-y-3">
+                <ul className="rounded-xl border overflow-hidden">
                   {studies.map((s, i) => {
                     const nctId = s.protocolSection?.identificationModule?.nctId || "";
                     const title = s.protocolSection?.identificationModule?.briefTitle || "Untitled";
                     const status = s.protocolSection?.statusModule?.overallStatus || "";
                     const sponsor = s.protocolSection?.sponsorCollaboratorsModule?.leadSponsor?.name || "";
                     const nearest = formatNearestSitePreview(s);
+                    const key = `${nctId || "idx"}-${i}`;
+                    const already = nctId ? (added[nctId] || isTrialAdded(nctId)) : false;
                     return (
-                      <li key={`${nctId || "idx"}-${i}`} className="rounded-xl border p-4">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <div className="text-[#1033e5] font-semibold mb-1 break-words">{title}</div>
-                            <div className="text-xs text-gray-600 flex flex-wrap gap-2">
-                              {status && <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5">{status}</span>}
-                              {nearest && <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5">{nearest}</span>}
-                              {sponsor && <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5">{sponsor}</span>}
-                            </div>
+                      <li key={key} className="flex items-center justify-between px-4 py-3 border-t first:border-t-0 bg-white hover:bg-gray-50">
+                        <div className="min-w-0">
+                          <div className="text-sm text-gray-900 truncate">{title}</div>
+                          <div className="text-[11px] text-gray-500 truncate">
+                            {nctId}{status ? ` · ${status}` : ''}{nearest ? ` · ${nearest}` : ''}{sponsor ? ` · ${sponsor}` : ''}
                           </div>
-                          <div className="shrink-0 flex items-center gap-2">
-                            {nctId && (
-                              <a href={ctgovStudyDetailUrl(s)} target="_blank" rel="noopener noreferrer" className="rounded-full bg-gray-900 text-white px-3 py-1 text-xs">View</a>
-                            )}
-                            {nctId && (
-                              <Link to={`/study/${nctId}`} className="rounded-full bg-[#1033e5] text-white px-3 py-1 text-xs">Open</Link>
-                            )}
-                          </div>
+                        </div>
+                        <div className="shrink-0 flex items-center gap-2">
+                          {!already ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (!nctId) return;
+                                addTrial({ nctId, title, status, sponsor, nearest });
+                                setAdded((m) => ({ ...m, [nctId]: true }));
+                              }}
+                              className="inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs hover:bg-gray-50"
+                            >
+                              <Plus className="w-3.5 h-3.5" /> Add
+                            </button>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 text-emerald-700 px-3 py-1 text-xs">Added</span>
+                          )}
                         </div>
                       </li>
                     );
