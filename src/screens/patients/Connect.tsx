@@ -1,5 +1,5 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import SiteHeader from "../../components/SiteHeader";
 
 function UploadBox({ onFiles }: { onFiles: (files: FileList | null) => void }) {
@@ -23,6 +23,8 @@ function UploadBox({ onFiles }: { onFiles: (files: FileList | null) => void }) {
 
 export default function Connect(): JSX.Element {
   const navigate = useNavigate();
+  const { search } = useLocation();
+  const nctParam = React.useMemo(() => new URLSearchParams(search).get("nctId") || "", [search]);
   // Existing state
   const [condition, setCondition] = React.useState("");
   const [healthy, setHealthy] = React.useState(false);
@@ -49,15 +51,17 @@ export default function Connect(): JSX.Element {
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!canSubmit) return;
-    navigate("/patients/login");
+    const profile = { condition, healthy, year, meds, dob, zip, distance, gender, race, language };
+    try { localStorage.setItem("tc_eligibility_profile", JSON.stringify(profile)); } catch {}
+    navigate(`/patients/check${nctParam ? `?nctId=${encodeURIComponent(nctParam)}` : ""}`);
   }
 
   return (
     <div className="min-h-screen bg-white text-gray-900">
       <SiteHeader />
       <main className="max-w-3xl mx-auto px-4 py-10">
-        <h1 className="text-center text-3xl font-semibold">Let’s get your basic health profile</h1>
-        <p className="mt-2 text-center text-gray-600">We need some necessary information including your medical details in order to properly sign you up</p>
+        <h1 className="text-center text-3xl font-semibold">Check Your Eligibility for This Trial</h1>
+        <p className="mt-2 text-center text-gray-600">Answer a few quick questions to see if you might qualify. No signup required.</p>
         <div className="mt-4 flex items-center justify-center gap-2 text-xs text-gray-600">
           <button className="inline-flex items-center gap-1 rounded-full border px-3 py-1 hover:bg-gray-50" type="button">Why are we asking this? <span className="text-gray-400">ⓘ</span></button>
         </div>
@@ -154,7 +158,7 @@ export default function Connect(): JSX.Element {
               <input type="checkbox" className="rounded" checked={agree2} onChange={(e)=>setAgree2(e.target.checked)} /> I consent to share my (or the volunteer’s) health data for clinical trial matching under HIPAA-compliant protocols.
             </label>
             <div className="text-xs text-gray-600">You may revoke consent at any time in Settings</div>
-            <button disabled={!canSubmit} className={`w-full rounded-full px-6 py-3 text-white font-medium ${canSubmit ? "bg-[#1033e5] hover:bg-blue-700" : "bg-blue-400 cursor-not-allowed"}`}>Create Volunteer Account</button>
+            <button disabled={!canSubmit} className={`w-full rounded-full px-6 py-3 text-white font-medium ${canSubmit ? "bg-[#1033e5] hover:bg-blue-700" : "bg-blue-400 cursor-not-allowed"}`}>Check My Eligibility</button>
             <div className="text-center text-xs text-gray-600">Your data stays private and protected with HIPAA-compliant security.</div>
           </div>
         </form>
