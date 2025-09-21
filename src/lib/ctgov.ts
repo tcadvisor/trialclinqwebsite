@@ -44,9 +44,10 @@ export type CtgovQuery = {
   radius?: string
   pageSize?: number
   pageToken?: string
+  pageNumber?: number
 }
 
-export function buildStudiesUrl({ q = '', status = '', type = '', loc = '', lat, lng, radius, pageSize = 12, pageToken = '' }: CtgovQuery) {
+export function buildStudiesUrl({ q = '', status = '', type = '', loc = '', lat, lng, radius, pageSize = 12, pageToken = '', pageNumber }: CtgovQuery) {
   const base = 'https://clinicaltrials.gov/api/v2/studies'
   const fields = [
     'protocolSection.identificationModule.nctId',
@@ -64,6 +65,7 @@ export function buildStudiesUrl({ q = '', status = '', type = '', loc = '', lat,
   params.set('format', 'json')
   params.set('pageSize', String(pageSize))
   params.set('fields', fields)
+  params.set('countTotal', 'true')
   if (status) params.set('filter.overallStatus', status)
   if (type) params.set('filter.studyType', type)
   if (q) params.set('query.cond', q)
@@ -72,6 +74,7 @@ export function buildStudiesUrl({ q = '', status = '', type = '', loc = '', lat,
     const r = radius || '50mi'
     params.set('filter.geo', `distance(${lat},${lng},${r})`)
   }
+  if (typeof pageNumber === 'number' && pageNumber > 0) params.set('pageNumber', String(pageNumber))
   if (pageToken) params.set('pageToken', pageToken)
 
   return `${base}?${params.toString()}`
