@@ -1,5 +1,5 @@
 import React from "react";
-import SiteHeader from "../../components/SiteHeader";
+import PatientHeader from "../../components/PatientHeader";
 
 export default function Faq(): JSX.Element {
   const faqs = [
