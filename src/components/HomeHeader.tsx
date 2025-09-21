@@ -9,15 +9,15 @@ export default function HomeHeader() {
 
   return (
     <header className="sticky top-0 z-30 bg-white/80 backdrop-blur border-b">
-      <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2">
+      <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
+        <Link to="/" className="flex items-center gap-2 shrink-0">
           <img
             alt="TrialCliniq"
             className="h-8 w-auto"
             src="https://c.animaapp.com/mf3cenl8GIzqBa/img/igiwdhcu2mb98arpst9kn-2.png"
           />
         </Link>
-        <nav className="hidden md:flex items-center gap-8 text-sm">
+        <nav className="hidden md:flex items-center gap-8 text-sm flex-1 min-w-0">
           <div className="relative group">
             <button
               className="hover:text-gray-600 inline-flex items-center gap-1"
