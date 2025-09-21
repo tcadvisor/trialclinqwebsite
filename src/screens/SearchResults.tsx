@@ -5,23 +5,16 @@ import { Card, CardContent } from "../components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { Badge } from "../components/ui/badge";
 import { Separator } from "../components/ui/separator";
-import { ChevronDownIcon, MapPinIcon, ClockIcon, UsersIcon, GridIcon, HelpCircleIcon, ShieldIcon, UserPlusIcon, LogInIcon } from "lucide-react";
+import { ChevronDownIcon, MapPinIcon, ClockIcon, UsersIcon } from "lucide-react";
 import { trials } from "../lib/trials";
 import HomeHeader from "../components/HomeHeader";
 
-const navigationItems = [
-  { label: "Patients and Families", hasDropdown: true },
-  { label: "Sites & Investigators", hasDropdown: true },
-  { label: "Contact Us", hasDropdown: false },
-  { label: "About Us", hasDropdown: false },
-];
 
 const solutionsLinks = ["Find a study", "More about trials", "How TrialCliniq help", "Blog"];
 
 const companyLinks = ["Terms of Conditions", "Contact Us", "About Us", "Privacy Policy"];
 
 export const SearchResults = (): JSX.Element => {
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [minAge, setMinAge] = useState<number>(0);
   const [maxAge, setMaxAge] = useState<number>(100);
   const { search } = useLocation();
@@ -77,38 +70,6 @@ export const SearchResults = (): JSX.Element => {
     setPageSize(initialSize);
   }, [initialPage, initialSize]);
 
-  const dropdownItems = [
-    {
-      icon: GridIcon,
-      title: "Find a clinical trial",
-      description: "Search active clinical trials near you by using filters and get matched instantly.",
-      to: "/patients/find-trial",
-    },
-    {
-      icon: HelpCircleIcon,
-      title: "Frequently Asked Questions",
-      description: "Find answers to common questions and resources for navigating your clinical trial journey.",
-      to: "/patients/faq",
-    },
-    {
-      icon: ShieldIcon,
-      title: "Consent & Data Privacy",
-      description: "Learn how your personal health data is securely collected, protected, and used for clinical trial matching.",
-      to: "/patients/privacy",
-    },
-    {
-      icon: UserPlusIcon,
-      title: "Become a clinical trial volunteer",
-      description: "Sign up to receive personalized clinical trial matches based on your health profile and location.",
-      to: "/patients/volunteer",
-    },
-    {
-      icon: LogInIcon,
-      title: "Participant Login",
-      description: "Manage your trial matches and track your enrollment progress.",
-      to: "/patients/login",
-    }
-  ];
 
   const filteredTrials = useMemo(() => {
     const params = new URLSearchParams(search);
