@@ -14,8 +14,9 @@ export default function ProviderLogin(): JSX.Element {
 
   React.useEffect(() => {
     if (isAuthenticated) {
-      const from = (location.state as any)?.from?.pathname || "/";
-      navigate(from, { replace: true });
+      const from = (location.state as any)?.from?.pathname as string | undefined;
+      const fallback = "/providers/dashboard";
+      navigate(from || fallback, { replace: true });
     }
   }, [isAuthenticated, navigate, location.state]);
 
@@ -23,13 +24,19 @@ export default function ProviderLogin(): JSX.Element {
     e.preventDefault();
     setError(null);
     const eNorm = email.trim().toLowerCase();
-    if (eNorm && password === "test") {
+    if (password !== "test") {
+      setError("Invalid email or password");
+      return;
+    }
+
+    if (eNorm === "chandler_research@test.com") {
       signIn({ email: eNorm, role: "provider" });
-      const from = (location.state as any)?.from?.pathname || "/";
+      const from = (location.state as any)?.from?.pathname || "/providers/dashboard";
       navigate(from, { replace: true });
       return;
     }
-    setError("Invalid email or password");
+
+    setError("Please use your researcher account email.");
   };
 
   return (
