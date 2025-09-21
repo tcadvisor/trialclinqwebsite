@@ -6,7 +6,7 @@ import SiteHeader from "../../components/SiteHeader";
 export default function Login(): JSX.Element {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAuthenticated, signIn } = useAuth();
+  const { isAuthenticated, signIn, user } = useAuth();
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
@@ -14,10 +14,10 @@ export default function Login(): JSX.Element {
   React.useEffect(() => {
     if (isAuthenticated) {
       const from = (location.state as any)?.from?.pathname as string | undefined;
-      const fallback = "/patients/dashboard";
+      const fallback = user?.role === "provider" ? "/providers/dashboard" : "/patients/dashboard";
       navigate(from || fallback, { replace: true });
     }
-  }, [isAuthenticated, navigate, location.state]);
+  }, [isAuthenticated, navigate, location.state, user]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
