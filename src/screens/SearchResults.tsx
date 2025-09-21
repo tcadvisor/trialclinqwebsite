@@ -7,6 +7,7 @@ import { Badge } from "../components/ui/badge";
 import { Separator } from "../components/ui/separator";
 import { ChevronDownIcon, MapPinIcon, ClockIcon, UsersIcon, GridIcon, HelpCircleIcon, ShieldIcon, UserPlusIcon, LogInIcon } from "lucide-react";
 import { trials } from "../lib/trials";
+import HomeHeader from "../components/HomeHeader";
 
 const navigationItems = [
   { label: "Patients and Families", hasDropdown: true },
@@ -209,22 +210,22 @@ export const SearchResults = (): JSX.Element => {
           setFromClientX(e.clientX);
         }}
       >
-        <div className="absolute top-1/2 -translate-y-1/2 left-0 right-0 h-2 bg-gray-200 rounded" />
+        <div className="absolute top-1/2 -translate-y-1/2 left-0 right-0 h-2 bg-gray-200 rounded-full" />
         <div
-          className="absolute top-1/2 -translate-y-1/2 h-2 bg-blue-500 rounded"
+          className="absolute top-1/2 -translate-y-1/2 h-2 bg-blue-600 rounded-full"
           style={{ left: `${percent(min)}%`, width: `${Math.max(0, percent(max) - percent(min))}%` }}
         />
         <button
           type="button"
           aria-label="Minimum age"
-          className="absolute top-1/2 -translate-y-1/2 -mt-1.5 w-4 h-4 rounded-full bg-white border border-gray-400 shadow cursor-pointer"
+          className="absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white border border-blue-600 shadow ring-2 ring-white cursor-pointer"
           style={{ left: `calc(${percent(min)}% - 8px)` }}
           onPointerDown={(e) => { e.stopPropagation(); setDragging('min'); }}
         />
         <button
           type="button"
           aria-label="Maximum age"
-          className="absolute top-1/2 -translate-y-1/2 -mt-1.5 w-4 h-4 rounded-full bg-white border border-gray-400 shadow cursor-pointer"
+          className="absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white border border-blue-600 shadow ring-2 ring-white cursor-pointer"
           style={{ left: `calc(${percent(max)}% - 8px)` }}
           onPointerDown={(e) => { e.stopPropagation(); setDragging('max'); }}
         />
@@ -234,80 +235,7 @@ export const SearchResults = (): JSX.Element => {
 
   return (
     <div className="flex flex-col w-full items-center relative bg-[#ffffff]">
-      <header className="flex-col w-full justify-center gap-2.5 px-2.5 py-3 bg-gray-25 flex items-center relative flex-[0_0_auto]">
-        <nav className="w-full max-w-[1200px] justify-between flex items-center relative flex-[0_0_auto]">
-          <Link to="/">
-            <img
-              className="relative w-[124px] h-[39px] cursor-pointer hover:opacity-80 transition-opacity"
-              alt="TrialCliniq Logo"
-              src="https://c.animaapp.com/mf3cenl8GIzqBa/img/igiwdhcu2mb98arpst9kn-2.png"
-            />
-          </Link>
-          <div className="inline-flex items-center justify-center gap-2 relative flex-[0_0_auto]">
-            {navigationItems.map((item, index) => (
-              <div
-                key={index}
-                className="inline-flex items-center justify-center gap-1 px-4 py-2 relative flex-[0_0_auto] rounded"
-                onMouseEnter={() => item.label === "Patients and Families" && setIsDropdownOpen(true)}
-                onClick={() => item.label === "Patients and Families" && setIsDropdownOpen((v) => !v)}
-              >
-                <div className="relative w-fit mt-[-1.00px] font-text-lg-medium font-[number:var(--text-lg-medium-font-weight)] text-[#181d27] text-[length:var(--text-lg-medium-font-size)] text-center tracking-[var(--text-lg-medium-letter-spacing)] leading-[var(--text-lg-medium-line-height)] whitespace-nowrap [font-style:var(--text-lg-medium-font-style)] cursor-pointer">
-                  {item.label}
-                </div>
-                {item.hasDropdown && (
-                  <div className="relative w-4 h-4 bg-[#dde1fd] rounded-[99px] overflow-hidden cursor-pointer">
-                    <ChevronDownIcon className="absolute w-4 h-4 top-0 left-0" />
-                  </div>
-                )}
-
-                {/* Dropdown Menu */}
-                {item.label === "Patients and Families" && isDropdownOpen && (
-                  <div className="absolute top-full left-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
-                    <div className="py-4">
-                      {dropdownItems.map((dropdownItem, dropdownIndex) => (
-                        <Link
-                          key={dropdownIndex}
-                          to={dropdownItem.to as string}
-                          className="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors group"
-                          onClick={() => setIsDropdownOpen(false)}
-                        >
-                          <div className="flex-shrink-0 mt-1">
-                            {(() => {
-                              const Icon = dropdownItem.icon;
-                              return <Icon className="w-5 h-5 text-gray-600 group-hover:text-gray-900" />;
-                            })()}
-                          </div>
-
-                          <div className="flex-1">
-                            <h4 className="text-sm font-semibold text-gray-900 mb-1">
-                              {dropdownItem.title}
-                            </h4>
-                            <p className="text-xs text-gray-600 leading-relaxed">
-                              {dropdownItem.description}
-                            </p>
-                          </div>
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-          <div className="inline-flex items-center justify-center gap-2 relative flex-[0_0_auto]">
-            <Link to="/">
-              <Button
-                variant="outline"
-                className="h-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 relative flex-[0_0_auto] rounded-[50px] overflow-hidden border border-solid border-[#1033e5] shadow-shadow-xs"
-              >
-                <div className="relative w-fit mt-[-1.00px] font-text-md-semibold font-[number:var(--text-md-semibold-font-weight)] text-[#1033e5] text-[length:var(--text-md-semibold-font-size)] tracking-[var(--text-md-semibold-letter-spacing)] leading-[var(--text-md-semibold-line-height)] whitespace-nowrap [font-style:var(--text-md-semibold-font-style)]">
-                  Home
-                </div>
-              </Button>
-            </Link>
-          </div>
-        </nav>
-      </header>
+      <HomeHeader />
       <main className="w-full max-w-[1200px] px-4 py-8">
         <div className="flex items-center gap-2 mb-6">
           <span className="text-sm text-gray-500">Home</span>
