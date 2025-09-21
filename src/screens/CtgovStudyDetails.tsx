@@ -16,18 +16,26 @@ export default function CtgovStudyDetails(): JSX.Element {
 
   React.useEffect(() => {
     const ac = new AbortController();
-    setLoading(true);
-    setError("");
-    fetchStudyByNctId(nctId, ac.signal)
-      .then((res) => {
+    let mounted = true;
+    (async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const res = await fetchStudyByNctId(nctId, ac.signal);
+        if (!mounted) return;
         const s = res.studies?.[0] || null;
         setStudy(s);
-      })
-      .catch((e) => {
-        if (e.name !== "AbortError") setError("Failed to load study details.");
-      })
-      .finally(() => setLoading(false));
-    return () => ac.abort();
+      } catch (e: any) {
+        if (!mounted) return;
+        if (e?.name !== "AbortError") setError("Failed to load study details.");
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+      ac.abort();
+    };
   }, [nctId]);
 
   const title = study?.protocolSection?.identificationModule?.briefTitle || "";
