@@ -29,6 +29,7 @@ import Settings from "./screens/patients/Settings";
 import EligibilityCheck from "./screens/patients/EligibilityCheck";
 import EligibilityResult from "./screens/patients/EligibilityResult";
 import ContactUs from "./screens/support/ContactUs";
+import EhrDirectory from "./screens/patients/EhrDirectory";
 import Consent from "./screens/patients/Consent";
 import Connect from "./screens/patients/Connect";
 import { RequireAuth, RequireRole } from "./lib/auth";
@@ -45,6 +46,7 @@ function App() {
         <Route path="/patients/volunteer" element={<Volunteer />} />
         <Route path="/patients/consent" element={<Consent />} />
         <Route path="/patients/connect" element={<Connect />} />
+        <Route path="/patients/ehr" element={<EhrDirectory />} />
         <Route path="/patients/check" element={<EligibilityCheck />} />
         <Route path="/patients/result" element={<EligibilityResult />} />
         <Route path="/patients/login" element={<Login />} />
