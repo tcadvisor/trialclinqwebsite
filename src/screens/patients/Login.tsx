@@ -13,8 +13,9 @@ export default function Login(): JSX.Element {
 
   React.useEffect(() => {
     if (isAuthenticated) {
-      const from = (location.state as any)?.from?.pathname || "/patients/dashboard";
-      navigate(from, { replace: true });
+      const from = (location.state as any)?.from?.pathname as string | undefined;
+      const fallback = "/patients/dashboard";
+      navigate(from || fallback, { replace: true });
     }
   }, [isAuthenticated, navigate, location.state]);
 
@@ -22,13 +23,19 @@ export default function Login(): JSX.Element {
     e.preventDefault();
     setError(null);
     const eNorm = email.trim().toLowerCase();
-    if ((eNorm === "chandler@test.com" || eNorm === "test") && password === "test") {
+    if (password !== "test") {
+      setError("Invalid email or password");
+      return;
+    }
+
+    if (eNorm === "chandler@test.com") {
       signIn({ email: eNorm, role: "patient" });
       const from = (location.state as any)?.from?.pathname || "/patients/dashboard";
       navigate(from, { replace: true });
       return;
     }
-    setError("Invalid email or password");
+
+    setError("Please use your participant account email.");
   };
 
   return (
