@@ -359,7 +359,7 @@ export const SearchResults = (): JSX.Element => {
                     <RangeSlider
                       min={minAge}
                       max={maxAge}
-                      onChange={(a, b) => { setMinAge(a); setMaxAge(b); }}
+                      onChange={(a, b) => { setMinAge(a); setMaxAge(b); setPage(1); updateQuery({ page: 1 }); }}
                     />
                   </div>
                   <div>
@@ -370,8 +370,8 @@ export const SearchResults = (): JSX.Element => {
                         const mapped = v === "any" ? "" : (v as any);
                         setPhase(mapped as any);
                         const params = new URLSearchParams(search);
-                        if (mapped) params.set("phase", mapped as string);
-                        else params.delete("phase");
+                        if (mapped) params.set("phase", mapped as string); else params.delete("phase");
+                        params.set("page", "1");
                         navigate({ search: params.toString() ? `?${params.toString()}` : "" }, { replace: false });
                       }}
                     >
@@ -394,8 +394,8 @@ export const SearchResults = (): JSX.Element => {
                         const mapped = v === "any" ? "" : (v as any);
                         setTrialType(mapped as any);
                         const params = new URLSearchParams(search);
-                        if (mapped) params.set("type", mapped as string);
-                        else params.delete("type");
+                        if (mapped) params.set("type", mapped as string); else params.delete("type");
+                        params.set("page", "1");
                         navigate({ search: params.toString() ? `?${params.toString()}` : "" }, { replace: false });
                       }}
                     >
@@ -409,12 +409,32 @@ export const SearchResults = (): JSX.Element => {
                       </SelectContent>
                     </Select>
                   </div>
+                  <div>
+                    <h4 className="font-medium mb-2">Results per page</h4>
+                    <Select
+                      value={String(pageSize)}
+                      onValueChange={(v) => {
+                        const size = parseInt(v, 10);
+                        setPageSize(size);
+                        setPage(1);
+                        updateQuery({ size, page: 1 });
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="10" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="10">10</SelectItem>
+                        <SelectItem value="20">20</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           </aside>
           <div className="lg:col-span-3 space-y-6">
-            {filteredTrials.map((trial, index) => (
+            {paginatedTrials.map((trial, index) => (
               <Card key={index}>
                 <CardContent className="p-6">
                   <div className="flex justify-between items-start mb-4">
@@ -440,27 +460,42 @@ export const SearchResults = (): JSX.Element => {
               </Card>
             ))}
 
-            <div className="flex justify-center items-center gap-2 mt-8">
-              <Button variant="outline" size="sm">
+            <div className="flex flex-wrap justify-center items-center gap-2 mt-8">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => { if (currentPage > 1) { setPage(currentPage - 1); updateQuery({ page: currentPage - 1 }); } }}
+                disabled={currentPage === 1}
+                aria-label="Previous page"
+              >
                 <ChevronDownIcon className="w-4 h-4 rotate-90" />
               </Button>
-              <Button variant="outline" size="sm">
-                1
-              </Button>
-              <Button variant="outline" size="sm">
-                2
-              </Button>
-              <span className="text-gray-500">...</span>
-              <Button variant="outline" size="sm">
-                9
-              </Button>
-              <Button variant="outline" size="sm">
-                10
-              </Button>
-              <Button variant="outline" size="sm">
+              {pages.map((p, i) =>
+                typeof p === 'string' ? (
+                  <span key={`ellipsis-${i}`} className="px-2 text-gray-500">{p}</span>
+                ) : (
+                  <Button
+                    key={p}
+                    variant={p === currentPage ? 'default' : 'outline'}
+                    size="sm"
+                    className={p === currentPage ? 'bg-[#1033e5] text-white' : ''}
+                    onClick={() => { setPage(p); updateQuery({ page: p }); }}
+                  >
+                    {p}
+                  </Button>
+                )
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => { if (currentPage < totalPages) { setPage(currentPage + 1); updateQuery({ page: currentPage + 1 }); } }}
+                disabled={currentPage === totalPages}
+                aria-label="Next page"
+              >
                 <ChevronDownIcon className="w-4 h-4 -rotate-90" />
               </Button>
             </div>
+            <div className="text-center text-xs text-gray-500">Page {currentPage} of {totalPages}</div>
           </div>
         </div>
       </main>
