@@ -87,8 +87,8 @@ export default function ProviderDashboard(): JSX.Element {
                 { code: "AG-002", title: "Investigating Non-Opioid Therapies for Migraine" },
                 { code: "MN-290", title: "Agorain, New Treatment for Chronic Neuropathy" },
                 { code: "MN-290", title: "Exploring Novel Interventions for Diabetic Peripheral Neuropathy" },
-              ].map((r) => (
-                <li key={r.code} className="flex items-center justify-between rounded-lg border p-3">
+              ].map((r, i) => (
+                <li key={`${r.code}-${i}`} className="flex items-center justify-between rounded-lg border p-3">
                   <div>
                     <div className="font-medium">{r.code}</div>
                     <div className="text-gray-600 text-xs">{r.title}</div>
