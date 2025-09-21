@@ -41,9 +41,9 @@ export default function Dashboard(): JSX.Element {
             <div className="mt-3 h-2 w-full rounded-full bg-gray-100">
               <div className="h-2 w-[95%] rounded-full bg-green-500" />
             </div>
-            <button className="mt-4 inline-flex items-center gap-2 rounded-lg bg-gray-900 text-white px-3 py-2 text-sm hover:bg-black">
+            <Link to="/patients/health-profile" className="mt-4 inline-flex items-center gap-2 rounded-lg bg-gray-900 text-white px-3 py-2 text-sm hover:bg-black">
               Complete now
-            </button>
+            </Link>
           </div>
 
           <div className="rounded-xl border bg-white p-4">
