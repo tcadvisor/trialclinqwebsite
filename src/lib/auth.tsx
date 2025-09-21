@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 
-export type User = { email: string; role: "patient" | "provider" };
+export type User = { email: string; role: "patient" | "provider"; firstName: string; lastName: string };
 
 type AuthContextValue = {
   user: User | null;
@@ -21,8 +21,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
-        const parsed = JSON.parse(raw) as { user: User | null };
-        if (parsed?.user?.email && parsed?.user?.role) setUser(parsed.user);
+        const parsed = JSON.parse(raw) as { user: Partial<User> | null };
+        if (parsed?.user?.email && parsed?.user?.role) {
+          const u: User = {
+            email: parsed.user.email as string,
+            role: parsed.user.role as User["role"],
+            firstName: (parsed.user as any).firstName ?? "",
+            lastName: (parsed.user as any).lastName ?? "",
+          };
+          setUser(u);
+        }
       }
     } catch (_) {
       // ignore

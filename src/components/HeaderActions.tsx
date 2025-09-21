@@ -33,11 +33,18 @@ export default function HeaderActions() {
         <Link to={dashPath} className="px-4 py-2 text-sm rounded-full bg-blue-600 text-white hover:bg-blue-700">Dashboard</Link>
         <button
           aria-label="Profile"
-          className="inline-flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-gray-50"
+          className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-blue-600 text-white font-medium"
           onClick={() => setOpen((v) => !v)}
           type="button"
+          title={user ? `${user.firstName} ${user.lastName}` : "Profile"}
         >
-          <UserRound className="h-5 w-5 text-gray-700" />
+          {(() => {
+            const a = (user?.firstName?.[0] || "").toUpperCase();
+            const b = (user?.lastName?.[0] || "").toUpperCase();
+            const fallback = (user?.email?.[0] || "?").toUpperCase();
+            const initials = (a + b) || fallback;
+            return initials;
+          })()}
         </button>
         {open && (
           <div className="absolute right-0 top-full mt-2 w-44 rounded-lg border bg-white shadow-md">

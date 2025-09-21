@@ -2,8 +2,11 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { trials } from "../../lib/trials";
 import HeaderActions from "../../components/HeaderActions";
+import { useAuth } from "../../lib/auth";
 
 export default function Dashboard(): JSX.Element {
+  const { user } = useAuth();
+  const name = user ? `${user.firstName} ${user.lastName}` : "";
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
       <header className="sticky top-0 z-30 bg-white/80 backdrop-blur border-b">
@@ -26,7 +29,7 @@ export default function Dashboard(): JSX.Element {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-8">
-        <h1 className="text-2xl sm:text-3xl font-semibold">Welcome back, Olivia</h1>
+        <h1 className="text-2xl sm:text-3xl font-semibold">Welcome back, {name}</h1>
 
         {/* Top cards */}
         <div className="mt-6 grid md:grid-cols-3 gap-4">
