@@ -71,7 +71,10 @@ export function buildStudiesUrl({ q = '', status = '', type = '', pageSize = 12,
 export async function fetchStudies(query: CtgovQuery, signal?: AbortSignal): Promise<CtgovResponse> {
   const url = buildStudiesUrl(query)
   const res = await fetch(url, { signal })
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  if (!res.ok) {
+    const text = await res.text().catch(() => '')
+    throw new Error(`HTTP ${res.status}${text ? `: ${text}` : ''}`)
+  }
   return (await res.json()) as CtgovResponse
 }
 
