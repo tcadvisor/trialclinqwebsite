@@ -1,19 +1,54 @@
 import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Shield } from "lucide-react";
+import { useAuth } from "../../lib/auth";
 
 export default function EligibilityCheck(): JSX.Element {
   const navigate = useNavigate();
   const { search } = useLocation();
+  const { isAuthenticated } = useAuth();
 
   React.useEffect(() => {
+    const params = new URLSearchParams(search);
+    const useProfile = params.get("source") === "profile" || isAuthenticated;
+
+    if (useProfile) {
+      try {
+        const raw = localStorage.getItem("tc_health_profile_v1");
+        if (raw) {
+          const hp = JSON.parse(raw) as any;
+          const profile = {
+            condition: hp.primaryCondition || "",
+            healthy: false,
+            year: hp.diagnosed || "",
+            meds: Array.isArray(hp.medications) ? hp.medications.map((m: any) => m?.name).filter(Boolean).join(", ") : "",
+            dob: "",
+            age: hp.age ? parseInt(String(hp.age), 10) : undefined,
+            zip: "",
+            distance: "",
+            gender: hp.gender || "",
+            race: hp.race || "",
+            language: hp.language || "",
+          } as Record<string, any>;
+          localStorage.setItem("tc_eligibility_profile", JSON.stringify(profile));
+        } else {
+          const nctId = params.get("nctId");
+          navigate(`/patients/connect${nctId ? `?nctId=${encodeURIComponent(nctId)}` : ""}`);
+          return;
+        }
+      } catch {
+        const nctId = params.get("nctId");
+        navigate(`/patients/connect${nctId ? `?nctId=${encodeURIComponent(nctId)}` : ""}`);
+        return;
+      }
+    }
+
     const timer = setTimeout(() => {
-      const params = new URLSearchParams(search);
       const nctId = params.get("nctId");
       navigate(`/patients/result${nctId ? `?nctId=${encodeURIComponent(nctId)}` : ""}`);
     }, 6000);
     return () => clearTimeout(timer);
-  }, [navigate, search]);
+  }, [navigate, search, isAuthenticated]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
