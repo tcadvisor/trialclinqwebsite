@@ -46,6 +46,7 @@ function App() {
         <Route path="/providers/login" element={<ProviderLogin />} />
         <Route path="/providers/site-information" element={<SiteInformation />} />
         <Route path="/providers/investigator-information" element={<InvestigatorInformation />} />
+        <Route path="/providers/welcome" element={<ProviderWelcome />} />
         <Route path="/patients/dashboard" element={<RequireAuth><Dashboard /></RequireAuth>} />
         <Route path="/patients/eligible" element={<RequireAuth><EligibleTrials /></RequireAuth>} />
         <Route path="/patients/health-profile" element={<RequireAuth><HealthProfile /></RequireAuth>} />
