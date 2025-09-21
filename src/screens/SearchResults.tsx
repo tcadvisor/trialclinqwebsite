@@ -124,7 +124,43 @@ export const SearchResults = (): JSX.Element => {
     });
   }, [search, minAge, maxAge, phase, trialType]);
 
+  const totalResults = filteredTrials.length;
+  const totalPages = Math.max(1, Math.ceil(totalResults / pageSize));
+  const currentPage = Math.min(Math.max(1, page), totalPages);
+  const paginatedTrials = filteredTrials.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
+  React.useEffect(() => {
+    if (page !== currentPage) setPage(currentPage);
+  }, [currentPage]);
+
+  const updateQuery = (next: Partial<{ page: number; size: number; phase: string; type: string }>) => {
+    const params = new URLSearchParams(search);
+    if (next.page !== undefined) params.set("page", String(next.page));
+    if (next.size !== undefined) params.set("size", String(next.size));
+    if (!params.get("page")) params.set("page", "1");
+    navigate({ search: `?${params.toString()}` }, { replace: false });
+  };
+
+  const buildPagination = (current: number, total: number): (number | string)[] => {
+    const range = [1];
+    const add = (n: number) => { if (n > 1 && n < total && !range.includes(n)) range.push(n); };
+    add(current - 1); add(current); add(current + 1);
+    if (total > 1) range.push(total);
+    range.sort((a, b) => (a as number) - (b as number));
+    const result: (number | string)[] = [];
+    let prev: number | null = null;
+    for (const n of range) {
+      if (prev !== null) {
+        if ((n as number) - prev === 2) result.push(prev + 1);
+        else if ((n as number) - prev > 2) result.push("...");
+      }
+      result.push(n);
+      prev = n as number;
+    }
+    return result;
+  };
+
+  const pages = buildPagination(currentPage, totalPages);
 
   const RangeSlider: React.FC<{ min: number; max: number; onChange: (a: number, b: number) => void } > = ({ min, max, onChange }) => {
     const trackRef = React.useRef<HTMLDivElement | null>(null);
