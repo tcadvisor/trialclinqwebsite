@@ -26,6 +26,8 @@ import CtgovStudyDetails from "./screens/CtgovStudyDetails";
 import EligibleTrials from "./screens/patients/EligibleTrials";
 import HealthProfile from "./screens/patients/HealthProfile";
 import Settings from "./screens/patients/Settings";
+import EligibilityCheck from "./screens/patients/EligibilityCheck";
+import EligibilityResult from "./screens/patients/EligibilityResult";
 import ContactUs from "./screens/support/ContactUs";
 import Consent from "./screens/patients/Consent";
 import Connect from "./screens/patients/Connect";
@@ -43,6 +45,8 @@ function App() {
         <Route path="/patients/volunteer" element={<Volunteer />} />
         <Route path="/patients/consent" element={<Consent />} />
         <Route path="/patients/connect" element={<Connect />} />
+        <Route path="/patients/check" element={<EligibilityCheck />} />
+        <Route path="/patients/result" element={<EligibilityResult />} />
         <Route path="/patients/login" element={<Login />} />
         <Route path="/sites/blog" element={<InsiderBlog />} />
         <Route path="/sites/visibility" element={<VisibilityOptions />} />
@@ -59,7 +63,7 @@ function App() {
         <Route path="/providers/appointments" element={<RequireRole role="provider" redirectTo="/providers/login"><Appointments /></RequireRole>} />
         <Route path="/providers/volunteers" element={<RequireRole role="provider" redirectTo="/providers/login"><Volunteers /></RequireRole>} />
         <Route path="/patients/dashboard" element={<RequireRole role="patient" redirectTo="/patients/login"><Dashboard /></RequireRole>} />
-        <Route path="/patients/eligible" element={<RequireRole role="patient" redirectTo="/patients/login"><EligibleTrials /></RequireRole>} />
+        <Route path="/patients/eligible" element={<EligibleTrials />} />
         <Route path="/patients/health-profile" element={<RequireRole role="patient" redirectTo="/patients/login"><HealthProfile /></RequireRole>} />
         <Route path="/patients/settings" element={<RequireRole role="patient" redirectTo="/patients/login"><Settings /></RequireRole>} />
         <Route path="/trials/:slug" element={<TrialDetails />} />

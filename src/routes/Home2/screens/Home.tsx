@@ -5,8 +5,8 @@ import HomeHeader from "../../../components/HomeHeader";
 
 export default function Home() {
   const navigate = useNavigate();
-  const [query, setQuery] = useState("Chronic Pain");
-  const [location, setLocation] = useState("10090, Niagara falls, USA");
+  const [query, setQuery] = useState("");
+  const [location, setLocation] = useState("");
   const [showBanner, setShowBanner] = useState(true);
   const faq = useMemo(
     () => [
@@ -77,8 +77,9 @@ export default function Home() {
                   type="text"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Condition"
-                  className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Chronic Pain"
+                  className="w-full rounded-lg border border-gray-300 px-4 py-3 placeholder:text-gray-400/80 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  aria-label="Condition"
                 />
               </label>
               <label className="text-left text-xs text-gray-600 sm:col-span-1">
@@ -87,8 +88,9 @@ export default function Home() {
                   type="text"
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
-                  placeholder="Location"
-                  className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="10090, Niagara Falls, USA"
+                  className="w-full rounded-lg border border-gray-300 px-4 py-3 placeholder:text-gray-400/80 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  aria-label="Location"
                 />
               </label>
               <button
