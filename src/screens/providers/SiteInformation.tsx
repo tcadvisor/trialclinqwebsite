@@ -6,7 +6,7 @@ export default function SiteInformation(): JSX.Element {
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    navigate("/providers/login");
+    navigate("/providers/investigator-information");
   }
 
   return (
