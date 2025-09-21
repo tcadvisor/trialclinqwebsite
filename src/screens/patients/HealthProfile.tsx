@@ -14,6 +14,7 @@ import {
   DownloadIcon
 } from "lucide-react";
 import { useAuth } from "../../lib/auth";
+import HeaderActions from "../../components/HeaderActions";
 
 const Section: React.FC<{ title: string; children: React.ReactNode; right?: React.ReactNode }> = ({ title, children, right }) => (
   <div className="rounded-xl border bg-white">
