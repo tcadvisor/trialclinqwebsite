@@ -1,6 +1,7 @@
 import React from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../lib/auth";
+import { findAccountByEmail } from "../../lib/accountStore";
 import SiteHeader from "../../components/SiteHeader";
 
 export default function ProviderLogin(): JSX.Element {
@@ -24,19 +25,22 @@ export default function ProviderLogin(): JSX.Element {
     e.preventDefault();
     setError(null);
     const eNorm = email.trim().toLowerCase();
-    if (password !== "test") {
+    const acc = findAccountByEmail(eNorm);
+    if (!acc) {
+      setError("Account not found. Please sign up.");
+      return;
+    }
+    if (acc.role !== "provider") {
+      setError("This email is registered as a patient. Use Patient sign in.");
+      return;
+    }
+    if (acc.password !== password) {
       setError("Invalid email or password");
       return;
     }
-
-    if (eNorm === "chandler_research@test.com") {
-      signIn({ email: eNorm, role: "provider" });
-      const from = (location.state as any)?.from?.pathname || "/providers/dashboard";
-      navigate(from, { replace: true });
-      return;
-    }
-
-    setError("Please use your researcher account email.");
+    signIn({ email: acc.email, role: acc.role, firstName: acc.firstName, lastName: acc.lastName });
+    const from = (location.state as any)?.from?.pathname || "/providers/dashboard";
+    navigate(from, { replace: true });
   };
 
   return (

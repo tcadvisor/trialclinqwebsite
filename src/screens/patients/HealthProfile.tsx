@@ -13,6 +13,7 @@ import {
   EyeIcon,
   DownloadIcon
 } from "lucide-react";
+import { useAuth } from "../../lib/auth";
 
 const Section: React.FC<{ title: string; children: React.ReactNode; right?: React.ReactNode }> = ({ title, children, right }) => (
   <div className="rounded-xl border bg-white">
@@ -75,6 +76,8 @@ function Documents({ onCountChange }: { onCountChange?: (count: number) => void 
   const [page, setPage] = useState(1);
   const pageSize = 10;
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const { user } = useAuth();
+  const currentName = user ? `${user.firstName} ${user.lastName}` : "You";
 
   useEffect(() => {
     localStorage.setItem("tc_docs", JSON.stringify(docs));
@@ -109,7 +112,7 @@ function Documents({ onCountChange }: { onCountChange?: (count: number) => void 
         name: file.name,
         size: file.size,
         type: file.type,
-        uploadedBy: "Olivia Brian",
+        uploadedBy: currentName,
         uploadedAt: Date.now(),
         category,
         url: dataUrl,
@@ -291,8 +294,10 @@ export default function HealthProfile(): JSX.Element {
 
       <main className="max-w-6xl mx-auto px-4 py-8">
         <h1 className="text-2xl sm:text-3xl font-semibold">Health Profile</h1>
-        <div className="mt-1 text-gray-700">Olivia Brian</div>
-        <div className="text-sm text-gray-500">olivia.br@example.com</div>
+        {(() => { const { user } = useAuth(); const nm = user ? `${user.firstName} ${user.lastName}` : ""; const em = user?.email ?? ""; return (<>
+          <div className="mt-1 text-gray-700">{nm}</div>
+          <div className="text-sm text-gray-500">{em}</div>
+        </>); })()}
 
         <div className="mt-6 flex items-center gap-6 text-sm">
           <button
@@ -336,7 +341,7 @@ export default function HealthProfile(): JSX.Element {
                         <span className="text-sm">Email</span>
                       </div>
                       <div className="text-sm text-gray-900 flex items-center gap-2">
-                        <span>olivia.br@example.com</span>
+                        <span>{(() => { const { user } = useAuth(); return user?.email ?? ""; })()}</span>
                         <span className="text-amber-600 text-xs">Not verified</span>
                         <button className="text-[#1033e5] text-xs underline">Verify Now</button>
                       </div>
