@@ -2,6 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { trials } from "../../lib/trials";
 import HeaderActions from "../../components/HeaderActions";
+import { useAuth } from "../../lib/auth";
 
 export default function Dashboard(): JSX.Element {
   return (
@@ -26,7 +27,9 @@ export default function Dashboard(): JSX.Element {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-8">
-        <h1 className="text-2xl sm:text-3xl font-semibold">Welcome back, Olivia</h1>
+        {(() => { const { user } = useAuth(); const name = user ? `${user.firstName} ${user.lastName}` : ""; return (
+          <h1 className="text-2xl sm:text-3xl font-semibold">Welcome back, {name}</h1>
+        ); })()}
 
         {/* Top cards */}
         <div className="mt-6 grid md:grid-cols-3 gap-4">
