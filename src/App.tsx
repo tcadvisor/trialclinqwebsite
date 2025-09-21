@@ -22,6 +22,7 @@ import Appointments from "./screens/providers/Appointments";
 import Volunteers from "./screens/providers/Volunteers";
 import Dashboard from "./screens/patients/Dashboard";
 import TrialDetails from "./screens/TrialDetails";
+import CtgovStudyDetails from "./screens/CtgovStudyDetails";
 import EligibleTrials from "./screens/patients/EligibleTrials";
 import HealthProfile from "./screens/patients/HealthProfile";
 import Settings from "./screens/patients/Settings";
@@ -62,6 +63,7 @@ function App() {
         <Route path="/patients/health-profile" element={<RequireRole role="patient" redirectTo="/patients/login"><HealthProfile /></RequireRole>} />
         <Route path="/patients/settings" element={<RequireRole role="patient" redirectTo="/patients/login"><Settings /></RequireRole>} />
         <Route path="/trials/:slug" element={<TrialDetails />} />
+        <Route path="/study/:nctId" element={<CtgovStudyDetails />} />
         <Route path="/contact" element={<ContactUs />} />
       </Routes>
     </Router>
