@@ -76,6 +76,8 @@ function Documents({ onCountChange }: { onCountChange?: (count: number) => void 
   const [page, setPage] = useState(1);
   const pageSize = 10;
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const { user } = useAuth();
+  const currentName = user ? `${user.firstName} ${user.lastName}` : "You";
 
   useEffect(() => {
     localStorage.setItem("tc_docs", JSON.stringify(docs));
@@ -105,8 +107,6 @@ function Documents({ onCountChange }: { onCountChange?: (count: number) => void 
         reader.onerror = () => reject(new Error("Failed to read file"));
         reader.readAsDataURL(file);
       });
-      const { user } = useAuth();
-      const currentName = user ? `${user.firstName} ${user.lastName}` : "You";
       return {
         id: `${Date.now()}_${Math.random().toString(36).slice(2)}`,
         name: file.name,
