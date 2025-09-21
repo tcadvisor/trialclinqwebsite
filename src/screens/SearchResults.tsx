@@ -29,8 +29,7 @@ export const SearchResults = (): JSX.Element => {
   const [status, setStatus] = React.useState<string>("");
   const [type, setType] = React.useState<string>("");
   const [pageSize, setPageSize] = React.useState<number>(12);
-  const [pageToken, setPageToken] = React.useState<string>("");
-  const [prevTokens, setPrevTokens] = React.useState<string[]>([]);
+  const [page, setPage] = React.useState<number>(1);
 
   const [data, setData] = React.useState<CtgovResponse | null>(null);
   const [loading, setLoading] = React.useState<boolean>(false);
@@ -42,7 +41,7 @@ export const SearchResults = (): JSX.Element => {
       setLoading(true);
       setError("");
       try {
-        const res = await fetchStudies({ q, status, type, loc, pageSize, pageToken });
+        const res = await fetchStudies({ q, status, type, loc, pageSize, pageNumber: page });
         if (!mounted) return;
         setData(res);
       } catch (e: any) {
@@ -55,7 +54,7 @@ export const SearchResults = (): JSX.Element => {
     return () => {
       mounted = false;
     };
-  }, [q, status, type, loc, pageSize, pageToken]);
+  }, [q, status, type, loc, pageSize, page]);
 
   const studies = data?.studies ?? [];
 
@@ -69,7 +68,8 @@ export const SearchResults = (): JSX.Element => {
           <span className="text-sm text-gray-500">Search results</span>
         </div>
 
-        <h1 className="text-2xl font-semibold mb-6">Clinical trials</h1>
+        <h1 className="text-2xl font-semibold mb-2">Clinical trials</h1>
+        <div className="mb-6 text-sm text-gray-600">{`We found ${data?.totalCount ?? 0} clinical trial${(data?.totalCount ?? 0) === 1 ? '' : 's'}.`}</div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           <aside className="lg:col-span-1">
@@ -82,8 +82,7 @@ export const SearchResults = (): JSX.Element => {
                     type="text"
                     value={q}
                     onChange={(e) => {
-                      setPrevTokens([]);
-                      setPageToken("");
+                      setPage(1);
                       setQ(e.target.value);
                     }}
                     placeholder="e.g. breast cancer"
@@ -96,8 +95,7 @@ export const SearchResults = (): JSX.Element => {
                     type="text"
                     value={loc}
                     onChange={(e) => {
-                      setPrevTokens([]);
-                      setPageToken("");
+                      setPage(1);
                       setLoc(e.target.value);
                     }}
                     placeholder="City, State or ZIP"
@@ -110,8 +108,7 @@ export const SearchResults = (): JSX.Element => {
                     value={status || "any"}
                     onValueChange={(v) => {
                       const next = v === "any" ? "" : v;
-                      setPrevTokens([]);
-                      setPageToken("");
+                      setPage(1);
                       setStatus(next);
                     }}
                   >
@@ -138,8 +135,7 @@ export const SearchResults = (): JSX.Element => {
                     value={type || "any"}
                     onValueChange={(v) => {
                       const next = v === "any" ? "" : v;
-                      setPrevTokens([]);
-                      setPageToken("");
+                      setPage(1);
                       setType(next);
                     }}
                   >
@@ -160,8 +156,7 @@ export const SearchResults = (): JSX.Element => {
                     value={String(pageSize)}
                     onValueChange={(v) => {
                       const size = parseInt(v, 10);
-                      setPrevTokens([]);
-                      setPageToken("");
+                      setPage(1);
                       setPageSize(size);
                     }}
                   >
@@ -244,37 +239,57 @@ export const SearchResults = (): JSX.Element => {
             })}
 
             {!loading && !error && (
-              <div className="flex items-center gap-3">
-                {data?.nextPageToken && (
+              <div className="flex flex-col items-center gap-2">
+                <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => {
-                      setPrevTokens((prev) => [...prev, pageToken]);
-                      setPageToken(data?.nextPageToken || "");
-                    }}
-                    aria-label="Next page"
-                  >
-                    Next
-                    <ChevronDownIcon className="w-4 h-4 -rotate-90 ml-1" />
-                  </Button>
-                )}
-                {prevTokens.length > 0 && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      const nextPrev = [...prevTokens];
-                      const last = nextPrev.pop() || "";
-                      setPrevTokens(nextPrev);
-                      setPageToken(last);
-                    }}
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page <= 1}
                     aria-label="Previous page"
                   >
-                    <ChevronDownIcon className="w-4 h-4 rotate-90 mr-1" />
-                    Previous
+                    <ChevronDownIcon className="w-4 h-4 rotate-90" />
                   </Button>
-                )}
+                  {(() => {
+                    const total = Math.max(1, Math.ceil((data?.totalCount || 0) / pageSize));
+                    const maxButtons = 5;
+                    const start = Math.max(1, Math.min(page - Math.floor(maxButtons / 2), total - maxButtons + 1));
+                    const end = Math.min(total, start + maxButtons - 1);
+                    const buttons = [] as JSX.Element[];
+                    for (let i = start; i <= end; i++) {
+                      buttons.push(
+                        <Button
+                          key={i}
+                          variant={i === page ? 'default' : 'outline'}
+                          size="sm"
+                          className={i === page ? 'bg-[#1033e5] text-white' : ''}
+                          onClick={() => setPage(i)}
+                        >
+                          {i}
+                        </Button>
+                      );
+                    }
+                    return buttons;
+                  })()}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage((p) => p + 1)}
+                    disabled={(() => {
+                      const total = Math.max(1, Math.ceil((data?.totalCount || 0) / pageSize));
+                      return page >= total;
+                    })()}
+                    aria-label="Next page"
+                  >
+                    <ChevronDownIcon className="w-4 h-4 -rotate-90" />
+                  </Button>
+                </div>
+                <div className="text-xs text-gray-500">
+                  {(() => {
+                    const total = Math.max(1, Math.ceil((data?.totalCount || 0) / pageSize));
+                    return `Page ${page} of ${total}`;
+                  })()}
+                </div>
               </div>
             )}
           </div>
