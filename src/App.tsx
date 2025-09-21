@@ -14,6 +14,7 @@ import CreateAccount from "./screens/providers/CreateAccount";
 import ProviderLogin from "./screens/providers/Login";
 import SiteInformation from "./screens/providers/SiteInformation";
 import InvestigatorInformation from "./screens/providers/InvestigatorInformation";
+import ProviderWelcome from "./screens/providers/Welcome";
 import Dashboard from "./screens/patients/Dashboard";
 import TrialDetails from "./screens/TrialDetails";
 import EligibleTrials from "./screens/patients/EligibleTrials";
