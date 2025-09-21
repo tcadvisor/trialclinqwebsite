@@ -1,11 +1,20 @@
 import React from "react";
 import SiteHeader from "../../components/SiteHeader";
 import { Link } from "react-router-dom";
+import { getAddedTrials, removeTrial, AddedTrial } from "../../lib/providerTrials";
 import { useAuth } from "../../lib/auth";
 
 export default function ProviderDashboard(): JSX.Element {
   const { user } = useAuth();
   const displayName = user ? `${user.firstName} ${user.lastName}` : "";
+  const [trials, setTrials] = React.useState<AddedTrial[]>(() => getAddedTrials());
+  React.useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === "provider:trials:v1") setTrials(getAddedTrials());
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
       <SiteHeader />
@@ -26,8 +35,8 @@ export default function ProviderDashboard(): JSX.Element {
 
           <div className="rounded-2xl border bg-white p-5">
             <div className="text-sm text-gray-500">Trials Managed</div>
-            <div className="mt-2 text-3xl font-semibold">3</div>
-            <button className="mt-3 text-sm text-blue-600 hover:underline">View</button>
+            <div className="mt-2 text-3xl font-semibold">{trials.length}</div>
+            <Link to="/providers/trials" className="mt-3 inline-block text-sm text-blue-600 hover:underline">View</Link>
           </div>
 
           <div className="rounded-2xl border bg-white p-5">
@@ -47,30 +56,25 @@ export default function ProviderDashboard(): JSX.Element {
                 <thead>
                   <tr className="text-left text-gray-500">
                     <th className="px-4 py-3">Trial Title</th>
-                    <th className="px-4 py-3">Trial Status</th>
-                    <th className="px-4 py-3">Pre-screen Pass</th>
-                    <th className="px-4 py-3">New Match</th>
+                    <th className="px-4 py-3">NCT ID</th>
+                    <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-3">Sponsor</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  <tr>
-                    <td className="px-4 py-3">Agorain, New Treatment for Chronic Neuropathy</td>
-                    <td className="px-4 py-3"><span className="rounded-full bg-emerald-100 text-emerald-700 px-2 py-1 text-xs">Recruiting</span></td>
-                    <td className="px-4 py-3">12</td>
-                    <td className="px-4 py-3">2</td>
-                  </tr>
-                  <tr>
-                    <td className="px-4 py-3">Investigating Non-Opioid Therapies for Migraine</td>
-                    <td className="px-4 py-3 text-gray-700">Suspended</td>
-                    <td className="px-4 py-3">12</td>
-                    <td className="px-4 py-3">4</td>
-                  </tr>
-                  <tr>
-                    <td className="px-4 py-3">Exploring Novel Interventions for Diabetic Peripheral Neuropathy</td>
-                    <td className="px-4 py-3"><span className="rounded-full bg-indigo-100 text-indigo-700 px-2 py-1 text-xs">Completed</span></td>
-                    <td className="px-4 py-3">5</td>
-                    <td className="px-4 py-3">1</td>
-                  </tr>
+                  {trials.length === 0 && (
+                    <tr>
+                      <td className="px-4 py-6 text-gray-600" colSpan={4}>No trials added yet. Use "Active Clinical Trials" to add from ClinicalTrials.gov.</td>
+                    </tr>
+                  )}
+                  {trials.map((t) => (
+                    <tr key={t.nctId}>
+                      <td className="px-4 py-3">{t.title}</td>
+                      <td className="px-4 py-3 text-gray-600">{t.nctId}</td>
+                      <td className="px-4 py-3">{t.status || '-'}</td>
+                      <td className="px-4 py-3 text-gray-600">{t.sponsor || '-'}</td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
