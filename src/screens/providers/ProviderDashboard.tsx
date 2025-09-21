@@ -18,7 +18,7 @@ export default function ProviderDashboard(): JSX.Element {
                 <p className="text-sm text-gray-600 mt-1">Connect an existing trial to your profile or register a new one to start managing participants and matches.</p>
               </div>
             </div>
-            <button className="mt-4 rounded-full bg-gray-900 px-4 py-2 text-white text-sm hover:bg-black">Add new</button>
+            <Link to="/providers/trials" className="mt-4 inline-block rounded-full bg-gray-900 px-4 py-2 text-white text-sm hover:bg-black">Add new</Link>
           </div>
 
           <div className="rounded-2xl border bg-white p-5">
