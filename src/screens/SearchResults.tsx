@@ -71,6 +71,11 @@ export const SearchResults = (): JSX.Element => {
     setTrialType(initialType);
   }, [initialPhase, initialType]);
 
+  React.useEffect(() => {
+    setPage(initialPage);
+    setPageSize(initialSize);
+  }, [initialPage, initialSize]);
+
   const dropdownItems = [
     {
       icon: GridIcon,
