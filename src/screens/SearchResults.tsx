@@ -30,6 +30,8 @@ export const SearchResults = (): JSX.Element => {
   const [type, setType] = React.useState<string>("");
   const [pageSize, setPageSize] = React.useState<number>(12);
   const [page, setPage] = React.useState<number>(1);
+  const [pageToken, setPageToken] = React.useState<string>("");
+  const tokenMapRef = React.useRef<Record<number, string>>({ 1: "" });
 
   const [data, setData] = React.useState<CtgovResponse | null>(null);
   const [loading, setLoading] = React.useState<boolean>(false);
@@ -41,9 +43,13 @@ export const SearchResults = (): JSX.Element => {
       setLoading(true);
       setError("");
       try {
-        const res = await fetchStudies({ q, status, type, loc, pageSize, pageNumber: page });
+        const res = await fetchStudies({ q, status, type, loc, pageSize, pageToken });
         if (!mounted) return;
         setData(res);
+        tokenMapRef.current[page] = pageToken;
+        if (res.nextPageToken !== undefined) {
+          tokenMapRef.current[page + 1] = res.nextPageToken || "";
+        }
       } catch (e: any) {
         if (!mounted) return;
         setError("Failed to load studies. Please try again.");
@@ -54,7 +60,13 @@ export const SearchResults = (): JSX.Element => {
     return () => {
       mounted = false;
     };
-  }, [q, status, type, loc, pageSize, page]);
+  }, [q, status, type, loc, pageSize, pageToken, page]);
+
+  React.useEffect(() => {
+    tokenMapRef.current = { 1: "" };
+    setPage(1);
+    setPageToken("");
+  }, [q, status, type, loc, pageSize]);
 
   const studies = data?.studies ?? [];
 
@@ -244,7 +256,13 @@ export const SearchResults = (): JSX.Element => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    onClick={() => {
+                      if (page > 1) {
+                        const prev = page - 1;
+                        setPage(prev);
+                        setPageToken(tokenMapRef.current[prev] ?? "");
+                      }
+                    }}
                     disabled={page <= 1}
                     aria-label="Previous page"
                   >
@@ -257,13 +275,33 @@ export const SearchResults = (): JSX.Element => {
                     const end = Math.min(total, start + maxButtons - 1);
                     const buttons = [] as JSX.Element[];
                     for (let i = start; i <= end; i++) {
+                      const known = i === 1 || tokenMapRef.current[i] !== undefined;
                       buttons.push(
                         <Button
                           key={i}
                           variant={i === page ? 'default' : 'outline'}
                           size="sm"
                           className={i === page ? 'bg-[#1033e5] text-white' : ''}
-                          onClick={() => setPage(i)}
+                          onClick={async () => {
+                            if (i === page) return;
+                            if (i === 1 || tokenMapRef.current[i] !== undefined) {
+                              setPage(i);
+                              setPageToken(tokenMapRef.current[i] ?? "");
+                              return;
+                            }
+                            let current = page;
+                            let token = tokenMapRef.current[current] ?? "";
+                            while (current < i) {
+                              const res = await fetchStudies({ q, status, type, loc, pageSize, pageToken: token });
+                              token = res.nextPageToken || "";
+                              tokenMapRef.current[current + 1] = token;
+                              current += 1;
+                              if (!res.nextPageToken) break;
+                            }
+                            setPage(i);
+                            setPageToken(tokenMapRef.current[i] ?? "");
+                          }}
+                          disabled={!known && i > page + 5}
                         >
                           {i}
                         </Button>
@@ -274,11 +312,15 @@ export const SearchResults = (): JSX.Element => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setPage((p) => p + 1)}
-                    disabled={(() => {
-                      const total = Math.max(1, Math.ceil((data?.totalCount || 0) / pageSize));
-                      return page >= total;
-                    })()}
+                    onClick={() => {
+                      const nextToken = data?.nextPageToken;
+                      if (nextToken !== undefined) {
+                        tokenMapRef.current[page + 1] = nextToken || "";
+                        setPage(page + 1);
+                        setPageToken(nextToken || "");
+                      }
+                    }}
+                    disabled={data?.nextPageToken === undefined}
                     aria-label="Next page"
                   >
                     <ChevronDownIcon className="w-4 h-4 -rotate-90" />
