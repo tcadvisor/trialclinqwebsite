@@ -23,10 +23,11 @@ export const SearchResults = (): JSX.Element => {
   const params = React.useMemo(() => new URLSearchParams(search), [search]);
   const initialQ = params.get("q")?.trim() || "breast cancer";
   const initialLoc = params.get("loc")?.trim() || "";
+  const initialStatus = (params.get("status")?.trim().toUpperCase() || "RECRUITING");
 
   const [q, setQ] = React.useState<string>(initialQ);
   const [loc, setLoc] = React.useState<string>(initialLoc);
-  const [status, setStatus] = React.useState<string>("");
+  const [status, setStatus] = React.useState<string>(initialStatus);
   const [type, setType] = React.useState<string>("");
   const [pageSize, setPageSize] = React.useState<number>(12);
   const [page, setPage] = React.useState<number>(1);
