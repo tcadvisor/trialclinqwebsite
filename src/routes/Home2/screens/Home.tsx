@@ -110,7 +110,7 @@ export default function Home() {
                 <div className="font-semibold">Match your Electronic Health Record (EHR) to trials</div>
                 <div className="text-gray-600">Import your EHR to browse trials that fit your medical history and lab results — securely and with your consent.</div>
               </div>
-              <Link to="/search-results" className="ml-auto inline-flex items-center gap-2 rounded-full bg-gray-900 px-4 py-2 text-white text-sm hover:bg-black">
+              <Link to="/patients/ehr" className="ml-auto inline-flex items-center gap-2 rounded-full bg-gray-900 px-4 py-2 text-white text-sm hover:bg-black">
                 Connect to Trial Portal
                 <ArrowRight className="h-4 w-4" />
               </Link>
