@@ -10,6 +10,7 @@ export default function HeaderActions() {
   // One ref/menu state to handle both profile and get-started menus
   const [open, setOpen] = React.useState(false);
   const [getStartedOpen, setGetStartedOpen] = React.useState(false);
+  const [signInOpen, setSignInOpen] = React.useState(false);
   const menuRef = React.useRef<HTMLDivElement | null>(null);
 
   React.useEffect(() => {
@@ -18,6 +19,7 @@ export default function HeaderActions() {
       if (e.target instanceof Node && !menuRef.current.contains(e.target)) {
         setOpen(false);
         setGetStartedOpen(false);
+        setSignInOpen(false);
       }
     }
     document.addEventListener("click", onDocClick);
@@ -60,7 +62,28 @@ export default function HeaderActions() {
 
   return (
     <div className="relative flex items-center gap-3" ref={menuRef}>
-      <Link to="/patients/login" className="px-4 py-2 text-sm rounded-full border border-blue-600 text-blue-700 hover:bg-blue-50">Sign in</Link>
+      <button
+        className="px-4 py-2 text-sm rounded-full border border-blue-600 text-blue-700 hover:bg-blue-50"
+        onClick={() => setSignInOpen((v) => !v)}
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={signInOpen}
+      >
+        Sign in
+      </button>
+      {signInOpen && (
+        <div className="absolute right-28 top-full mt-2 w-56 rounded-lg border bg-white shadow-md">
+          <div className="p-2">
+            <Link to="/patients/login" className="block rounded-md px-3 py-2 text-sm hover:bg-gray-50" onClick={() => setSignInOpen(false)}>
+              Patient sign in
+            </Link>
+            <Link to="/providers/login" className="block rounded-md px-3 py-2 text-sm hover:bg-gray-50" onClick={() => setSignInOpen(false)}>
+              Researcher sign in
+            </Link>
+          </div>
+        </div>
+      )}
+
       <button
         className="px-4 py-2 text-sm rounded-full bg-blue-600 text-white hover:bg-blue-700"
         onClick={() => setGetStartedOpen((v) => !v)}
