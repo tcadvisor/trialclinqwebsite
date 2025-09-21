@@ -49,7 +49,7 @@ export default function Connect(): JSX.Element {
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!canSubmit) return;
-    navigate("/patients/login");
+    navigate("/patients/eligible");
   }
 
   return (
@@ -154,7 +154,7 @@ export default function Connect(): JSX.Element {
               <input type="checkbox" className="rounded" checked={agree2} onChange={(e)=>setAgree2(e.target.checked)} /> I consent to share my (or the volunteer’s) health data for clinical trial matching under HIPAA-compliant protocols.
             </label>
             <div className="text-xs text-gray-600">You may revoke consent at any time in Settings</div>
-            <button disabled={!canSubmit} className={`w-full rounded-full px-6 py-3 text-white font-medium ${canSubmit ? "bg-[#1033e5] hover:bg-blue-700" : "bg-blue-400 cursor-not-allowed"}`}>Create Volunteer Account</button>
+            <button disabled={!canSubmit} className={`w-full rounded-full px-6 py-3 text-white font-medium ${canSubmit ? "bg-[#1033e5] hover:bg-blue-700" : "bg-blue-400 cursor-not-allowed"}`}>Check My Eligibility</button>
             <div className="text-center text-xs text-gray-600">Your data stays private and protected with HIPAA-compliant security.</div>
           </div>
         </form>
