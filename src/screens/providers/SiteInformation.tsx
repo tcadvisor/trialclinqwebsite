@@ -468,10 +468,11 @@ export default function SiteInformation(): JSX.Element {
 
             <div>
               <label className="block text-sm font-medium mb-1">Languages spoken at site<span className="text-red-500">*</span></label>
-              <TagsInput
-                value={languages}
+              <MultiSelectDropdown
+                options={LANGUAGES}
+                selected={languages}
                 onChange={setLanguages}
-                placeholder="You can add as many as apply. If you're unsure of the exact name, type what you know, we'll help match it."
+                placeholder="Select one or more languages"
                 aria-label="Languages spoken at site"
               />
               {errors.languages && <p className="text-xs text-red-600 mt-1">{errors.languages}</p>}
