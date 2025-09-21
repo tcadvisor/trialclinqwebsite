@@ -47,7 +47,7 @@ export const SearchResults = (): JSX.Element => {
       })
       .finally(() => setLoading(false));
     return () => ac.abort();
-  }, [q, status, type, pageSize, pageToken]);
+  }, [q, status, type, loc, pageSize, pageToken]);
 
   const studies = data?.studies ?? [];
 
