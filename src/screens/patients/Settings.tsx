@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Settings as SettingsIcon, ShieldCheck, Bell, Lock } from "lucide-react";
+import HeaderActions from "../../components/HeaderActions";
+import { Bell, Lock } from "lucide-react";
 
 export default function Settings(): JSX.Element {
   const [tab, setTab] = useState<"consent" | "notifications" | "security">("consent");
@@ -18,12 +19,7 @@ export default function Settings(): JSX.Element {
             <Link to="/patients/health-profile" className="hover:text-gray-600">Health Profile</Link>
             <Link to="/patients/faq" className="hover:text-gray-600">Help Center</Link>
           </nav>
-          <div className="flex items-center gap-3">
-            <Link to="/patients/settings" aria-label="Settings" className="h-9 w-9 grid place-items-center rounded-full border bg-white text-gray-700 hover:bg-gray-50">
-              <SettingsIcon className="w-4 h-4" />
-            </Link>
-            <button className="h-9 px-3 rounded-full border bg-white text-gray-700 hover:bg-gray-50">OB</button>
-          </div>
+          <HeaderActions />
         </div>
       </header>
 
