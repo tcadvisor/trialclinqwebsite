@@ -56,8 +56,8 @@ export default function Connect(): JSX.Element {
     <div className="min-h-screen bg-white text-gray-900">
       <SiteHeader />
       <main className="max-w-3xl mx-auto px-4 py-10">
-        <h1 className="text-center text-3xl font-semibold">Let’s get your basic health profile</h1>
-        <p className="mt-2 text-center text-gray-600">We need some necessary information including your medical details in order to properly sign you up</p>
+        <h1 className="text-center text-3xl font-semibold">Check Your Eligibility for This Trial</h1>
+        <p className="mt-2 text-center text-gray-600">Answer a few quick questions to see if you might qualify. No signup required.</p>
         <div className="mt-4 flex items-center justify-center gap-2 text-xs text-gray-600">
           <button className="inline-flex items-center gap-1 rounded-full border px-3 py-1 hover:bg-gray-50" type="button">Why are we asking this? <span className="text-gray-400">ⓘ</span></button>
         </div>
