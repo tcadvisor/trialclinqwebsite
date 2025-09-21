@@ -78,13 +78,20 @@ export function buildStudiesUrl({ q = '', status = '', type = '', loc = '', lat,
 }
 
 export async function fetchStudies(query: CtgovQuery, signal?: AbortSignal): Promise<CtgovResponse> {
-  const url = buildStudiesUrl(query)
-  const res = await fetch(url, { signal })
-  if (!res.ok) {
-    const text = await res.text().catch(() => '')
-    throw new Error(`HTTP ${res.status}${text ? `: ${text}` : ''}`)
+  try {
+    const url = buildStudiesUrl(query)
+    const res = await fetch(url, { signal })
+    if (!res.ok) {
+      const text = await res.text().catch(() => '')
+      throw new Error(`HTTP ${res.status}${text ? `: ${text}` : ''}`)
+    }
+    return (await res.json()) as CtgovResponse
+  } catch (e: any) {
+    if (e?.name === 'AbortError') {
+      return { studies: [] }
+    }
+    throw e
   }
-  return (await res.json()) as CtgovResponse
 }
 
 export function formatNearestSitePreview(study: CtgovStudy): string {
