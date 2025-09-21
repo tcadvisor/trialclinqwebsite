@@ -1,73 +1,44 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import SiteHeader from "../../components/SiteHeader";
+import { getAddedTrials, removeTrial } from "../../lib/providerTrials";
 
 type Trial = {
   title: string;
   id: string; // NCT id
-  phase: string;
-  status: "Recruiting" | "Completed" | "Suspended" | "Terminated" | "Unknown";
-  sites: number;
-  matched: number;
-  prescreening: number;
-  pass: number;
+  phase?: string;
+  status?: string;
+  sponsor?: string;
+  sites?: number;
+  matched?: number;
+  prescreening?: number;
+  pass?: number;
 };
 
-const TRIALS: Trial[] = [
-  {
-    title: "Agorain, New Treatment for Chronic Neuropathy",
-    id: "NCT06084521",
-    phase: "Phase II",
-    status: "Recruiting",
-    sites: 2,
-    matched: 16,
-    prescreening: 5,
-    pass: 7,
-  },
-  {
-    title: "Investigating Non-Opioid Therapies for Migraine",
-    id: "NCT05872145",
-    phase: "Phase I",
-    status: "Recruiting",
-    sites: 2,
-    matched: 20,
-    prescreening: 5,
-    pass: 13,
-  },
-  {
-    title: "Exploring Novel Interventions for Diabetic Peripheral Neuropathy",
-    id: "NCT05934022",
-    phase: "Phase IV",
-    status: "Recruiting",
-    sites: 1,
-    matched: 5,
-    prescreening: 5,
-    pass: 11,
-  },
-  {
-    title: "A Randomized Study of Alpha-2 Agonists in Adults",
-    id: "NCT06045987",
-    phase: "Phase I",
-    status: "Recruiting",
-    sites: 1,
-    matched: 6,
-    prescreening: 5,
-    pass: 17,
-  },
-];
+const TRIALS: Trial[] = [];
 
 export default function AllTrials(): JSX.Element {
-  const [status, setStatus] = React.useState<string>("Recruiting");
+  const [status, setStatus] = React.useState<string>("All");
   const [phase, setPhase] = React.useState<string>("All");
   const [q, setQ] = React.useState<string>("");
+  const [trials, setTrials] = React.useState<Trial[]>(() => getAddedTrials().map((t) => ({ title: t.title, id: t.nctId, status: t.status, sponsor: t.sponsor })));
+  const [menuId, setMenuId] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === "provider:trials:v1") setTrials(getAddedTrials().map((t) => ({ title: t.title, id: t.nctId, status: t.status, sponsor: t.sponsor })));
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
 
   const filtered = React.useMemo(() => {
-    return TRIALS.filter((t) =>
-      (status === "All" || t.status === (status as Trial["status"])) &&
-      (phase === "All" || t.phase === phase) &&
+    return trials.filter((t) =>
+      (status === "All" || (t.status || "").toLowerCase() === status.toLowerCase()) &&
+      (phase === "All" || (t.phase || "") === phase) &&
       (q.trim() === "" || t.title.toLowerCase().includes(q.trim().toLowerCase()) || t.id.toLowerCase().includes(q.trim().toLowerCase()))
     );
-  }, [status, phase, q]);
+  }, [status, phase, q, trials]);
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
@@ -92,7 +63,7 @@ export default function AllTrials(): JSX.Element {
                 onChange={(e) => setStatus(e.target.value)}
                 className="rounded-full border px-3 py-2 text-sm bg-white"
               >
-                {(["Recruiting", "Completed", "Suspended", "Terminated", "Unknown", "All"] as const).map((s) => (
+                {["All", "Recruiting", "Completed", "Suspended", "Terminated", "Unknown"].map((s) => (
                   <option key={s} value={s}>{s}</option>
                 ))}
               </select>
@@ -130,23 +101,46 @@ export default function AllTrials(): JSX.Element {
               </thead>
               <tbody className="divide-y">
                 {filtered.map((t) => (
-                  <tr key={t.id}>
+                  <tr key={t.id} className="relative">
                     <td className="px-4 py-3 max-w-[280px] truncate">{t.title}</td>
                     <td className="px-4 py-3 text-gray-600">{t.id}</td>
-                    <td className="px-4 py-3">{t.phase}</td>
+                    <td className="px-4 py-3">{t.phase || '-'}</td>
                     <td className="px-4 py-3">
-                      {t.status === "Recruiting" ? (
+                      {(t.status || '').toUpperCase() === 'RECRUITING' ? (
                         <span className="rounded-full bg-emerald-100 text-emerald-700 px-2 py-1 text-xs">Recruiting</span>
                       ) : (
-                        <span className="text-gray-700">{t.status}</span>
+                        <span className="text-gray-700">{t.status || '-'}</span>
                       )}
                     </td>
-                    <td className="px-4 py-3">{t.sites}</td>
-                    <td className="px-4 py-3">{t.matched}</td>
-                    <td className="px-4 py-3">{t.prescreening}</td>
-                    <td className="px-4 py-3">{t.pass}</td>
+                    <td className="px-4 py-3">{t.sites ?? '-'}</td>
+                    <td className="px-4 py-3">{t.matched ?? '-'}</td>
+                    <td className="px-4 py-3">{t.prescreening ?? '-'}</td>
+                    <td className="px-4 py-3">{t.pass ?? '-'}</td>
                     <td className="px-4 py-3 text-right">
-                      <button className="rounded-full border px-3 py-1 text-xs hover:bg-gray-50">Manage</button>
+                      <div className="inline-block relative">
+                        <button
+                          className="rounded-full border px-3 py-1 text-xs hover:bg-gray-50"
+                          onClick={() => setMenuId((v) => (v === t.id ? null : t.id))}
+                          aria-haspopup="menu"
+                          aria-expanded={menuId === t.id}
+                        >
+                          Manage
+                        </button>
+                        {menuId === t.id && (
+                          <div className="absolute right-0 mt-2 w-36 rounded-md border bg-white shadow">
+                            <button
+                              className="block w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-gray-50"
+                              onClick={() => {
+                                removeTrial(t.id);
+                                setTrials((prev) => prev.filter((x) => x.id !== t.id));
+                                setMenuId(null);
+                              }}
+                            >
+                              Delete trial
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
