@@ -26,12 +26,14 @@ export const SearchResults = (): JSX.Element => {
   const { search } = useLocation();
   const navigate = useNavigate();
 
-  const { conditionLabel, locationLabel, initialPhase, initialType } = useMemo(() => {
+  const { conditionLabel, locationLabel, initialPhase, initialType, initialPage, initialSize } = useMemo(() => {
     const params = new URLSearchParams(search);
     const q = params.get("q")?.trim();
     const loc = params.get("loc")?.trim();
     const phaseParam = params.get("phase")?.toLowerCase() || "";
     const typeParam = params.get("type")?.toLowerCase() || "";
+    const pageParam = parseInt(params.get("page") || "1", 10);
+    const sizeParamRaw = parseInt(params.get("size") || "10", 10);
 
     const toPhaseKey = (v: string): "phase1" | "phase2" | "phase3" | "" => {
       if (/(^|\s)phase\s*1\b|^phase1$/.test(v)) return "phase1";
@@ -46,17 +48,23 @@ export const SearchResults = (): JSX.Element => {
       return "";
     };
 
-    // Defaults align with Home page defaults for direct visits
+    const normalizedSize = [10, 20].includes(sizeParamRaw) ? sizeParamRaw : 10;
+    const normalizedPage = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
+
     return {
       conditionLabel: q && q.length > 0 ? q : "Chronic Pain",
       locationLabel: loc && loc.length > 0 ? loc : "10090, Niagara falls, USA",
       initialPhase: toPhaseKey(phaseParam),
       initialType: toTypeKey(typeParam),
+      initialPage: normalizedPage,
+      initialSize: normalizedSize,
     };
   }, [search]);
 
   const [phase, setPhase] = useState<"phase1" | "phase2" | "phase3" | "">(initialPhase);
   const [trialType, setTrialType] = useState<"interventional" | "observational" | "">(initialType);
+  const [page, setPage] = useState<number>(initialPage);
+  const [pageSize, setPageSize] = useState<number>(initialSize);
 
   React.useEffect(() => {
     setPhase(initialPhase);
