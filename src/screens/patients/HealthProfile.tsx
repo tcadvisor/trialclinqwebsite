@@ -14,6 +14,33 @@ import {
   DownloadIcon
 } from "lucide-react";
 import { useAuth } from "../../lib/auth";
+import PatientHeader from "../../components/PatientHeader";
+
+// Editable profile types
+type Allergy = { name: string; note?: string };
+type Medication = { name: string; dose?: string; schedule?: string };
+
+type HealthProfileData = {
+  patientId: string;
+  email: string;
+  emailVerified: boolean;
+  age: string;
+  weight: string;
+  phone: string;
+  gender: string;
+  race: string;
+  language: string;
+  bloodGroup: string;
+  genotype: string;
+  hearingImpaired: boolean;
+  visionImpaired: boolean;
+  primaryCondition: string;
+  diagnosed: string;
+  allergies: Allergy[];
+  medications: Medication[];
+};
+
+const PROFILE_KEY = "tc_health_profile_v1";
 
 const Section: React.FC<{ title: string; children: React.ReactNode; right?: React.ReactNode }> = ({ title, children, right }) => (
   <div className="rounded-xl border bg-white">
@@ -254,6 +281,7 @@ function Documents({ onCountChange }: { onCountChange?: (count: number) => void 
 }
 
 export default function HealthProfile(): JSX.Element {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"overview" | "documents" | "ehr">("overview");
   const [docCount, setDocCount] = useState<number>(() => {
     try {
@@ -264,39 +292,100 @@ export default function HealthProfile(): JSX.Element {
     }
   });
 
-  const Allergies: { name: string; note?: string }[] = [
-    { name: "Pollen", note: "Itchy nose and watery eyes" },
-    { name: "Caffeine", note: "Sore throat" },
-    { name: "Lactose intolerant", note: "Diarrhea and bloating" },
-  ];
+  const [profile, setProfile] = useState<HealthProfileData>(() => {
+    try {
+      const raw = localStorage.getItem(PROFILE_KEY);
+      if (raw) return JSON.parse(raw) as HealthProfileData;
+    } catch {}
+    return {
+      patientId: "CUS_j2kthfmgv3bzr5r",
+      email: "",
+      emailVerified: false,
+      age: "27",
+      weight: "67kg",
+      phone: "+1 684 1116",
+      gender: "Female",
+      race: "Black / African American",
+      language: "English",
+      bloodGroup: "O+",
+      genotype: "AA",
+      hearingImpaired: false,
+      visionImpaired: false,
+      primaryCondition: "Chronic Pain",
+      diagnosed: "2024",
+      allergies: [
+        { name: "Pollen", note: "Itchy nose and watery eyes" },
+        { name: "Caffeine", note: "Sore throat" },
+        { name: "Lactose intolerant", note: "Diarrhea and bloating" },
+      ],
+      medications: [
+        { name: "Pregabalin" },
+        { name: "Gabapentin 75mg", schedule: "Twice Daily" },
+      ],
+    };
+  });
 
-  const Medications: { name: string; dose?: string; schedule?: string }[] = [
-    { name: "Pregabalin" },
-    { name: "Gabapentin 75mg", schedule: "Twice Daily" },
-  ];
+  // Bootstrap email from auth if empty
+  useEffect(() => {
+    if (!profile.email && user?.email) setProfile((p) => ({ ...p, email: user.email! }));
+  }, [user]);
+
+  // Persist changes
+  useEffect(() => {
+    try { localStorage.setItem(PROFILE_KEY, JSON.stringify(profile)); } catch {}
+  }, [profile]);
+
+  // Edit toggles
+  const [editingPersonal, setEditingPersonal] = useState(false);
+  const [editingHealth, setEditingHealth] = useState(false);
+
+  // Allergy handlers
+  function addAllergy() {
+    const name = prompt("Allergy name");
+    if (!name) return;
+    const note = prompt("Notes (optional)") || undefined;
+    setProfile((p) => ({ ...p, allergies: [...p.allergies, { name: name.trim(), note: note?.trim() || undefined }] }));
+  }
+  function editAllergy(index: number) {
+    const current = profile.allergies[index];
+    const name = prompt("Edit allergy name", current?.name);
+    if (!name) return;
+    const note = prompt("Edit notes (optional)", current?.note || "") || undefined;
+    setProfile((p) => ({ ...p, allergies: p.allergies.map((a, i) => (i === index ? { name: name.trim(), note: note?.trim() || undefined } : a)) }));
+  }
+  function removeAllergy(index: number) {
+    setProfile((p) => ({ ...p, allergies: p.allergies.filter((_, i) => i !== index) }));
+  }
+
+  // Medication handlers
+  function addMedication() {
+    const name = prompt("Medication name");
+    if (!name) return;
+    const dose = prompt("Dose (optional)") || undefined;
+    const schedule = prompt("Schedule (optional)") || undefined;
+    setProfile((p) => ({ ...p, medications: [...p.medications, { name: name.trim(), dose: dose?.trim() || undefined, schedule: schedule?.trim() || undefined }] }));
+  }
+  function editMedication(index: number) {
+    const current = profile.medications[index];
+    const name = prompt("Edit medication name", current?.name);
+    if (!name) return;
+    const dose = prompt("Edit dose (optional)", current?.dose || "") || undefined;
+    const schedule = prompt("Edit schedule (optional)", current?.schedule || "") || undefined;
+    setProfile((p) => ({ ...p, medications: p.medications.map((m, i) => (i === index ? { name: name.trim(), dose: dose?.trim() || undefined, schedule: schedule?.trim() || undefined } : m)) }));
+  }
+  function removeMedication(index: number) {
+    setProfile((p) => ({ ...p, medications: p.medications.filter((_, i) => i !== index) }));
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
-      <header className="sticky top-0 z-30 bg-white/80 backdrop-blur border-b">
-        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <img alt="TrialCliniq" className="h-8 w-auto" src="https://c.animaapp.com/mf3cenl8GIzqBa/img/igiwdhcu2mb98arpst9kn-2.png" />
-          </Link>
-          <nav className="hidden md:flex items-center gap-6 text-sm">
-            <Link to="/patients/dashboard" className="hover:text-gray-600">Dashboard</Link>
-            <Link to="/patients/eligible" className="hover:text-gray-600">Eligible Trials</Link>
-            <Link to="/patients/health-profile" className="text-gray-900 border-b-2 border-[#1033e5] pb-1">Health Profile</Link>
-            <Link to="/patients/faq" className="hover:text-gray-600">Help Center</Link>
-          </nav>
-          <HeaderActions />
-        </div>
-      </header>
+      <PatientHeader />
 
       <main className="max-w-6xl mx-auto px-4 py-8">
         <h1 className="text-2xl sm:text-3xl font-semibold">Health Profile</h1>
-        {(() => { const { user } = useAuth(); const nm = user ? `${user.firstName} ${user.lastName}` : ""; const em = user?.email ?? ""; return (<>
+        {(() => { const nm = user ? `${user.firstName} ${user.lastName}` : ""; return (<>
           <div className="mt-1 text-gray-700">{nm}</div>
-          <div className="text-sm text-gray-500">{em}</div>
+          <div className="text-sm text-gray-500">{profile.email}</div>
         </>); })()}
 
         <div className="mt-6 flex items-center gap-6 text-sm">
@@ -328,55 +417,105 @@ export default function HealthProfile(): JSX.Element {
                 <Section
                   title="Personal Details"
                   right={
-                    <button className="inline-flex items-center gap-1 text-sm rounded-full border px-3 py-1.5">
-                      <PencilIcon className="w-4 h-4" /> Edit
-                    </button>
+                    editingPersonal ? (
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => setEditingPersonal(false)} className="inline-flex items-center gap-1 text-sm rounded-full border px-3 py-1.5">Cancel</button>
+                        <button onClick={() => setEditingPersonal(false)} className="inline-flex items-center gap-1 text-sm rounded-full bg-gray-900 text-white px-3 py-1.5">Save</button>
+                      </div>
+                    ) : (
+                      <button onClick={() => setEditingPersonal(true)} className="inline-flex items-center gap-1 text-sm rounded-full border px-3 py-1.5">
+                        <PencilIcon className="w-4 h-4" /> Edit
+                      </button>
+                    )
                   }
                 >
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
-                    <Row label="Patient ID" value="CUS_j2kthfmgv3bzr5r" icon={<UserIcon className="w-4 h-4" />} />
-                    <div className="flex items-center justify-between py-2">
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <MailIcon className="w-4 h-4" />
-                        <span className="text-sm">Email</span>
-                      </div>
-                      <div className="text-sm text-gray-900 flex items-center gap-2">
-                        <span>{(() => { const { user } = useAuth(); return user?.email ?? ""; })()}</span>
-                        <span className="text-amber-600 text-xs">Not verified</span>
-                        <button className="text-[#1033e5] text-xs underline">Verify Now</button>
+                  {editingPersonal ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <label className="text-sm text-gray-700">Patient ID
+                        <input value={profile.patientId} onChange={(e)=>setProfile(p=>({...p, patientId:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2" />
+                      </label>
+                      <label className="text-sm text-gray-700">Email
+                        <input value={profile.email} onChange={(e)=>setProfile(p=>({...p, email:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2" />
+                      </label>
+                      <label className="text-sm text-gray-700">Age
+                        <input value={profile.age} onChange={(e)=>setProfile(p=>({...p, age:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2" />
+                      </label>
+                      <label className="text-sm text-gray-700">Weight
+                        <input value={profile.weight} onChange={(e)=>setProfile(p=>({...p, weight:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2" />
+                      </label>
+                      <label className="text-sm text-gray-700">Phone Number
+                        <input value={profile.phone} onChange={(e)=>setProfile(p=>({...p, phone:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2" />
+                      </label>
+                      <label className="text-sm text-gray-700">Gender
+                        <select value={profile.gender} onChange={(e)=>setProfile(p=>({...p, gender:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2 bg-white">
+                          <option>Female</option>
+                          <option>Male</option>
+                          <option>Non-binary</option>
+                          <option>Prefer not to say</option>
+                        </select>
+                      </label>
+                      <label className="text-sm text-gray-700">Race
+                        <input value={profile.race} onChange={(e)=>setProfile(p=>({...p, race:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2" />
+                      </label>
+                      <label className="text-sm text-gray-700">Language Preference
+                        <input value={profile.language} onChange={(e)=>setProfile(p=>({...p, language:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2" />
+                      </label>
+                      <div className="sm:col-span-2 flex items-center gap-2 text-sm mt-1">
+                        <span className={`px-2 py-0.5 rounded-full text-xs ${profile.emailVerified ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>{profile.emailVerified ? "Verified" : "Not verified"}</span>
+                        {!profile.emailVerified && (
+                          <button onClick={()=>setProfile(p=>({...p, emailVerified:true}))} className="text-[#1033e5] text-xs underline">Verify Now</button>
+                        )}
                       </div>
                     </div>
-                    <Row label="Age" value="27" icon={<CalendarIcon className="w-4 h-4" />} />
-                    <Row label="Weight" value="67kg" icon={<WeightIcon className="w-4 h-4" />} />
-                    <Row label="Phone Number" value="+1 684 1116" icon={<PhoneIcon className="w-4 h-4" />} />
-                    <Row label="Gender" value="Female" icon={<UserIcon className="w-4 h-4" />} />
-                    <Row label="Race" value="Black / African American" />
-                    <Row label="Language Preference" value="English" />
-                  </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
+                      <Row label="Patient ID" value={profile.patientId} icon={<UserIcon className="w-4 h-4" />} />
+                      <div className="flex items-center justify-between py-2">
+                        <div className="flex items-center gap-2 text-gray-600">
+                          <MailIcon className="w-4 h-4" />
+                          <span className="text-sm">Email</span>
+                        </div>
+                        <div className="text-sm text-gray-900 flex items-center gap-2">
+                          <span>{profile.email}</span>
+                          <span className={`${profile.emailVerified ? "text-emerald-700" : "text-amber-600"} text-xs`}>{profile.emailVerified ? "Verified" : "Not verified"}</span>
+                          {!profile.emailVerified && <button onClick={()=>setProfile(p=>({...p, emailVerified:true}))} className="text-[#1033e5] text-xs underline">Verify Now</button>}
+                        </div>
+                      </div>
+                      <Row label="Age" value={profile.age} icon={<CalendarIcon className="w-4 h-4" />} />
+                      <Row label="Weight" value={profile.weight} icon={<WeightIcon className="w-4 h-4" />} />
+                      <Row label="Phone Number" value={profile.phone} icon={<PhoneIcon className="w-4 h-4" />} />
+                      <Row label="Gender" value={profile.gender} icon={<UserIcon className="w-4 h-4" />} />
+                      <Row label="Race" value={profile.race} />
+                      <Row label="Language Preference" value={profile.language} />
+                    </div>
+                  )}
                 </Section>
               </div>
 
               <div>
                 <Section title="Allergies" right={<div className="flex items-center gap-2" />}>
                   <ul className="divide-y">
-                    {Allergies.map((a, i) => (
+                    {profile.allergies.map((a, i) => (
                       <li key={i} className="py-3 flex items-start justify-between">
                         <div>
                           <div className="text-sm font-medium">{a.name}</div>
                           {a.note && <div className="text-xs text-gray-600">{a.note}</div>}
                         </div>
                         <div className="flex items-center gap-2 text-gray-500">
-                          <button aria-label="edit">
+                          <button onClick={()=>editAllergy(i)} aria-label="edit">
                             <PencilIcon className="w-4 h-4" />
                           </button>
-                          <button aria-label="delete">
+                          <button onClick={()=>removeAllergy(i)} aria-label="delete">
                             <Trash2Icon className="w-4 h-4" />
                           </button>
                         </div>
                       </li>
                     ))}
+                    {profile.allergies.length === 0 && (
+                      <li className="py-3 text-sm text-gray-600">No allergies added</li>
+                    )}
                   </ul>
-                  <button className="mt-3 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm">
+                  <button onClick={addAllergy} className="mt-3 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm">
                     <PlusIcon className="w-4 h-4" /> Add another allergy
                   </button>
                 </Section>
@@ -387,7 +526,7 @@ export default function HealthProfile(): JSX.Element {
               <div>
                 <Section title="Medications" right={<div />}>
                   <ul className="divide-y">
-                    {Medications.map((m, i) => (
+                    {profile.medications.map((m, i) => (
                       <li key={i} className="py-3 flex items-start justify-between">
                         <div>
                           <div className="text-sm font-medium">{m.name}</div>
@@ -396,17 +535,20 @@ export default function HealthProfile(): JSX.Element {
                           )}
                         </div>
                         <div className="flex items-center gap-2 text-gray-500">
-                          <button aria-label="edit">
+                          <button onClick={()=>editMedication(i)} aria-label="edit">
                             <PencilIcon className="w-4 h-4" />
                           </button>
-                          <button aria-label="delete">
+                          <button onClick={()=>removeMedication(i)} aria-label="delete">
                             <Trash2Icon className="w-4 h-4" />
                           </button>
                         </div>
                       </li>
                     ))}
+                    {profile.medications.length === 0 && (
+                      <li className="py-3 text-sm text-gray-600">No medications listed</li>
+                    )}
                   </ul>
-                  <button className="mt-3 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm">
+                  <button onClick={addMedication} className="mt-3 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm">
                     <PlusIcon className="w-4 h-4" /> Add another medication
                   </button>
                 </Section>
@@ -416,19 +558,57 @@ export default function HealthProfile(): JSX.Element {
                 <Section
                   title="Health Profile"
                   right={
-                    <button className="inline-flex items-center gap-1 text-sm rounded-full border px-3 py-1.5">
-                      <PencilIcon className="w-4 h-4" /> Edit
-                    </button>
+                    editingHealth ? (
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => setEditingHealth(false)} className="inline-flex items-center gap-1 text-sm rounded-full border px-3 py-1.5">Cancel</button>
+                        <button onClick={() => setEditingHealth(false)} className="inline-flex items-center gap-1 text-sm rounded-full bg-gray-900 text-white px-3 py-1.5">Save</button>
+                      </div>
+                    ) : (
+                      <button onClick={() => setEditingHealth(true)} className="inline-flex items-center gap-1 text-sm rounded-full border px-3 py-1.5">
+                        <PencilIcon className="w-4 h-4" /> Edit
+                      </button>
+                    )
                   }
                 >
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
-                    <Row label="Blood Group" value="O+" />
-                    <Row label="Genotype" value="AA" />
-                    <Row label="Hearing Impaired" value="No" />
-                    <Row label="Vision Impaired" value="No" />
-                    <Row label="Primary Condition" value="Chronic Pain" />
-                    <Row label="Diagnosed" value="2024" />
-                  </div>
+                  {editingHealth ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <label className="text-sm text-gray-700">Blood Group
+                        <select value={profile.bloodGroup} onChange={(e)=>setProfile(p=>({...p, bloodGroup:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2 bg-white">
+                          {['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(b=> <option key={b}>{b}</option>)}
+                        </select>
+                      </label>
+                      <label className="text-sm text-gray-700">Genotype
+                        <input value={profile.genotype} onChange={(e)=>setProfile(p=>({...p, genotype:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2" />
+                      </label>
+                      <label className="text-sm text-gray-700">Hearing Impaired
+                        <select value={profile.hearingImpaired ? 'Yes' : 'No'} onChange={(e)=>setProfile(p=>({...p, hearingImpaired:e.target.value==='Yes'}))} className="mt-1 w-full rounded-md border px-3 py-2 bg-white">
+                          <option>No</option>
+                          <option>Yes</option>
+                        </select>
+                      </label>
+                      <label className="text-sm text-gray-700">Vision Impaired
+                        <select value={profile.visionImpaired ? 'Yes' : 'No'} onChange={(e)=>setProfile(p=>({...p, visionImpaired:e.target.value==='Yes'}))} className="mt-1 w-full rounded-md border px-3 py-2 bg-white">
+                          <option>No</option>
+                          <option>Yes</option>
+                        </select>
+                      </label>
+                      <label className="text-sm text-gray-700">Primary Condition
+                        <input value={profile.primaryCondition} onChange={(e)=>setProfile(p=>({...p, primaryCondition:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2" />
+                      </label>
+                      <label className="text-sm text-gray-700">Diagnosed
+                        <input value={profile.diagnosed} onChange={(e)=>setProfile(p=>({...p, diagnosed:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2" />
+                      </label>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
+                      <Row label="Blood Group" value={profile.bloodGroup} />
+                      <Row label="Genotype" value={profile.genotype} />
+                      <Row label="Hearing Impaired" value={profile.hearingImpaired ? 'Yes' : 'No'} />
+                      <Row label="Vision Impaired" value={profile.visionImpaired ? 'Yes' : 'No'} />
+                      <Row label="Primary Condition" value={profile.primaryCondition} />
+                      <Row label="Diagnosed" value={profile.diagnosed} />
+                    </div>
+                  )}
                 </Section>
               </div>
             </div>

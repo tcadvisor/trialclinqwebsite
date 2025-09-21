@@ -1,5 +1,5 @@
 import React from "react";
-import SiteHeader from "../../components/SiteHeader";
+import PatientHeader from "../../components/PatientHeader";
 
 export default function Faq(): JSX.Element {
   const faqs = [
@@ -18,8 +18,8 @@ export default function Faq(): JSX.Element {
   ];
 
   return (
-    <div className="min-h-screen bg-white text-gray-900">
-      <SiteHeader active="faq" />
+    <div className="min-h-screen bg-gray-50 text-gray-900">
+      <PatientHeader />
       <main className="max-w-3xl mx-auto px-4 py-10">
         <h1 className="text-3xl font-semibold mb-6">Frequently Asked Questions</h1>
         <div className="divide-y rounded-2xl border bg-white">

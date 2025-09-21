@@ -1,12 +1,81 @@
 import { Link, useNavigate } from "react-router-dom";
 import SiteHeader from "../../components/SiteHeader";
+import { useState } from "react";
+
+const US_STATES_AND_TERRITORIES = [
+  "Alabama",
+  "Alaska",
+  "Arizona",
+  "Arkansas",
+  "California",
+  "Colorado",
+  "Connecticut",
+  "Delaware",
+  "District of Columbia",
+  "Florida",
+  "Georgia",
+  "Hawaii",
+  "Idaho",
+  "Illinois",
+  "Indiana",
+  "Iowa",
+  "Kansas",
+  "Kentucky",
+  "Louisiana",
+  "Maine",
+  "Maryland",
+  "Massachusetts",
+  "Michigan",
+  "Minnesota",
+  "Mississippi",
+  "Missouri",
+  "Montana",
+  "Nebraska",
+  "Nevada",
+  "New Hampshire",
+  "New Jersey",
+  "New Mexico",
+  "New York",
+  "North Carolina",
+  "North Dakota",
+  "Ohio",
+  "Oklahoma",
+  "Oregon",
+  "Pennsylvania",
+  "Rhode Island",
+  "South Carolina",
+  "South Dakota",
+  "Tennessee",
+  "Texas",
+  "Utah",
+  "Vermont",
+  "Virginia",
+  "Washington",
+  "West Virginia",
+  "Wisconsin",
+  "Wyoming",
+  // Territories
+  "American Samoa",
+  "Guam",
+  "Northern Mariana Islands",
+  "Puerto Rico",
+  "U.S. Virgin Islands",
+];
 
 export default function SiteInformation(): JSX.Element {
   const navigate = useNavigate();
+  const [country, setCountry] = useState("");
+  const [usState, setUsState] = useState("");
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     navigate("/providers/investigator-information");
+  }
+
+  function onCountryChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    const value = e.target.value;
+    setCountry(value);
+    if (value !== "United States") setUsState("");
   }
 
   return (
@@ -48,22 +117,24 @@ export default function SiteInformation(): JSX.Element {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Country<span className="text-red-500">*</span></label>
-                <select className="w-full rounded-lg border px-3 py-2 bg-white">
+                <select className="w-full rounded-lg border px-3 py-2 bg-white" value={country} onChange={onCountryChange}>
                   <option value="">Select country</option>
                   <option>United States</option>
                   <option>Canada</option>
                   <option>United Kingdom</option>
                 </select>
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">State<span className="text-red-500">*</span></label>
-                <select className="w-full rounded-lg border px-3 py-2 bg-white">
-                  <option value="">Select state</option>
-                  <option>California</option>
-                  <option>New York</option>
-                  <option>Texas</option>
-                </select>
-              </div>
+              {country === "United States" && (
+                <div>
+                  <label className="block text-sm font-medium mb-1">State<span className="text-red-500">*</span></label>
+                  <select className="w-full rounded-lg border px-3 py-2 bg-white" value={usState} onChange={(e) => setUsState(e.target.value)} required={country === "United States"}>
+                    <option value="">Select state</option>
+                    {US_STATES_AND_TERRITORIES.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
