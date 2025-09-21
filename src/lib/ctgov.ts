@@ -62,7 +62,7 @@ export function buildStudiesUrl({ q = '', status = '', type = '', pageSize = 12,
   params.set('fields', fields)
   if (status) params.set('filter.overallStatus', status)
   if (type) params.set('filter.studyType', type)
-  if (q) params.set('filter.condition', q)
+  if (q) params.set('query.cond', q)
   if (pageToken) params.set('pageToken', pageToken)
 
   return `${base}?${params.toString()}`
