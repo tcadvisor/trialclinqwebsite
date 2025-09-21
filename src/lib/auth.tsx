@@ -21,8 +21,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
-        const parsed = JSON.parse(raw) as { user: User | null };
-        if (parsed?.user?.email && parsed?.user?.role) setUser(parsed.user);
+        const parsed = JSON.parse(raw) as { user: Partial<User> | null };
+        if (parsed?.user?.email && parsed?.user?.role) {
+          const u: User = {
+            email: parsed.user.email as string,
+            role: parsed.user.role as User["role"],
+            firstName: (parsed.user as any).firstName ?? "",
+            lastName: (parsed.user as any).lastName ?? "",
+          };
+          setUser(u);
+        }
       }
     } catch (_) {
       // ignore
