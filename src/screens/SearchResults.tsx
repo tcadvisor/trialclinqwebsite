@@ -12,7 +12,6 @@ import {
   CtgovStudy,
   fetchStudies,
   formatNearestSitePreview,
-  ctgovStudyDetailUrl,
 } from "../lib/ctgov";
 
 const solutionsLinks = ["Find a study", "More about trials", "How TrialCliniq help", "Blog"];
