@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 
-export type User = { email: string; role: "patient" | "provider" };
+export type User = { email: string; role: "patient" | "provider"; firstName: string; lastName: string };
 
 type AuthContextValue = {
   user: User | null;
