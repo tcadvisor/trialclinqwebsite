@@ -25,7 +25,7 @@ import Settings from "./screens/patients/Settings";
 import ContactUs from "./screens/support/ContactUs";
 import Consent from "./screens/patients/Consent";
 import Connect from "./screens/patients/Connect";
-import { RequireAuth } from "./lib/auth";
+import { RequireAuth, RequireRole } from "./lib/auth";
 
 function App() {
   return (
