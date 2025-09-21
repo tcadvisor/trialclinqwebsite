@@ -12,6 +12,7 @@ import {
   CtgovStudy,
   fetchStudies,
   formatNearestSitePreview,
+  ctgovStudyDetailUrl,
 } from "../lib/ctgov";
 
 const solutionsLinks = ["Find a study", "More about trials", "How TrialCliniq help", "Blog"];
@@ -23,10 +24,11 @@ export const SearchResults = (): JSX.Element => {
   const params = React.useMemo(() => new URLSearchParams(search), [search]);
   const initialQ = params.get("q")?.trim() || "breast cancer";
   const initialLoc = params.get("loc")?.trim() || "";
+  const initialStatus = (params.get("status")?.trim().toUpperCase() || "RECRUITING");
 
   const [q, setQ] = React.useState<string>(initialQ);
   const [loc, setLoc] = React.useState<string>(initialLoc);
-  const [status, setStatus] = React.useState<string>("");
+  const [status, setStatus] = React.useState<string>(initialStatus);
   const [type, setType] = React.useState<string>("");
   const [pageSize, setPageSize] = React.useState<number>(12);
   const [page, setPage] = React.useState<number>(1);
@@ -221,9 +223,14 @@ export const SearchResults = (): JSX.Element => {
                       </Link>
                       <div className="flex items-center gap-2">
                         {overallStatus && <Badge variant="secondary">{overallStatus}</Badge>}
-                        <Link to={`/study/${nctId}`}>
+                        <a href={ctgovStudyDetailUrl(study)} target="_blank" rel="noopener noreferrer">
                           <Button size="sm" className="bg-gray-900 text-white rounded-full whitespace-nowrap">
                             View details
+                          </Button>
+                        </a>
+                        <Link to={`/patients/connect${nctId ? `?nctId=${encodeURIComponent(nctId)}` : ''}`}>
+                          <Button size="sm" className="bg-[#1033e5] text-white rounded-full whitespace-nowrap">
+                            Check eligibility
                           </Button>
                         </Link>
                       </div>
