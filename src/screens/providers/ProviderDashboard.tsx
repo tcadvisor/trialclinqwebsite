@@ -1,5 +1,6 @@
 import React from "react";
 import SiteHeader from "../../components/SiteHeader";
+import { Link } from "react-router-dom";
 
 export default function ProviderDashboard(): JSX.Element {
   return (
