@@ -51,6 +51,8 @@ export default function Connect(): JSX.Element {
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!canSubmit) return;
+    const profile = { condition, healthy, year, meds, dob, zip, distance, gender, race, language };
+    try { localStorage.setItem("tc_eligibility_profile", JSON.stringify(profile)); } catch {}
     navigate(`/patients/check${nctParam ? `?nctId=${encodeURIComponent(nctParam)}` : ""}`);
   }
 
