@@ -203,7 +203,7 @@ export const SearchResults = (): JSX.Element => {
           <span className="text-sm text-gray-500">&gt;</span>
           <span className="text-sm text-gray-500">Search results</span>
         </div>
-        <div className="flex items-center gap-4 mb-8 p-4 bg-gray-50 rounded-lg">
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4 mb-8 p-4 bg-gray-50 rounded-lg">
           <div className="flex items-center gap-2">
             <MapPinIcon className="w-4 h-4 text-gray-500" />
             <span className="text-sm">{conditionLabel}</span>
@@ -220,7 +220,7 @@ export const SearchResults = (): JSX.Element => {
             <UsersIcon className="w-4 h-4 text-gray-500" />
             <span className="text-sm">All</span>
           </div>
-          <Button size="sm" className="ml-auto bg-[#1033e5] text-white rounded-full">
+          <Button size="sm" className="ml-auto bg-[#1033e5] text-white rounded-full whitespace-nowrap">
             Search
           </Button>
         </div>
@@ -326,11 +326,11 @@ export const SearchResults = (): JSX.Element => {
             {paginatedTrials.map((trial, index) => (
               <Card key={index}>
                 <CardContent className="p-6">
-                  <div className="flex justify-between items-start mb-4">
-                    <Link to={`/trials/${trial.slug}`} className="hover:underline">
-                      <h3 className="text-lg font-semibold text-[#1033e5] mb-2">{trial.title}</h3>
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+                    <Link to={`/trials/${trial.slug}`} className="hover:underline flex-1 min-w-0">
+                      <h3 className="text-lg font-semibold text-[#1033e5] mb-2 break-words leading-snug">{trial.title}</h3>
                     </Link>
-                    <Button size="sm" className="bg-gray-900 text-white rounded-full">
+                    <Button size="sm" className="bg-gray-900 text-white rounded-full self-start sm:self-auto whitespace-nowrap">
                       Check my eligibility
                     </Button>
                   </div>
