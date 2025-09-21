@@ -1,5 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
+import { useAuth } from "../lib/auth";
 import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
@@ -71,6 +72,8 @@ export const SearchResults = (): JSX.Element => {
   }, [q, status, type, loc, pageSize]);
 
   const studies = data?.studies ?? [];
+
+  const { isAuthenticated, user } = useAuth();
 
   return (
     <div className="flex flex-col w-full items-center relative bg-white">
@@ -228,7 +231,11 @@ export const SearchResults = (): JSX.Element => {
                             View details
                           </Button>
                         </a>
-                        <Link to={`/patients/connect${nctId ? `?nctId=${encodeURIComponent(nctId)}` : ''}`}>
+                        <Link to={
+                          isAuthenticated && user?.role === 'patient'
+                            ? `/patients/check${nctId ? `?source=profile&nctId=${encodeURIComponent(nctId)}` : '?source=profile'}`
+                            : `/patients/connect${nctId ? `?nctId=${encodeURIComponent(nctId)}` : ''}`
+                        }>
                           <Button size="sm" className="bg-[#1033e5] text-white rounded-full whitespace-nowrap">
                             Check eligibility
                           </Button>
