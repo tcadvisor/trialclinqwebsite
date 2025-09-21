@@ -12,6 +12,7 @@ import MulticenterListings from "./screens/sites/MulticenterListings";
 import InvestigatorSupport from "./screens/support/InvestigatorSupport";
 import CreateAccount from "./screens/providers/CreateAccount";
 import ProviderLogin from "./screens/providers/Login";
+import SiteInformation from "./screens/providers/SiteInformation";
 import Dashboard from "./screens/patients/Dashboard";
 import TrialDetails from "./screens/TrialDetails";
 import EligibleTrials from "./screens/patients/EligibleTrials";
