@@ -1,12 +1,26 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { trials } from "../../lib/trials";
 import HeaderActions from "../../components/HeaderActions";
 import { useAuth } from "../../lib/auth";
+import { computeProfileCompletion } from "../../lib/profile";
 
 export default function Dashboard(): JSX.Element {
   const { user } = useAuth();
   const name = user ? `${user.firstName} ${user.lastName}` : "";
+  const [progress, setProgress] = useState(() => computeProfileCompletion());
+  useEffect(() => {
+    const update = () => setProgress(computeProfileCompletion());
+    update();
+    window.addEventListener("storage", update);
+    window.addEventListener("visibilitychange", update);
+    window.addEventListener("focus", update as any);
+    return () => {
+      window.removeEventListener("storage", update);
+      window.removeEventListener("visibilitychange", update);
+      window.removeEventListener("focus", update as any);
+    };
+  }, []);
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
       <header className="sticky top-0 z-30 bg-white/80 backdrop-blur border-b">
@@ -36,10 +50,10 @@ export default function Dashboard(): JSX.Element {
           <div className="rounded-xl border bg-white p-4">
             <div className="flex items-center justify-between">
               <div className="text-sm font-medium text-gray-700">Complete your health profile for better trial matches</div>
-              <span className="text-xs text-gray-500">95%</span>
+              <span className="text-xs text-gray-500">{progress.percent}%</span>
             </div>
             <div className="mt-3 h-2 w-full rounded-full bg-gray-100">
-              <div className="h-2 w-[95%] rounded-full bg-green-500" />
+              <div className="h-2 rounded-full bg-green-500" style={{ width: `${progress.percent}%` }} />
             </div>
             <Link to="/patients/health-profile" className="mt-4 inline-flex items-center gap-2 rounded-lg bg-gray-900 text-white px-3 py-2 text-sm hover:bg-black">
               Complete now
