@@ -195,7 +195,6 @@ export const SearchResults = (): JSX.Element => {
               const phases = study.protocolSection?.designModule?.phases || [];
               const sponsor = study.protocolSection?.sponsorCollaboratorsModule?.leadSponsor?.name || "";
               const nearest = formatNearestSitePreview(study);
-              const detailUrl = ctgovStudyDetailUrl(study);
               const nctId = study.protocolSection?.identificationModule?.nctId || "";
 
               return (
