@@ -94,7 +94,7 @@ export default function ProviderDashboard(): JSX.Element {
                 </li>
               ))}
             </ul>
-            <button className="mt-3 w-full rounded-full border px-4 py-2 text-sm hover:bg-gray-50">View All Volunteers</button>
+            <Link to="/providers/volunteers" className="mt-3 w-full inline-block text-center rounded-full border px-4 py-2 text-sm hover:bg-gray-50">View All Volunteers</Link>
           </div>
         </div>
       </main>
