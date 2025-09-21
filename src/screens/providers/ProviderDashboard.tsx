@@ -36,7 +36,7 @@ export default function ProviderDashboard(): JSX.Element {
           <div className="rounded-2xl border bg-white p-5">
             <div className="text-sm text-gray-500">Trials Managed</div>
             <div className="mt-2 text-3xl font-semibold">{trials.length}</div>
-            <Link to="/providers/trials" className="mt-3 inline-block text-sm text-blue-600 hover:underline">View</Link>
+            <Link to="/providers/trials/all" className="mt-3 inline-block text-sm text-blue-600 hover:underline">View</Link>
           </div>
 
           <div className="rounded-2xl border bg-white p-5">
