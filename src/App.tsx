@@ -17,6 +17,7 @@ import InvestigatorInformation from "./screens/providers/InvestigatorInformation
 import ProviderWelcome from "./screens/providers/Welcome";
 import ProviderDashboard from "./screens/providers/ProviderDashboard";
 import ProviderTrials from "./screens/providers/Trials";
+import AllTrials from "./screens/providers/AllTrials";
 import Appointments from "./screens/providers/Appointments";
 import Dashboard from "./screens/patients/Dashboard";
 import TrialDetails from "./screens/TrialDetails";
@@ -51,6 +52,7 @@ function App() {
         <Route path="/providers/investigator-information" element={<InvestigatorInformation />} />
         <Route path="/providers/welcome" element={<ProviderWelcome />} />
         <Route path="/providers/trials" element={<RequireRole role="provider" redirectTo="/providers/login"><ProviderTrials /></RequireRole>} />
+        <Route path="/providers/trials/all" element={<RequireRole role="provider" redirectTo="/providers/login"><AllTrials /></RequireRole>} />
         <Route path="/providers/dashboard" element={<RequireRole role="provider" redirectTo="/providers/login"><ProviderDashboard /></RequireRole>} />
         <Route path="/providers/appointments" element={<RequireRole role="provider" redirectTo="/providers/login"><Appointments /></RequireRole>} />
         <Route path="/patients/dashboard" element={<RequireRole role="patient" redirectTo="/patients/login"><Dashboard /></RequireRole>} />
