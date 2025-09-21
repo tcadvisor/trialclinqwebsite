@@ -72,7 +72,7 @@ export default function Connect(): JSX.Element {
             <div className="flex-1">
               <div className="font-medium">Match your Electronic Health Record (EHR) to trials</div>
               <p className="text-sm text-gray-600">Import your EHR to browse trials that fit your medical history and lab results with your consent.</p>
-              <button type="button" onClick={()=>navigate("/search-results")} className="mt-3 inline-flex items-center gap-2 rounded-full bg-gray-900 px-4 py-2 text-white text-sm hover:bg-black">Connect to Trial Portal →</button>
+              <button type="button" onClick={()=>navigate("/patients/ehr")} className="mt-3 inline-flex items-center gap-2 rounded-full bg-gray-900 px-4 py-2 text-white text-sm hover:bg-black">Connect to Trial Portal →</button>
             </div>
           </div>
         </div>
