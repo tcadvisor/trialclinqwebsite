@@ -17,6 +17,7 @@ import InvestigatorInformation from "./screens/providers/InvestigatorInformation
 import ProviderWelcome from "./screens/providers/Welcome";
 import ProviderDashboard from "./screens/providers/ProviderDashboard";
 import ProviderTrials from "./screens/providers/Trials";
+import Appointments from "./screens/providers/Appointments";
 import Dashboard from "./screens/patients/Dashboard";
 import TrialDetails from "./screens/TrialDetails";
 import EligibleTrials from "./screens/patients/EligibleTrials";
