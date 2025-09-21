@@ -1,13 +1,16 @@
 import React from "react";
 import SiteHeader from "../../components/SiteHeader";
 import { Link } from "react-router-dom";
+import { useAuth } from "../../lib/auth";
 
 export default function ProviderDashboard(): JSX.Element {
+  const { user } = useAuth();
+  const displayName = user ? `${user.firstName} ${user.lastName}` : "";
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
       <SiteHeader />
       <main className="max-w-6xl mx-auto px-4 py-8">
-        <h1 className="text-2xl font-semibold">Welcome back, Adam</h1>
+        <h1 className="text-2xl font-semibold">Welcome back, {displayName}</h1>
 
         <div className="mt-6 grid lg:grid-cols-3 gap-4">
           <div className="rounded-2xl border bg-white p-5">
