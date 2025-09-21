@@ -23,8 +23,10 @@ export const SearchResults = (): JSX.Element => {
 
   const params = React.useMemo(() => new URLSearchParams(search), [search]);
   const initialQ = params.get("q")?.trim() || "breast cancer";
+  const initialLoc = params.get("loc")?.trim() || "";
 
   const [q, setQ] = React.useState<string>(initialQ);
+  const [loc, setLoc] = React.useState<string>(initialLoc);
   const [status, setStatus] = React.useState<string>("");
   const [type, setType] = React.useState<string>("");
   const [pageSize, setPageSize] = React.useState<number>(12);
@@ -39,7 +41,7 @@ export const SearchResults = (): JSX.Element => {
     const ac = new AbortController();
     setLoading(true);
     setError("");
-    fetchStudies({ q, status, type, pageSize, pageToken }, ac.signal)
+    fetchStudies({ q, status, type, loc, pageSize, pageToken }, ac.signal)
       .then((res) => setData(res))
       .catch((e) => {
         if (e.name !== "AbortError") setError("Failed to load studies. Please try again.");
@@ -78,6 +80,20 @@ export const SearchResults = (): JSX.Element => {
                       setQ(e.target.value);
                     }}
                     placeholder="e.g. breast cancer"
+                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
+                  />
+                </div>
+                <div>
+                  <h4 className="font-medium mb-2">Near</h4>
+                  <input
+                    type="text"
+                    value={loc}
+                    onChange={(e) => {
+                      setPrevTokens([]);
+                      setPageToken("");
+                      setLoc(e.target.value);
+                    }}
+                    placeholder="City, State or ZIP"
                     className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
                   />
                 </div>
