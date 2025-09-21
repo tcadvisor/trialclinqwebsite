@@ -37,25 +37,23 @@ export const SearchResults = (): JSX.Element => {
   const [error, setError] = React.useState<string>("");
 
   React.useEffect(() => {
-    const ac = new AbortController();
     let mounted = true;
     (async () => {
       setLoading(true);
       setError("");
       try {
-        const res = await fetchStudies({ q, status, type, loc, pageSize, pageToken }, ac.signal);
+        const res = await fetchStudies({ q, status, type, loc, pageSize, pageToken });
         if (!mounted) return;
         setData(res);
       } catch (e: any) {
         if (!mounted) return;
-        if (e?.name !== "AbortError") setError("Failed to load studies. Please try again.");
+        setError("Failed to load studies. Please try again.");
       } finally {
         if (mounted) setLoading(false);
       }
     })();
     return () => {
       mounted = false;
-      ac.abort();
     };
   }, [q, status, type, loc, pageSize, pageToken]);
 
