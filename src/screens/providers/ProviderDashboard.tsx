@@ -33,7 +33,7 @@ export default function ProviderDashboard(): JSX.Element {
               <li className="rounded-lg border p-3">Pre-Screening Call with DG-0109 — 11:30–12:00 — Houston, TX</li>
               <li className="rounded-lg border p-3">Pre-Screening Call with DG-0109 — 11:30–12:00 — Online</li>
             </ul>
-            <button className="mt-3 w-full rounded-full border px-4 py-2 text-sm hover:bg-gray-50">View All Appointments</button>
+            <Link to="/providers/appointments" className="mt-3 w-full inline-block rounded-full border px-4 py-2 text-sm hover:bg-gray-50">View All Appointments</Link>
           </div>
         </div>
 
