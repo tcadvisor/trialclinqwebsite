@@ -1,14 +1,35 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { Search } from "lucide-react";
+import { Search, Loader2 } from "lucide-react";
 import SiteHeader from "../../components/SiteHeader";
+import { CtgovStudy, fetchStudies, ctgovStudyDetailUrl, formatNearestSitePreview, fetchStudyByNctId } from "../../lib/ctgov";
 
 export default function ProviderTrials(): JSX.Element {
   const [query, setQuery] = React.useState("");
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string>("");
+  const [studies, setStudies] = React.useState<CtgovStudy[]>([]);
+
+  const runSearch = React.useCallback(async () => {
+    const q = query.trim();
+    if (!q) return;
+    setLoading(true);
+    setError("");
+    try {
+      const isNct = /^NCT\d{8}$/i.test(q);
+      const res = isNct ? await fetchStudyByNctId(q) : await fetchStudies({ q, pageSize: 12 });
+      setStudies(res.studies || []);
+      if ((res.studies || []).length === 0) setError("No studies found.");
+    } catch (e) {
+      setError("Failed to load studies. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }, [query]);
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // In a future iteration, this could navigate to a linking flow or show results
+    runSearch();
   };
 
   return (
@@ -63,6 +84,49 @@ export default function ProviderTrials(): JSX.Element {
             <div className="mt-3 text-xs text-gray-500 flex items-center gap-2">
               <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" aria-hidden />
               Your data stays private and protected with HIPAA-compliant security.
+            </div>
+
+            {/* Results */}
+            <div className="mt-6 space-y-4">
+              {loading && (
+                <div className="p-4 text-sm text-gray-600 flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Loading…</div>
+              )}
+              {!loading && error && (
+                <div className="p-4 text-sm border border-red-200 bg-red-50 text-red-700 rounded">{error}</div>
+              )}
+              {!loading && !error && studies.length > 0 && (
+                <ul className="space-y-3">
+                  {studies.map((s, i) => {
+                    const nctId = s.protocolSection?.identificationModule?.nctId || "";
+                    const title = s.protocolSection?.identificationModule?.briefTitle || "Untitled";
+                    const status = s.protocolSection?.statusModule?.overallStatus || "";
+                    const sponsor = s.protocolSection?.sponsorCollaboratorsModule?.leadSponsor?.name || "";
+                    const nearest = formatNearestSitePreview(s);
+                    return (
+                      <li key={`${nctId || "idx"}-${i}`} className="rounded-xl border p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="text-[#1033e5] font-semibold mb-1 break-words">{title}</div>
+                            <div className="text-xs text-gray-600 flex flex-wrap gap-2">
+                              {status && <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5">{status}</span>}
+                              {nearest && <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5">{nearest}</span>}
+                              {sponsor && <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5">{sponsor}</span>}
+                            </div>
+                          </div>
+                          <div className="shrink-0 flex items-center gap-2">
+                            {nctId && (
+                              <a href={ctgovStudyDetailUrl(s)} target="_blank" rel="noopener noreferrer" className="rounded-full bg-gray-900 text-white px-3 py-1 text-xs">View</a>
+                            )}
+                            {nctId && (
+                              <Link to={`/study/${nctId}`} className="rounded-full bg-[#1033e5] text-white px-3 py-1 text-xs">Open</Link>
+                            )}
+                          </div>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
             </div>
           </div>
         </section>
