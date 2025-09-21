@@ -106,23 +106,30 @@ export function ctgovStudyDetailUrl(study: CtgovStudy): string {
 }
 
 export async function fetchStudyByNctId(nctId: string, signal?: AbortSignal): Promise<CtgovResponse> {
-  const base = `https://clinicaltrials.gov/api/v2/studies/${encodeURIComponent(nctId)}`
-  const fields = [
-    'protocolSection.identificationModule.nctId',
-    'protocolSection.identificationModule.briefTitle',
-    'protocolSection.statusModule.overallStatus',
-    'protocolSection.conditionsModule.conditions',
-    'protocolSection.designModule.phases',
-    'protocolSection.contactsLocationsModule.locations',
-    'protocolSection.sponsorCollaboratorsModule.leadSponsor',
-    'protocolSection.descriptionModule.briefSummary',
-    'protocolSection.eligibilityModule.eligibilityCriteria',
-  ].join(',')
-  const url = `${base}?format=json&fields=${encodeURIComponent(fields)}`
-  const res = await fetch(url, { signal })
-  if (!res.ok) {
-    const text = await res.text().catch(() => '')
-    throw new Error(`HTTP ${res.status}${text ? `: ${text}` : ''}`)
+  try {
+    const base = `https://clinicaltrials.gov/api/v2/studies/${encodeURIComponent(nctId)}`
+    const fields = [
+      'protocolSection.identificationModule.nctId',
+      'protocolSection.identificationModule.briefTitle',
+      'protocolSection.statusModule.overallStatus',
+      'protocolSection.conditionsModule.conditions',
+      'protocolSection.designModule.phases',
+      'protocolSection.contactsLocationsModule.locations',
+      'protocolSection.sponsorCollaboratorsModule.leadSponsor',
+      'protocolSection.descriptionModule.briefSummary',
+      'protocolSection.eligibilityModule.eligibilityCriteria',
+    ].join(',')
+    const url = `${base}?format=json&fields=${encodeURIComponent(fields)}`
+    const res = await fetch(url, { signal })
+    if (!res.ok) {
+      const text = await res.text().catch(() => '')
+      throw new Error(`HTTP ${res.status}${text ? `: ${text}` : ''}`)
+    }
+    return (await res.json()) as CtgovResponse
+  } catch (e: any) {
+    if (e?.name === 'AbortError') {
+      return { studies: [] }
+    }
+    throw e
   }
-  return (await res.json()) as CtgovResponse
 }
