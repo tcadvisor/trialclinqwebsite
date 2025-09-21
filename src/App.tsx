@@ -27,6 +27,7 @@ import EligibleTrials from "./screens/patients/EligibleTrials";
 import HealthProfile from "./screens/patients/HealthProfile";
 import Settings from "./screens/patients/Settings";
 import EligibilityCheck from "./screens/patients/EligibilityCheck";
+import EligibilityResult from "./screens/patients/EligibilityResult";
 import ContactUs from "./screens/support/ContactUs";
 import Consent from "./screens/patients/Consent";
 import Connect from "./screens/patients/Connect";
@@ -45,6 +46,7 @@ function App() {
         <Route path="/patients/consent" element={<Consent />} />
         <Route path="/patients/connect" element={<Connect />} />
         <Route path="/patients/check" element={<EligibilityCheck />} />
+        <Route path="/patients/result" element={<EligibilityResult />} />
         <Route path="/patients/login" element={<Login />} />
         <Route path="/sites/blog" element={<InsiderBlog />} />
         <Route path="/sites/visibility" element={<VisibilityOptions />} />

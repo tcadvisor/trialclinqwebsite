@@ -10,7 +10,7 @@ export default function EligibilityCheck(): JSX.Element {
     const timer = setTimeout(() => {
       const params = new URLSearchParams(search);
       const nctId = params.get("nctId");
-      navigate(`/patients/eligible${nctId ? `?nctId=${encodeURIComponent(nctId)}` : ""}`);
+      navigate(`/patients/result${nctId ? `?nctId=${encodeURIComponent(nctId)}` : ""}`);
     }, 6000);
     return () => clearTimeout(timer);
   }, [navigate, search]);
