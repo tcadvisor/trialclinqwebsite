@@ -61,3 +61,10 @@ export function RequireAuth({ children, redirectTo = "/patients/login" }: { chil
   if (!isAuthenticated) return <Navigate to={redirectTo} replace state={{ from: location }} />;
   return <>{children}</>;
 }
+
+export function RequireRole({ children, role, redirectTo }: { children: React.ReactNode; role: User["role"]; redirectTo: string }) {
+  const { isAuthenticated, user } = useAuth();
+  const location = useLocation();
+  if (!isAuthenticated || user?.role !== role) return <Navigate to={redirectTo} replace state={{ from: location }} />;
+  return <>{children}</>;
+}
