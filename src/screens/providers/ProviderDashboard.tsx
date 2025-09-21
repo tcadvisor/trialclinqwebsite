@@ -1,5 +1,6 @@
 import React from "react";
 import SiteHeader from "../../components/SiteHeader";
+import { Link } from "react-router-dom";
 
 export default function ProviderDashboard(): JSX.Element {
   return (
@@ -17,7 +18,7 @@ export default function ProviderDashboard(): JSX.Element {
                 <p className="text-sm text-gray-600 mt-1">Connect an existing trial to your profile or register a new one to start managing participants and matches.</p>
               </div>
             </div>
-            <button className="mt-4 rounded-full bg-gray-900 px-4 py-2 text-white text-sm hover:bg-black">Add new</button>
+            <Link to="/providers/trials" className="mt-4 inline-block rounded-full bg-gray-900 px-4 py-2 text-white text-sm hover:bg-black">Add new</Link>
           </div>
 
           <div className="rounded-2xl border bg-white p-5">
@@ -32,7 +33,7 @@ export default function ProviderDashboard(): JSX.Element {
               <li className="rounded-lg border p-3">Pre-Screening Call with DG-0109 — 11:30–12:00 — Houston, TX</li>
               <li className="rounded-lg border p-3">Pre-Screening Call with DG-0109 — 11:30–12:00 — Online</li>
             </ul>
-            <button className="mt-3 w-full rounded-full border px-4 py-2 text-sm hover:bg-gray-50">View All Appointments</button>
+            <Link to="/providers/appointments" className="mt-3 w-full inline-block rounded-full border px-4 py-2 text-sm hover:bg-gray-50">View All Appointments</Link>
           </div>
         </div>
 
