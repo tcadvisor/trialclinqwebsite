@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import SiteHeader from "../../components/SiteHeader";
-import { useState, useRef } from "react";
-import { X } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { X, ChevronDown } from "lucide-react";
 
 const US_STATES_AND_TERRITORIES = [
   "Alabama",
