@@ -1,5 +1,5 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import SiteHeader from "../../components/SiteHeader";
 
 function UploadBox({ onFiles }: { onFiles: (files: FileList | null) => void }) {
@@ -23,6 +23,8 @@ function UploadBox({ onFiles }: { onFiles: (files: FileList | null) => void }) {
 
 export default function Connect(): JSX.Element {
   const navigate = useNavigate();
+  const { search } = useLocation();
+  const nctParam = React.useMemo(() => new URLSearchParams(search).get("nctId") || "", [search]);
   // Existing state
   const [condition, setCondition] = React.useState("");
   const [healthy, setHealthy] = React.useState(false);
@@ -49,7 +51,7 @@ export default function Connect(): JSX.Element {
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!canSubmit) return;
-    navigate("/patients/eligible");
+    navigate(`/patients/check${nctParam ? `?nctId=${encodeURIComponent(nctParam)}` : ""}`);
   }
 
   return (
