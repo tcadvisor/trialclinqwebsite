@@ -1,8 +1,15 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import SiteHeader from "../../components/SiteHeader";
 
 export default function CreateAccount(): JSX.Element {
+  const navigate = useNavigate();
+
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    navigate("/providers/site-information");
+  }
+
   return (
     <div className="min-h-screen bg-white text-gray-900">
       <SiteHeader active={undefined} />
@@ -10,7 +17,7 @@ export default function CreateAccount(): JSX.Element {
         <h1 className="text-3xl md:text-4xl font-semibold text-center mb-8">Create Clinical Site Account</h1>
 
         <div className="rounded-2xl border shadow-sm p-6 md:p-8 bg-white">
-          <form className="space-y-5">
+          <form className="space-y-5" onSubmit={handleSubmit}>
             <div>
               <label className="block text-sm font-medium mb-1" htmlFor="email">Email Address<span className="text-red-500">*</span></label>
               <input id="email" name="email" type="email" placeholder="Enter your email" className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" required />
