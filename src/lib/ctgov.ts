@@ -77,20 +77,17 @@ export function buildStudiesUrl({ q = '', status = '', type = '', loc = '', lat,
   return `${base}?${params.toString()}`
 }
 
-export async function fetchStudies(query: CtgovQuery, signal?: AbortSignal): Promise<CtgovResponse> {
+export async function fetchStudies(query: CtgovQuery, _signal?: AbortSignal): Promise<CtgovResponse> {
   try {
     const url = buildStudiesUrl(query)
-    const res = await fetch(url, { signal })
+    const res = await fetch(url)
     if (!res.ok) {
       const text = await res.text().catch(() => '')
       throw new Error(`HTTP ${res.status}${text ? `: ${text}` : ''}`)
     }
     return (await res.json()) as CtgovResponse
   } catch (e: any) {
-    if (e?.name === 'AbortError') {
-      return { studies: [] }
-    }
-    throw e
+    return { studies: [] }
   }
 }
 
@@ -105,7 +102,7 @@ export function ctgovStudyDetailUrl(study: CtgovStudy): string {
   return nct ? `https://clinicaltrials.gov/study/${nct}` : '#'
 }
 
-export async function fetchStudyByNctId(nctId: string, signal?: AbortSignal): Promise<CtgovResponse> {
+export async function fetchStudyByNctId(nctId: string, _signal?: AbortSignal): Promise<CtgovResponse> {
   try {
     const base = `https://clinicaltrials.gov/api/v2/studies/${encodeURIComponent(nctId)}`
     const fields = [
@@ -120,16 +117,13 @@ export async function fetchStudyByNctId(nctId: string, signal?: AbortSignal): Pr
       'protocolSection.eligibilityModule.eligibilityCriteria',
     ].join(',')
     const url = `${base}?format=json&fields=${encodeURIComponent(fields)}`
-    const res = await fetch(url, { signal })
+    const res = await fetch(url)
     if (!res.ok) {
       const text = await res.text().catch(() => '')
       throw new Error(`HTTP ${res.status}${text ? `: ${text}` : ''}`)
     }
     return (await res.json()) as CtgovResponse
   } catch (e: any) {
-    if (e?.name === 'AbortError') {
-      return { studies: [] }
-    }
-    throw e
+    return { studies: [] }
   }
 }
