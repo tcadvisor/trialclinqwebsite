@@ -4,7 +4,7 @@ import { UserRound } from "lucide-react";
 import { useAuth } from "../lib/auth";
 
 export default function HeaderActions() {
-  const { isAuthenticated, signOut } = useAuth();
+  const { isAuthenticated, signOut, user } = useAuth();
   const navigate = useNavigate();
 
   // One ref/menu state to handle both profile and get-started menus
@@ -25,9 +25,10 @@ export default function HeaderActions() {
   }, []);
 
   if (isAuthenticated) {
+    const dashPath = user?.role === "provider" ? "/providers/dashboard" : "/patients/dashboard";
     return (
       <div className="relative flex items-center gap-3" ref={menuRef}>
-        <Link to="/patients/dashboard" className="px-4 py-2 text-sm rounded-full bg-blue-600 text-white hover:bg-blue-700">Dashboard</Link>
+        <Link to={dashPath} className="px-4 py-2 text-sm rounded-full bg-blue-600 text-white hover:bg-blue-700">Dashboard</Link>
         <button
           aria-label="Profile"
           className="inline-flex items-center justify-center w-9 h-9 rounded-full border border-gray-300 hover:bg-gray-50"
@@ -38,7 +39,9 @@ export default function HeaderActions() {
         </button>
         {open && (
           <div className="absolute right-0 top-full mt-2 w-44 rounded-lg border bg-white shadow-md">
-            <Link to="/patients/settings" className="block px-3 py-2 text-sm hover:bg-gray-50">Settings</Link>
+            {user?.role === "patient" && (
+              <Link to="/patients/settings" className="block px-3 py-2 text-sm hover:bg-gray-50">Settings</Link>
+            )}
             <button
               className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-gray-50"
               onClick={() => {
