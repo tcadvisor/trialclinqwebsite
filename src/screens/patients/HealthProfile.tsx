@@ -186,6 +186,32 @@ function Documents({ onCountChange }: { onCountChange?: (count: number) => void 
 
   return (
     <div className="mt-6">
+      <div className="mb-4">
+        {(() => {
+          try {
+            const cfg: any = (window as any).__clinicalSummaryUploaderProps || {};
+            const raw = localStorage.getItem(PROFILE_KEY);
+            const pid = cfg.profileId || (raw ? (JSON.parse(raw).patientId as string) : undefined);
+            if (cfg.summarizeApiUrl && cfg.writeProfileApiUrl && pid) {
+              return (
+                <ClinicalSummaryUploader
+                  title={cfg.title || "Summarize Health Record"}
+                  acceptedTypes={cfg.acceptedTypes || ["application/pdf", "text/plain", "application/json"]}
+                  maxFileSizeMB={cfg.maxFileSizeMB || 25}
+                  profileId={pid}
+                  summarizeApiUrl={cfg.summarizeApiUrl}
+                  writeProfileApiUrl={cfg.writeProfileApiUrl}
+                  showEligibilityBadges={cfg.showEligibilityBadges !== undefined ? !!cfg.showEligibilityBadges : true}
+                  authHeaderName={cfg.authHeaderName || "Authorization"}
+                  getAuthTokenClientFnName={cfg.getAuthTokenClientFnName || "getAuthToken"}
+                />
+              );
+            }
+          } catch {}
+          return null;
+        })()}
+      </div>
+
       <div className="flex flex-wrap items-center gap-6 text-sm">
         <button
           onClick={() => setCategory("Diagnostic Reports")}
