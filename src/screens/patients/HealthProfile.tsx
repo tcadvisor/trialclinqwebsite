@@ -582,7 +582,7 @@ export default function HealthProfile(): JSX.Element {
               </div>
 
               <div>
-                <Section title="Allergies" right={<div className="flex items-center gap-2">{isFirstProfile && profile.allergies.length === 0 && (<span className="text-red-600 text-xs">Required</span>)}</div>}>
+                <Section title="Allergies" right={<div className="flex items-center gap-2">{profile.allergies.length === 0 && (<span className="text-red-600 text-xs">Required</span>)}</div>}>
                   <ul className="divide-y">
                     {profile.allergies.map((a, i) => (
                       <li key={i} className="py-3 flex items-start justify-between">
@@ -645,7 +645,7 @@ export default function HealthProfile(): JSX.Element {
 
             <div className="mt-4 grid md:grid-cols-3 gap-4">
               <div>
-                <Section title="Medications" right={<div>{isFirstProfile && profile.medications.length === 0 && (<span className="text-red-600 text-xs">Required</span>)}</div>}>
+                <Section title="Medications" right={<div>{profile.medications.length === 0 && (<span className="text-red-600 text-xs">Required</span>)}</div>}>
                   <ul className="divide-y">
                     {profile.medications.map((m, i) => (
                       <li key={i} className="py-3 flex items-start justify-between">
@@ -746,12 +746,12 @@ export default function HealthProfile(): JSX.Element {
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
-                      <Row label="Blood Group" value={profile.bloodGroup} missing={isFirstProfile && !profile.bloodGroup} />
-                      <Row label="Genotype" value={profile.genotype} missing={isFirstProfile && !profile.genotype} />
+                      <Row label="Blood Group" value={profile.bloodGroup} missing={!profile.bloodGroup} />
+                      <Row label="Genotype" value={profile.genotype} missing={!profile.genotype} />
                       <Row label="Hearing Impaired" value={profile.hearingImpaired ? 'Yes' : 'No'} />
                       <Row label="Vision Impaired" value={profile.visionImpaired ? 'Yes' : 'No'} />
-                      <Row label="Primary Condition" value={profile.primaryCondition} missing={isFirstProfile && !profile.primaryCondition} />
-                      <Row label="Diagnosed" value={profile.diagnosed} missing={isFirstProfile && !profile.diagnosed} />
+                      <Row label="Primary Condition" value={profile.primaryCondition} missing={!profile.primaryCondition} />
+                      <Row label="Diagnosed" value={profile.diagnosed} missing={!profile.diagnosed} />
                     </div>
                   )}
                 </Section>
@@ -783,7 +783,7 @@ export default function HealthProfile(): JSX.Element {
             </div>
 
             {(() => {
-              const needs = !profile.weight || !profile.gender || !profile.phone || !profile.age || !profile.race || !profile.language || (isFirstProfile && (!profile.bloodGroup || !profile.genotype || !profile.primaryCondition || !profile.diagnosed || profile.allergies.length === 0 || profile.medications.length === 0));
+              const needs = !profile.weight || !profile.gender || !profile.phone || !profile.age || !profile.race || !profile.language || !profile.bloodGroup || !profile.genotype || !profile.primaryCondition || !profile.diagnosed || profile.allergies.length === 0 || profile.medications.length === 0;
               return needs ? (
                 <div className="mt-6 text-sm text-red-600 flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4" />
