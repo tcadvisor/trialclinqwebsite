@@ -69,11 +69,17 @@ export default function Dashboard(): JSX.Element {
         <section className="mt-8">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold">Trial Matches</h2>
-            <div className="relative">
+            <div className="flex items-center gap-2">
               <input
                 className="w-64 rounded-full border px-4 py-2 text-sm focus:outline-none"
                 placeholder="Search"
               />
+              <Link
+                to="/"
+                className="rounded-full border px-4 py-2 text-sm hover:bg-gray-50"
+              >
+                New search
+              </Link>
             </div>
           </div>
 
