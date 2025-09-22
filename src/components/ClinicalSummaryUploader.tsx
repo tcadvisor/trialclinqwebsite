@@ -315,7 +315,7 @@ export default function ClinicalSummaryUploader(props: ClinicalSummaryUploaderPr
           const prev = parsed.additionalInfo || "";
           parsed.additionalInfo = (prev ? prev + "\n\n" : "") + appendMarkdown;
           localStorage.setItem("tc_health_profile_v1", JSON.stringify(parsed));
-          window.dispatchEvent(new Event("storage"));
+          try { window.dispatchEvent(new CustomEvent("tc_profile_updated", { detail: { source: "ClinicalSummaryUploader" } })); } catch {}
         }
       } catch {}
 
