@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { getMatchedTrialsForCurrentUser } from "../../lib/matching";
+import { getRealMatchedTrialsForCurrentUser, type LiteTrial } from "../../lib/matching";
 import PatientHeader from "../../components/PatientHeader";
 
 export default function EligibleTrials(): JSX.Element {
