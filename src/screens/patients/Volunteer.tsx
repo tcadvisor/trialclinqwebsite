@@ -7,6 +7,7 @@ import { upsertAccount } from "../../lib/accountStore";
 
 export default function Volunteer(): JSX.Element {
   const navigate = useNavigate();
+  const { signIn } = useAuth();
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -26,8 +27,8 @@ export default function Volunteer(): JSX.Element {
     const ref = form.ref?.value?.trim();
 
     upsertAccount({ email, phone, firstName, lastName, password, ref, role: "patient" });
-
-    navigate("/patients/consent");
+    signIn({ email, role: "patient", firstName, lastName });
+    navigate("/patients/processing");
   }
 
   return (
