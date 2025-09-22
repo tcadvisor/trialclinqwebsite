@@ -34,6 +34,7 @@ import Consent from "./screens/patients/Consent";
 import SignupProcessing from "./screens/patients/SignupProcessing";
 import Connect from "./screens/patients/Connect";
 import SignupInfo from "./screens/patients/SignupInfo";
+import SignupPersonalDetails from "./screens/patients/SignupPersonalDetails";
 import { RequireAuth, RequireRole } from "./lib/auth";
 
 function App() {
@@ -49,6 +50,7 @@ function App() {
         <Route path="/patients/consent" element={<Consent />} />
         <Route path="/patients/connect" element={<Connect />} />
         <Route path="/patients/signup-info" element={<SignupInfo />} />
+        <Route path="/patients/signup-personal" element={<SignupPersonalDetails />} />
         <Route path="/patients/ehr" element={<EhrDirectory />} />
         <Route path="/patients/check" element={<EligibilityCheck />} />
         <Route path="/patients/result" element={<EligibilityResult />} />
