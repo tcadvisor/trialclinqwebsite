@@ -182,7 +182,7 @@ function Documents({ onCountChange }: { onCountChange?: (count: number) => void 
       const ctrl2 = new AbortController();
       const saveRes = await Promise.race([
         fetch(writeProfileApiUrl, {
-          method: "PATCH",
+          method: "PUT",
           headers: { "Content-Type": "application/json", [authHeaderName]: `Bearer ${token}` } as any,
           body: JSON.stringify({ profileId: pid, additionalInformationAppendMarkdown: appendMarkdown }),
           signal: ctrl2.signal,
