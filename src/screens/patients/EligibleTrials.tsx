@@ -1,11 +1,17 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { getMatchedTrialsForCurrentUser } from "../../lib/matching";
 import PatientHeader from "../../components/PatientHeader";
 
 export default function EligibleTrials(): JSX.Element {
   const [query, setQuery] = React.useState("");
   const [base, setBase] = React.useState(() => getMatchedTrialsForCurrentUser());
+  const location = useLocation();
+  const offset = React.useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    const v = Number(params.get("offset"));
+    return Number.isFinite(v) && v > 0 ? Math.floor(v) : 0;
+  }, [location.search]);
   React.useEffect(() => {
     const update = () => setBase(getMatchedTrialsForCurrentUser());
     update();
@@ -77,7 +83,7 @@ export default function EligibleTrials(): JSX.Element {
               </tr>
             </thead>
             <tbody>
-              {items.map((t) => (
+              {items.slice(offset).map((t) => (
                 <tr key={t.slug} className="border-t">
                   <td className="px-4 py-3">
                     <Link to={`/trials/${t.slug}`} className="text-gray-900 hover:underline">
@@ -92,12 +98,14 @@ export default function EligibleTrials(): JSX.Element {
                   <td className="px-4 py-3 text-gray-600">{t.interventions.join(' / ')}</td>
                   <td className="px-4 py-3">{t.aiScore}%</td>
                   <td className="px-4 py-3 text-right">
-                    <Link
-                      to={`/trials/${t.slug}`}
+                    <a
+                      href={`https://clinicaltrials.gov/study/${encodeURIComponent(t.nctId)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs hover:bg-gray-50"
                     >
-                      View
-                    </Link>
+                      View on ClinicalTrials.gov
+                    </a>
                   </td>
                 </tr>
               ))}
