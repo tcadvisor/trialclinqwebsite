@@ -64,7 +64,7 @@ function track(event: string, data: Record<string, any>) {
   } catch {}
 }
 
-function buildMarkdownAppend(
+export function buildMarkdownAppend(
   res: Required<Pick<SummarizeResponse, "summaryMarkdown">> & Pick<SummarizeResponse, "eligibility" | "audit">,
   includeEligibility: boolean,
 ): string {
