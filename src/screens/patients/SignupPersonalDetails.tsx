@@ -4,7 +4,7 @@ import SiteHeader from "../../components/SiteHeader";
 
 export default function SignupPersonalDetails(): JSX.Element {
   const navigate = useNavigate();
-  const [dob, setDob] = React.useState("");
+  const [age, setAge] = React.useState("");
   const [weight, setWeight] = React.useState("");
   const [gender, setGender] = React.useState("");
   const [race, setRace] = React.useState("");
@@ -12,13 +12,13 @@ export default function SignupPersonalDetails(): JSX.Element {
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!dob || !weight || !gender || !race || !language) return;
+    if (!age || !weight || !gender || !race || !language) return;
     let prev: Record<string, unknown> = {};
     try {
       const raw = localStorage.getItem("tc_eligibility_profile");
       if (raw) prev = JSON.parse(raw) as Record<string, unknown>;
     } catch {}
-    const next = { ...prev, dob, weight, gender, race, language };
+    const next = { ...prev, age, weight, gender, race, language };
     try { localStorage.setItem("tc_eligibility_profile", JSON.stringify(next)); } catch {}
     navigate("/patients/processing");
   }
@@ -34,8 +34,8 @@ export default function SignupPersonalDetails(): JSX.Element {
           <div className="rounded-2xl border bg-white p-5 shadow-sm space-y-5">
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium">Date of Birth<span className="text-red-500">*</span></label>
-                <input type="date" value={dob} onChange={(e)=>setDob(e.target.value)} className="mt-2 w-full rounded-full border px-4 py-2" required />
+                <label className="block text-sm font-medium">Age<span className="text-red-500">*</span></label>
+                <input inputMode="numeric" pattern="[0-9]*" value={age} onChange={(e)=>setAge(e.target.value)} className="mt-2 w-full rounded-full border px-4 py-2" placeholder="e.g. 34" required />
               </div>
               <div>
                 <label className="block text-sm font-medium">Weight (lbs)<span className="text-red-500">*</span></label>
