@@ -243,11 +243,43 @@ function computeStudyScore(study: CtgovStudy, profile: MinimalProfile): number {
 
 export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<LiteTrial[]> {
   const profile = readCurrentHealthProfile();
-  const q = (profile.primaryCondition || "").trim();
-  const res = await fetchStudies({ q, status: "Recruiting", pageSize: Math.max(10, Math.min(100, limit)) });
-  const studies = (res.studies || []).slice();
-  const list: LiteTrial[] = studies.map((s) => {
+  const qPrimary = (profile.primaryCondition || "").trim();
+  const qAltTokens = tokenize(profile.additionalInfo || "");
+  const qAlt = qAltTokens.slice(0, 3).join(" ");
+  const q = qPrimary || qAlt || "";
+
+  const pageSize = Math.max(10, Math.min(100, limit));
+  const statuses = [
+    'RECRUITING',
+    'ENROLLING_BY_INVITATION',
+    'NOT_YET_RECRUITING',
+    'ACTIVE_NOT_RECRUITING',
+  ];
+
+  const fetchSet = async (query: string) => {
+    const results = await Promise.all(statuses.map((s) => fetchStudies({ q: query, status: s, pageSize })));
+    return results.flatMap((r) => r.studies || []);
+  };
+
+  let studies = await fetchSet(q);
+  if (!studies || studies.length === 0) {
+    // Fallback 1: try without status filter
+    const r = await fetchStudies({ q, pageSize });
+    studies = r.studies || [];
+  }
+  if ((!studies || studies.length === 0) && q && q !== qPrimary) {
+    // Fallback 2: try primary only
+    const r2 = await fetchStudies({ q: qPrimary, pageSize });
+    studies = r2.studies || [];
+  }
+  if (!studies) studies = [];
+
+  const seen = new Set<string>();
+  const list: LiteTrial[] = [];
+  for (const s of studies) {
     const nct = s.protocolSection?.identificationModule?.nctId || "";
+    if (!nct || seen.has(nct)) continue;
+    seen.add(nct);
     const title = s.protocolSection?.identificationModule?.briefTitle || nct;
     const status = ctStatus(s);
     const phase = pickPhase(s);
@@ -255,7 +287,7 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
     const location = ctLocation(s);
     const aiScore = computeStudyScore(s, profile);
     const conds = s.protocolSection?.conditionsModule?.conditions || [];
-    return {
+    list.push({
       slug: nct.toLowerCase(),
       nctId: nct,
       title,
@@ -265,9 +297,9 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
       interventions: conds.slice(0, 3),
       center,
       location,
-    };
-  });
-  // Sort by score desc
+    });
+  }
+
   list.sort((a, b) => b.aiScore - a.aiScore);
   return list;
 }
