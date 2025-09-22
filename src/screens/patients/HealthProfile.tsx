@@ -352,6 +352,7 @@ export default function HealthProfile(): JSX.Element {
           if (el["gender"] && !next.gender) next.gender = el["gender"] as string;
           if (el["race"] && !next.race) next.race = el["race"] as string;
           if (el["language"] && !next.language) next.language = el["language"] as string;
+          if (el["weight"] && !next.weight) next.weight = el["weight"] as string;
           if (el["condition"] && !next.primaryCondition) next.primaryCondition = el["condition"] as string;
           if (el["year"] && !next.diagnosed) next.diagnosed = el["year"] as string;
         }
