@@ -5,7 +5,7 @@ import PatientHeader from "../../components/PatientHeader";
 
 export default function EligibleTrials(): JSX.Element {
   const [query, setQuery] = React.useState("");
-  const [base, setBase] = React.useState(() => getMatchedTrialsForCurrentUser());
+  const [base, setBase] = React.useState<LiteTrial[]>([]);
   const location = useLocation();
   const offset = React.useMemo(() => {
     const params = new URLSearchParams(location.search);
