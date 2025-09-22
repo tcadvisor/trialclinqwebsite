@@ -14,6 +14,15 @@
   </head>
   <body>
     <div id="app"></div>
+    <script>
+      window.getAuthToken = async () => "TEST_TOKEN";
+      window.__clinicalSummaryUploaderProps = {
+        summarizeApiUrl: "/api/summarize",
+        writeProfileApiUrl: "/api/profile/write",
+        getAuthTokenClientFnName: "getAuthToken",
+        authHeaderName: "Authorization"
+      };
+    </script>
     <script type="module" src="./src/index.tsx"></script>
   </body>
 </html>
