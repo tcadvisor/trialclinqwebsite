@@ -26,13 +26,13 @@ export function installClinicalMocks() {
           const requestId = `REQ-${Math.random().toString(36).slice(2, 10).toUpperCase()}`;
           const body = {
             summaryMarkdown:
-              "- Patient presents with chronic neuropathic pain.\n- Prior treatments include gabapentinoids with partial response.\n- No active infection or uncontrolled comorbidities documented.",
+              "62-year-old female with stage II invasive ductal breast carcinoma; comorbidity: hypertension. Completed radiotherapy May 2024; currently on letrozole and lisinopril; no evidence of active infection. Labs: ANC 2.1 x10^9/L, creatinine 0.9 mg/dL, hemoglobin 12.7 g/dL. ECOG 1.",
             summaryPlain:
-              "Patient with chronic neuropathic pain; partial response to prior therapy; no active infection noted.",
+              "62-year-old female with stage II invasive ductal breast carcinoma and hypertension. Completed radiotherapy in May 2024; tolerating letrozole; blood pressure controlled on lisinopril. No active infection. Labs within acceptable range (ANC 2.1, Cr 0.9, Hgb 12.7). ECOG 1.",
             eligibility: {
               overall: "Likely eligible",
               criteria: [
-                { id: "inc-age>=18", meets: true, evidence: "Age >= 18" },
+                { id: "inc-age>=18", meets: true, evidence: "Age 62" },
                 { id: "exc-active-infection", meets: true, evidence: "None documented" },
               ],
               missing: ["Hep B surface antigen"],
