@@ -218,11 +218,14 @@ function tokenizeArray(arr?: string[]): string[] {
 function computeStudyScore(study: CtgovStudy, profile: MinimalProfile): number {
   const title = study.protocolSection?.identificationModule?.briefTitle || "";
   const titleToks = tokenize(title);
+  const studyConds = study.protocolSection?.conditionsModule?.conditions || [];
+  const studyCondToks = tokenizeArray(studyConds);
   const condToks = tokenize(profile.primaryCondition || "");
-  const condOverlap = intersectCount(titleToks, condToks);
-  const condMaxRef = Math.max(1, condToks.length);
+  const addlToks = tokenize(profile.additionalInfo || "");
+  const condOverlap = intersectCount(titleToks.concat(studyCondToks), condToks.concat(addlToks));
+  const condMaxRef = Math.max(1, condToks.length + addlToks.length);
   const condRatio = clamp((condOverlap / condMaxRef) * 100, 0, 100);
-  const condition = Math.round(0.55 * condRatio); // up to 55
+  const condition = Math.round(0.6 * condRatio); // up to 60
 
   const status = study.protocolSection?.statusModule?.overallStatus || "";
   const base = /recruit/i.test(status) ? 25 : 10; // favor recruiting
