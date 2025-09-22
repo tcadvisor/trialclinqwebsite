@@ -64,55 +64,45 @@ function track(event: string, data: Record<string, any>) {
 }
 
 export function buildMarkdownAppend(
-  res: Required<Pick<SummarizeResponse, "summaryMarkdown">> & Pick<SummarizeResponse, "eligibility" | "audit">,
+  res: Required<Pick<SummarizeResponse, "summaryMarkdown">> & Pick<SummarizeResponse, "eligibility" | "audit"> & { summaryPlain?: string },
   includeEligibility: boolean,
 ): string {
   const generatedAt = res.audit?.generatedAt || nowIso();
   const requestId = res.audit?.requestId || "unknown";
-  const lines: string[] = [];
-  lines.push("### Clinical Record Summary (auto-generated)");
-  lines.push(`**Generated:** ${new Date(generatedAt).toISOString().slice(0, 10)} • **Request ID:** ${requestId}`);
-  lines.push("");
-  lines.push("#### Patient Snapshot");
-  lines.push("");
-  lines.push("#### Diagnoses / Comorbidities");
-  lines.push("- ");
-  lines.push("");
-  lines.push("#### Treatments / Procedures");
-  lines.push("- ");
-  lines.push("");
-  lines.push("#### Allergies");
-  lines.push("- ");
-  lines.push("");
-  lines.push("#### Key Labs");
-  lines.push("- ");
-  lines.push("");
-  lines.push("#### Notes");
-  lines.push(res.summaryMarkdown.trim());
-  lines.push("");
+
+  const toParagraph = (md: string) => {
+    const text = md
+      .replace(/^#+\s.*$/gm, "") // remove headings
+      .replace(/\*\*|__/g, "") // bold markers
+      .replace(/^[-*+]\s+/gm, "") // bullets
+      .replace(/\n+/g, " ") // newlines to spaces
+      .replace(/\s{2,}/g, " ") // collapse spaces
+      .trim();
+    return text.endsWith(".") ? text : text + ".";
+  };
+
+  const paragraph = (res as any).summaryPlain ? ((res as any).summaryPlain as string).trim() : toParagraph(res.summaryMarkdown.trim());
+
+  const parts: string[] = [];
+  parts.push("### Clinical Record Summary (auto-generated)");
+  parts.push(`**Generated:** ${new Date(generatedAt).toISOString().slice(0, 10)} • **Request ID:** ${requestId}`);
+  parts.push("");
+  parts.push(paragraph);
 
   if (includeEligibility && res.eligibility) {
     const el = res.eligibility;
-    lines.push("#### Trial Eligibility (if enabled)");
-    if (el.overall) lines.push(`**Overall:** ${el.overall}`);
-    if (el.criteria && el.criteria.length > 0) {
-      lines.push("- Criteria:");
-      for (const c of el.criteria) {
-        const mark = c.meets ? "✅" : "❌";
-        const evidence = c.evidence ? ` — ${c.evidence}` : "";
-        lines.push(`  - ${c.id}: ${mark}${evidence}`);
-      }
-    }
-    if (el.missing && el.missing.length > 0) {
-      lines.push("- Missing data:");
-      for (const m of el.missing) {
-        lines.push(`  - ${m}`);
-      }
-    }
-    lines.push("");
+    const crit = (el?.criteria || [])
+      .map((c) => `${c.id}:${c.meets ? "✅" : "❌"}${c.evidence ? `(${c.evidence})` : ""}`)
+      .join(", ");
+    const miss = (el?.missing || []).join(", ");
+    const line = `Eligibility — Overall: ${el?.overall || "Unknown"}` +
+      (crit ? `; Criteria: ${crit}` : "") +
+      (miss ? `; Missing: ${miss}` : "");
+    parts.push("");
+    parts.push(line);
   }
 
-  return lines.join("\n");
+  return parts.join("\n");
 }
 
 export default function ClinicalSummaryUploader(props: ClinicalSummaryUploaderProps): JSX.Element {
