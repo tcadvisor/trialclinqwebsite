@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { trials } from "../../lib/trials";
+import { getMatchedTrialsForCurrentUser } from "../../lib/matching";
 import PatientHeader from "../../components/PatientHeader";
 import { useAuth } from "../../lib/auth";
 import { computeProfileCompletion } from "../../lib/profile";
