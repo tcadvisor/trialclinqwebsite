@@ -15,7 +15,6 @@ export function registerClinicalSummaryUploader(Builder: any) {
         helperText: "Allowed MIME types",
       },
       { name: "maxFileSizeMB", type: "number", defaultValue: 25, helperText: "Maximum file size in MB" },
-      { name: "profileId", type: "string", required: true },
       { name: "summarizeApiUrl", type: "string", required: true },
       { name: "writeProfileApiUrl", type: "string", required: true },
       { name: "showEligibilityBadges", type: "boolean", defaultValue: true },
