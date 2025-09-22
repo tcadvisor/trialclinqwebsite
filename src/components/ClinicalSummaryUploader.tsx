@@ -191,11 +191,29 @@ export default function ClinicalSummaryUploader(props: ClinicalSummaryUploaderPr
     e.stopPropagation();
   }, []);
 
+  function resolveProfileId(): string | null {
+    try {
+      const raw = localStorage.getItem("tc_health_profile_v1");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed.patientId === "string" && parsed.patientId.trim()) return parsed.patientId;
+        if (parsed && typeof parsed.profileId === "string" && parsed.profileId.trim()) return parsed.profileId;
+      }
+    } catch {}
+    return null;
+  }
+
   async function summarizeAndSave() {
     if (!file) return;
     const err = validate(file);
     if (err) {
       setError(err);
+      return;
+    }
+
+    const profileId = resolveProfileId();
+    if (!profileId) {
+      setError("Profile not found");
       return;
     }
 
