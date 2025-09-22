@@ -110,7 +110,7 @@ export default function Dashboard(): JSX.Element {
                 </tr>
               </thead>
               <tbody>
-                {items.map((t) => (
+                {items.slice(0, 4).map((t) => (
                   <tr key={t.slug} className="border-t">
                     <td className="px-4 py-3">
                       <Link to={`/trials/${t.slug}`} className="text-gray-900 hover:underline">
@@ -131,13 +131,13 @@ export default function Dashboard(): JSX.Element {
                     <td className="px-4 py-3">{t.aiScore}%</td>
                     <td className="px-4 py-3 text-gray-600">{t.interventions.join(' / ')}</td>
                     <td className="px-4 py-3 text-right">
-                      <button className="rounded-lg border px-3 py-1.5 text-xs hover:bg-gray-50">Contact centre</button>
+                      <a href={`https://clinicaltrials.gov/study/${encodeURIComponent(t.nctId)}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs hover:bg-gray-50">View on ClinicalTrials.gov</a>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            <Link to="/search-results" className="border-t px-4 py-3 block text-sm text-gray-600 hover:bg-gray-50">View All Trials</Link>
+            <Link to="/patients/eligible?offset=4" className="border-t px-4 py-3 block text-sm text-gray-600 hover:bg-gray-50">See more</Link>
           </div>
         </section>
       </main>
