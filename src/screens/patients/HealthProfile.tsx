@@ -92,7 +92,7 @@ function formatDate(ts: number): string {
   return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
 }
 
-import ClinicalSummaryUploader, { buildMarkdownAppend } from "../../components/ClinicalSummaryUploader";
+import { buildMarkdownAppend } from "../../components/ClinicalSummaryUploader";
 
 function Documents({ onCountChange }: { onCountChange?: (count: number) => void }): JSX.Element {
   const [category, setCategory] = useState<DocCategory>("Diagnostic Reports");
@@ -110,7 +110,7 @@ function Documents({ onCountChange }: { onCountChange?: (count: number) => void 
   const inputRef = useRef<HTMLInputElement | null>(null);
   const { user } = useAuth();
   const currentName = user ? `${user.firstName} ${user.lastName}` : "You";
-  const [status, setStatus] = useState<string>("");
+  const [overlay, setOverlay] = useState<null | { mode: "loading" | "success" | "error"; message: string }>(null);
 
   useEffect(() => {
     localStorage.setItem("tc_docs", JSON.stringify(docs));
@@ -145,23 +145,23 @@ function Documents({ onCountChange }: { onCountChange?: (count: number) => void 
 
   async function summarizeAndSave(file: File) {
     const cfg: any = (window as any).__clinicalSummaryUploaderProps || {};
+    setOverlay({ mode: "loading", message: "AI is reviewing the document..." });
     const summarizeApiUrl = cfg.summarizeApiUrl as string | undefined;
     const writeProfileApiUrl = cfg.writeProfileApiUrl as string | undefined;
     const authHeaderName = (cfg.authHeaderName as string) || "Authorization";
     const getAuthTokenClientFnName = (cfg.getAuthTokenClientFnName as string) || "getAuthToken";
     const showEligibilityBadges = cfg.showEligibilityBadges !== undefined ? !!cfg.showEligibilityBadges : true;
 
-    if (!summarizeApiUrl || !writeProfileApiUrl) return; // silently skip if not configured
+    if (!summarizeApiUrl || !writeProfileApiUrl) { setOverlay(null); return; }
 
     const pid = resolveProfileId();
-    if (!pid) { setStatus("Profile not found"); return; }
+    if (!pid) { setOverlay({ mode: "error", message: "Profile not found" }); return; }
 
     try {
-      setStatus("Summarizing...");
       const w: any = window as any;
       const getTok = w?.[getAuthTokenClientFnName];
       const token = typeof getTok === "function" ? await Promise.resolve(getTok()) : undefined;
-      if (!token) { setStatus("Authentication failed"); return; }
+      if (!token) { setOverlay({ mode: "error", message: "Authentication failed" }); return; }
 
       const form = new FormData();
       form.append("file", file);
@@ -173,9 +173,9 @@ function Documents({ onCountChange }: { onCountChange?: (count: number) => void 
         fetch(summarizeApiUrl, { method: "POST", headers: { [authHeaderName]: `Bearer ${token}` } as any, body: form, signal: ctrl1.signal }),
         new Promise<Response>((_, rej) => setTimeout(() => { try { ctrl1.abort(); } catch {} ; rej(new Error("timeout")); }, 120000)) as any,
       ]);
-      if (!res || !("ok" in res) || !(res as Response).ok) { setStatus("Summarization failed"); return; }
+      if (!res || !("ok" in res) || !(res as Response).ok) { setOverlay({ mode: "error", message: "Summarization failed" }); return; }
       const data = await (res as Response).json();
-      if (!data?.summaryMarkdown) { setStatus("Summarization failed"); return; }
+      if (!data?.summaryMarkdown) { setOverlay({ mode: "error", message: "Summarization failed" }); return; }
 
       const appendMarkdown = buildMarkdownAppend({ summaryMarkdown: data.summaryMarkdown, eligibility: data.eligibility, audit: data.audit }, !!showEligibilityBadges);
 
@@ -189,7 +189,7 @@ function Documents({ onCountChange }: { onCountChange?: (count: number) => void 
         }),
         new Promise<Response>((_, rej) => setTimeout(() => { try { ctrl2.abort(); } catch {}; rej(new Error("timeout")); }, 120000)) as any,
       ]);
-      if (!(saveRes as Response).ok) { setStatus("Save failed"); return; }
+      if (!(saveRes as Response).ok) { setOverlay({ mode: "error", message: "Save failed" }); return; }
 
       try {
         const raw = localStorage.getItem(PROFILE_KEY);
@@ -202,9 +202,11 @@ function Documents({ onCountChange }: { onCountChange?: (count: number) => void 
         }
       } catch {}
 
-      setStatus("Summary saved to Additional Information");
+      setOverlay({ mode: "success", message: "Summary saved to Additional Information" });
+      setTimeout(() => setOverlay(null), 2000);
     } catch (e: any) {
-      setStatus("Upload failed");
+      setOverlay({ mode: "error", message: "Upload failed" });
+      setTimeout(() => setOverlay(null), 2500);
     }
   }
 
@@ -267,28 +269,6 @@ function Documents({ onCountChange }: { onCountChange?: (count: number) => void 
 
   return (
     <div className="mt-6">
-      <div className="mb-4">
-        {(() => {
-          try {
-            const cfg: any = (window as any).__clinicalSummaryUploaderProps || {};
-            if (cfg.summarizeApiUrl && cfg.writeProfileApiUrl) {
-              return (
-                <ClinicalSummaryUploader
-                  title={cfg.title || "Summarize Health Record"}
-                  acceptedTypes={cfg.acceptedTypes || ["application/pdf", "text/plain", "application/json"]}
-                  maxFileSizeMB={cfg.maxFileSizeMB || 25}
-                  summarizeApiUrl={cfg.summarizeApiUrl}
-                  writeProfileApiUrl={cfg.writeProfileApiUrl}
-                  showEligibilityBadges={cfg.showEligibilityBadges !== undefined ? !!cfg.showEligibilityBadges : true}
-                  authHeaderName={cfg.authHeaderName || "Authorization"}
-                  getAuthTokenClientFnName={cfg.getAuthTokenClientFnName || "getAuthToken"}
-                />
-              );
-            }
-          } catch {}
-          return null;
-        })()}
-      </div>
 
       <div className="flex flex-wrap items-center gap-6 text-sm">
         <button
@@ -319,7 +299,16 @@ function Documents({ onCountChange }: { onCountChange?: (count: number) => void 
         </div>
       </div>
 
-      {status && (<div className="mt-3 text-sm" aria-live="polite">{status}</div>)}
+      {overlay && (
+        <div className="fixed inset-0 z-40 bg-black/30 flex items-center justify-center" role="dialog" aria-live="polite">
+          <div className="rounded-lg bg-white px-6 py-5 shadow-md text-center">
+            {overlay.mode === "loading" && (
+              <div className="mx-auto mb-3 h-6 w-6 border-2 border-gray-300 border-t-gray-900 rounded-full animate-spin" aria-hidden="true" />
+            )}
+            <div className={`text-sm ${overlay.mode === "error" ? "text-red-700" : overlay.mode === "success" ? "text-emerald-700" : "text-gray-900"}`}>{overlay.message}</div>
+          </div>
+        </div>
+      )}
 
       <div className="mt-4 overflow-hidden rounded-xl border bg-white">
         <table className="w-full text-sm">
