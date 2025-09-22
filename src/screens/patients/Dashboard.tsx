@@ -110,7 +110,7 @@ export default function Dashboard(): JSX.Element {
                 </tr>
               </thead>
               <tbody>
-                {trials.map((t) => (
+                {items.map((t) => (
                   <tr key={t.slug} className="border-t">
                     <td className="px-4 py-3">
                       <Link to={`/trials/${t.slug}`} className="text-gray-900 hover:underline">
