@@ -294,6 +294,10 @@ export default function HealthProfile(): JSX.Element {
     }
   });
 
+  const [isFirstProfile] = useState<boolean>(() => {
+    try { return !localStorage.getItem(PROFILE_KEY); } catch { return true; }
+  });
+
   const [profile, setProfile] = useState<HealthProfileData>(() => {
     try {
       const raw = localStorage.getItem(PROFILE_KEY);
@@ -309,21 +313,14 @@ export default function HealthProfile(): JSX.Element {
       gender: "",
       race: "",
       language: "",
-      bloodGroup: "O+",
-      genotype: "AA",
+      bloodGroup: "",
+      genotype: "",
       hearingImpaired: false,
       visionImpaired: false,
       primaryCondition: "",
       diagnosed: "",
-      allergies: [
-        { name: "Pollen", note: "Itchy nose and watery eyes" },
-        { name: "Caffeine", note: "Sore throat" },
-        { name: "Lactose intolerant", note: "Diarrhea and bloating" },
-      ],
-      medications: [
-        { name: "Pregabalin" },
-        { name: "Gabapentin 75mg", schedule: "Twice Daily" },
-      ],
+      allergies: [],
+      medications: [],
     };
   });
 
