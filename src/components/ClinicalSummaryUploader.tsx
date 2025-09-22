@@ -120,7 +120,6 @@ export default function ClinicalSummaryUploader(props: ClinicalSummaryUploaderPr
     title = "Summarize Health Record",
     acceptedTypes = ["application/pdf", "text/plain", "application/json"],
     maxFileSizeMB = 25,
-    profileId,
     summarizeApiUrl,
     writeProfileApiUrl,
     showEligibilityBadges = true,
