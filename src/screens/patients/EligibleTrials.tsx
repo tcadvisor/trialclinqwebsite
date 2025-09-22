@@ -92,9 +92,9 @@ export default function EligibleTrials(): JSX.Element {
               {items.slice(offset).map((t) => (
                 <tr key={t.slug} className="border-t">
                   <td className="px-4 py-3">
-                    <Link to={`/trials/${t.slug}`} className="text-gray-900 hover:underline">
+                    <a href={`https://clinicaltrials.gov/study/${encodeURIComponent(t.nctId)}`} target="_blank" rel="noopener noreferrer" className="text-gray-900 hover:underline">
                       {t.title}
-                    </Link>
+                    </a>
                   </td>
                   <td className="px-4 py-3 text-gray-600">{t.nctId}</td>
                   <td className="px-4 py-3">
