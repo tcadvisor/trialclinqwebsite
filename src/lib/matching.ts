@@ -1,5 +1,6 @@
 import { trials as staticTrials, type Trial } from "./trials";
 import { computeProfileCompletion } from "./profile";
+import { fetchStudies, type CtgovStudy } from "./ctgov";
 
 export type MinimalProfile = {
   age?: number | null;
@@ -8,6 +9,18 @@ export type MinimalProfile = {
   medications?: string[];
   allergies?: string[];
   additionalInfo?: string | null;
+};
+
+export type LiteTrial = {
+  slug: string;
+  nctId: string;
+  title: string;
+  status: string;
+  phase: string;
+  aiScore: number;
+  interventions: string[];
+  center: string;
+  location: string;
 };
 
 const PROFILE_KEY = "tc_health_profile_v1";
@@ -173,4 +186,84 @@ export function getMatchedTrialsForCurrentUser(): Trial[] {
   });
   // sort descending by score, stable by original order
   return list.sort((a, b) => b.aiScore - a.aiScore);
+}
+
+function pickPhase(study: CtgovStudy): string {
+  const p = study.protocolSection?.designModule?.phases || [];
+  if (!p || p.length === 0) return "";
+  // phases come like ["PHASE2"] or human readable; normalize basic
+  const raw = String(p[0]);
+  if (/PHASE\s*1\/2/i.test(raw) || /1\/2/.test(raw)) return "Phase I/II";
+  if (/PHASE\s*2\/3/i.test(raw) || /2\/3/.test(raw)) return "Phase II/III";
+  const m = raw.match(/\d+/);
+  return m ? `Phase ${m[0]}` : raw;
+}
+
+function ctStatus(study: CtgovStudy): string {
+  const s = study.protocolSection?.statusModule?.overallStatus || "";
+  if (/recruit/i.test(s)) return "Recruiting";
+  return s || "";
+}
+
+function ctLocation(study: CtgovStudy): string {
+  const loc = study.protocolSection?.contactsLocationsModule?.locations?.[0];
+  if (!loc) return "";
+  return [loc.city, loc.state].filter(Boolean).join(", ");
+}
+
+function tokenizeArray(arr?: string[]): string[] {
+  return (arr || []).flatMap((x) => tokenize(x));
+}
+
+function computeStudyScore(study: CtgovStudy, profile: MinimalProfile): number {
+  const title = study.protocolSection?.identificationModule?.briefTitle || "";
+  const titleToks = tokenize(title);
+  const condToks = tokenize(profile.primaryCondition || "");
+  const condOverlap = intersectCount(titleToks, condToks);
+  const condMaxRef = Math.max(1, condToks.length);
+  const condRatio = clamp((condOverlap / condMaxRef) * 100, 0, 100);
+  const condition = Math.round(0.55 * condRatio); // up to 55
+
+  const status = study.protocolSection?.statusModule?.overallStatus || "";
+  const base = /recruit/i.test(status) ? 25 : 10; // favor recruiting
+
+  const locTokens = tokenize(ctLocation(study));
+  const addlTokens = tokenize(profile.additionalInfo || "");
+  const locOverlap = intersectCount(locTokens, addlTokens);
+  const locScore = clamp(locOverlap * 3, 0, 10);
+
+  const { breakdown } = computeProfileCompletion();
+  const completenessBoost = Math.round((breakdown.healthProfile / 35) * 10);
+
+  return clamp(base + condition + locScore + completenessBoost, 0, 100);
+}
+
+export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<LiteTrial[]> {
+  const profile = readCurrentHealthProfile();
+  const q = (profile.primaryCondition || "").trim();
+  const res = await fetchStudies({ q, status: "Recruiting", pageSize: Math.max(10, Math.min(100, limit)) });
+  const studies = (res.studies || []).slice();
+  const list: LiteTrial[] = studies.map((s) => {
+    const nct = s.protocolSection?.identificationModule?.nctId || "";
+    const title = s.protocolSection?.identificationModule?.briefTitle || nct;
+    const status = ctStatus(s);
+    const phase = pickPhase(s);
+    const center = s.protocolSection?.sponsorCollaboratorsModule?.leadSponsor?.name || "";
+    const location = ctLocation(s);
+    const aiScore = computeStudyScore(s, profile);
+    return {
+      slug: nct.toLowerCase(),
+      nctId: nct,
+      title,
+      status,
+      phase,
+      aiScore,
+      interventions: [],
+      center,
+      location,
+    };
+  });
+  // Sort by score desc
+  list.sort((a, b) => b.aiScore - a.aiScore);
+  return list;
 }
