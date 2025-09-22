@@ -9,6 +9,19 @@ export default function Dashboard(): JSX.Element {
   const { user } = useAuth();
   const name = user ? `${user.firstName} ${user.lastName}` : "";
   const [progress, setProgress] = useState(() => computeProfileCompletion());
+  const [items, setItems] = useState(() => getMatchedTrialsForCurrentUser());
+  useEffect(() => {
+    const update = () => setItems(getMatchedTrialsForCurrentUser());
+    update();
+    window.addEventListener("storage", update);
+    window.addEventListener("visibilitychange", update);
+    window.addEventListener("focus", update as any);
+    return () => {
+      window.removeEventListener("storage", update);
+      window.removeEventListener("visibilitychange", update);
+      window.removeEventListener("focus", update as any);
+    };
+  }, []);
   useEffect(() => {
     const update = () => setProgress(computeProfileCompletion());
     update();
