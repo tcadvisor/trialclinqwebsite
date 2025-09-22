@@ -1,16 +1,38 @@
 import React from "react";
-import { Link } from "react-router-dom";
-import { trials } from "../../lib/trials";
+import { Link, useLocation } from "react-router-dom";
+import { getRealMatchedTrialsForCurrentUser, type LiteTrial } from "../../lib/matching";
 import PatientHeader from "../../components/PatientHeader";
 
 export default function EligibleTrials(): JSX.Element {
   const [query, setQuery] = React.useState("");
+  const [base, setBase] = React.useState<LiteTrial[]>([]);
+  const location = useLocation();
+  const offset = React.useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    const v = Number(params.get("offset"));
+    return Number.isFinite(v) && v > 0 ? Math.floor(v) : 0;
+  }, [location.search]);
+  React.useEffect(() => {
+    let cancelled = false;
+    const update = async () => {
+      const list = await getRealMatchedTrialsForCurrentUser(100);
+      if (!cancelled) setBase(list);
+    };
+    update();
+    const handler = () => update();
+    window.addEventListener("storage", handler);
+    window.addEventListener("visibilitychange", handler);
+    window.addEventListener("focus", handler as any);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("storage", handler);
+      window.removeEventListener("visibilitychange", handler);
+      window.removeEventListener("focus", handler as any);
+    };
+  }, []);
 
   const items = React.useMemo(() => {
     const q = query.trim().toLowerCase();
-    const base = trials
-      .slice()
-      .sort((a, b) => b.aiScore - a.aiScore);
     if (!q) return base;
     return base.filter((t) =>
       [t.title, t.nctId, t.phase, t.status, t.location, t.center, ...t.interventions]
@@ -18,7 +40,7 @@ export default function EligibleTrials(): JSX.Element {
         .toLowerCase()
         .includes(q)
     );
-  }, [query]);
+  }, [query, base]);
 
   // Simple one-page pagination for now; structure allows future extension
   const page = 1;
@@ -67,12 +89,12 @@ export default function EligibleTrials(): JSX.Element {
               </tr>
             </thead>
             <tbody>
-              {items.map((t) => (
+              {items.slice(offset).map((t) => (
                 <tr key={t.slug} className="border-t">
                   <td className="px-4 py-3">
-                    <Link to={`/trials/${t.slug}`} className="text-gray-900 hover:underline">
+                    <a href={`https://clinicaltrials.gov/study/${encodeURIComponent(t.nctId)}`} target="_blank" rel="noopener noreferrer" className="text-gray-900 hover:underline">
                       {t.title}
-                    </Link>
+                    </a>
                   </td>
                   <td className="px-4 py-3 text-gray-600">{t.nctId}</td>
                   <td className="px-4 py-3">
@@ -82,12 +104,14 @@ export default function EligibleTrials(): JSX.Element {
                   <td className="px-4 py-3 text-gray-600">{t.interventions.join(' / ')}</td>
                   <td className="px-4 py-3">{t.aiScore}%</td>
                   <td className="px-4 py-3 text-right">
-                    <Link
-                      to={`/trials/${t.slug}`}
+                    <a
+                      href={`https://clinicaltrials.gov/study/${encodeURIComponent(t.nctId)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs hover:bg-gray-50"
                     >
-                      View
-                    </Link>
+                      View on ClinicalTrials.gov
+                    </a>
                   </td>
                 </tr>
               ))}
