@@ -92,6 +92,8 @@ function formatDate(ts: number): string {
   return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
 }
 
+import { buildMarkdownAppend } from "../../components/ClinicalSummaryUploader";
+
 function Documents({ onCountChange }: { onCountChange?: (count: number) => void }): JSX.Element {
   const [category, setCategory] = useState<DocCategory>("Diagnostic Reports");
   const [query, setQuery] = useState("");
@@ -108,6 +110,7 @@ function Documents({ onCountChange }: { onCountChange?: (count: number) => void 
   const inputRef = useRef<HTMLInputElement | null>(null);
   const { user } = useAuth();
   const currentName = user ? `${user.firstName} ${user.lastName}` : "You";
+  const [overlay, setOverlay] = useState<null | { mode: "loading" | "success" | "error"; message: string }>(null);
 
   useEffect(() => {
     localStorage.setItem("tc_docs", JSON.stringify(docs));
@@ -128,15 +131,97 @@ function Documents({ onCountChange }: { onCountChange?: (count: number) => void 
 
   const triggerUpload = () => inputRef.current?.click();
 
+  function resolveProfileId(): string | null {
+    try {
+      const raw = localStorage.getItem(PROFILE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as any;
+        if (parsed?.patientId) return String(parsed.patientId);
+        if (parsed?.profileId) return String(parsed.profileId);
+      }
+    } catch {}
+    return null;
+  }
+
+  async function summarizeAndSave(file: File) {
+    const cfg: any = (window as any).__clinicalSummaryUploaderProps || {};
+    setOverlay({ mode: "loading", message: "AI is reviewing the document..." });
+    const summarizeApiUrl = cfg.summarizeApiUrl as string | undefined;
+    const writeProfileApiUrl = cfg.writeProfileApiUrl as string | undefined;
+    const authHeaderName = (cfg.authHeaderName as string) || "Authorization";
+    const getAuthTokenClientFnName = (cfg.getAuthTokenClientFnName as string) || "getAuthToken";
+    const showEligibilityBadges = cfg.showEligibilityBadges !== undefined ? !!cfg.showEligibilityBadges : true;
+
+    if (!summarizeApiUrl || !writeProfileApiUrl) { setOverlay(null); return; }
+
+    const pid = resolveProfileId();
+    if (!pid) { setOverlay({ mode: "error", message: "Profile not found" }); return; }
+
+    try {
+      const w: any = window as any;
+      const getTok = w?.[getAuthTokenClientFnName];
+      const token = typeof getTok === "function" ? await Promise.resolve(getTok()) : undefined;
+      if (!token) { setOverlay({ mode: "error", message: "Authentication failed" }); return; }
+
+      const form = new FormData();
+      form.append("file", file);
+      form.append("profileId", pid);
+      form.append("options.showEligibilityBadges", String(!!showEligibilityBadges));
+
+      const ctrl1 = new AbortController();
+      const res = await Promise.race([
+        fetch(summarizeApiUrl, { method: "POST", headers: { [authHeaderName]: `Bearer ${token}` } as any, body: form, signal: ctrl1.signal }),
+        new Promise<Response>((_, rej) => setTimeout(() => { try { ctrl1.abort(); } catch {} ; rej(new Error("timeout")); }, 120000)) as any,
+      ]);
+      if (!res || !("ok" in res) || !(res as Response).ok) { setOverlay({ mode: "error", message: "Summarization failed" }); return; }
+      const data = await (res as Response).json();
+      if (!data?.summaryMarkdown) { setOverlay({ mode: "error", message: "Summarization failed" }); return; }
+
+      const appendMarkdown = buildMarkdownAppend({ summaryMarkdown: data.summaryMarkdown, eligibility: data.eligibility, audit: data.audit }, !!showEligibilityBadges);
+
+      const ctrl2 = new AbortController();
+      const saveRes = await Promise.race([
+        fetch(writeProfileApiUrl, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", [authHeaderName]: `Bearer ${token}` } as any,
+          body: JSON.stringify({ profileId: pid, additionalInformationAppendMarkdown: appendMarkdown }),
+          signal: ctrl2.signal,
+        }),
+        new Promise<Response>((_, rej) => setTimeout(() => { try { ctrl2.abort(); } catch {}; rej(new Error("timeout")); }, 120000)) as any,
+      ]);
+      if (!(saveRes as Response).ok) { setOverlay({ mode: "error", message: "Save failed" }); return; }
+
+      try {
+        const raw = localStorage.getItem(PROFILE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw) as any;
+          const prev = parsed.additionalInfo || "";
+          parsed.additionalInfo = (prev ? prev + "\n\n" : "") + appendMarkdown;
+          localStorage.setItem(PROFILE_KEY, JSON.stringify(parsed));
+          try { window.dispatchEvent(new CustomEvent("tc_profile_updated", { detail: { source: "DocumentsUploader" } })); } catch {}
+        }
+      } catch {}
+
+      setOverlay({ mode: "success", message: "Summary saved to Additional Information" });
+      setTimeout(() => setOverlay(null), 2000);
+    } catch (e: any) {
+      setOverlay({ mode: "error", message: "Upload failed" });
+      setTimeout(() => setOverlay(null), 2500);
+    }
+  }
+
   async function onFilesSelected(files: FileList | null) {
     if (!files || files.length === 0) return;
-    const uploads: Promise<DocItem>[] = Array.from(files).map(async (file) => {
+    const list = Array.from(files);
+    const uploads: Promise<DocItem>[] = list.map(async (file) => {
       const dataUrl = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result as string);
         reader.onerror = () => reject(new Error("Failed to read file"));
         reader.readAsDataURL(file);
       });
+      // Fire-and-forget summarize flow; no PHI rendered
+      summarizeAndSave(file);
       return {
         id: `${Date.now()}_${Math.random().toString(36).slice(2)}`,
         name: file.name,
@@ -184,6 +269,7 @@ function Documents({ onCountChange }: { onCountChange?: (count: number) => void 
 
   return (
     <div className="mt-6">
+
       <div className="flex flex-wrap items-center gap-6 text-sm">
         <button
           onClick={() => setCategory("Diagnostic Reports")}
@@ -212,6 +298,17 @@ function Documents({ onCountChange }: { onCountChange?: (count: number) => void 
           <input ref={inputRef} className="hidden" type="file" multiple onChange={(e) => onFilesSelected(e.target.files)} />
         </div>
       </div>
+
+      {overlay && (
+        <div className="fixed inset-0 z-40 bg-black/30 flex items-center justify-center" role="dialog" aria-live="polite">
+          <div className="rounded-lg bg-white px-6 py-5 shadow-md text-center">
+            {overlay.mode === "loading" && (
+              <div className="mx-auto mb-3 h-6 w-6 border-2 border-gray-300 border-t-gray-900 rounded-full animate-spin" aria-hidden="true" />
+            )}
+            <div className={`text-sm ${overlay.mode === "error" ? "text-red-700" : overlay.mode === "success" ? "text-emerald-700" : "text-gray-900"}`}>{overlay.message}</div>
+          </div>
+        </div>
+      )}
 
       <div className="mt-4 overflow-hidden rounded-xl border bg-white">
         <table className="w-full text-sm">
@@ -367,6 +464,24 @@ export default function HealthProfile(): JSX.Element {
   useEffect(() => {
     try { localStorage.setItem(PROFILE_KEY, JSON.stringify(profile)); } catch {}
   }, [profile]);
+
+  // Refresh from storage when uploader saves
+  useEffect(() => {
+    const refresh = () => {
+      try {
+        const raw = localStorage.getItem(PROFILE_KEY);
+        if (raw) setProfile(JSON.parse(raw) as HealthProfileData);
+      } catch {}
+    };
+    window.addEventListener("tc_profile_updated", refresh as any);
+    window.addEventListener("focus", refresh as any);
+    window.addEventListener("visibilitychange", refresh as any);
+    return () => {
+      window.removeEventListener("tc_profile_updated", refresh as any);
+      window.removeEventListener("focus", refresh as any);
+      window.removeEventListener("visibilitychange", refresh as any);
+    };
+  }, []);
 
   // Edit toggles
   const [editingPersonal, setEditingPersonal] = useState(false);
