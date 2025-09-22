@@ -251,6 +251,7 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
     const center = s.protocolSection?.sponsorCollaboratorsModule?.leadSponsor?.name || "";
     const location = ctLocation(s);
     const aiScore = computeStudyScore(s, profile);
+    const conds = s.protocolSection?.conditionsModule?.conditions || [];
     return {
       slug: nct.toLowerCase(),
       nctId: nct,
@@ -258,7 +259,7 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
       status,
       phase,
       aiScore,
-      interventions: [],
+      interventions: conds.slice(0, 3),
       center,
       location,
     };
