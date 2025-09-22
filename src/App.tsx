@@ -31,6 +31,7 @@ import EligibilityResult from "./screens/patients/EligibilityResult";
 import ContactUs from "./screens/support/ContactUs";
 import EhrDirectory from "./screens/patients/EhrDirectory";
 import Consent from "./screens/patients/Consent";
+import SignupProcessing from "./screens/patients/SignupProcessing";
 import Connect from "./screens/patients/Connect";
 import SignupInfo from "./screens/patients/SignupInfo";
 import { RequireAuth, RequireRole } from "./lib/auth";
@@ -70,6 +71,7 @@ function App() {
         <Route path="/patients/eligible" element={<EligibleTrials />} />
         <Route path="/patients/health-profile" element={<RequireRole role="patient" redirectTo="/patients/login"><HealthProfile /></RequireRole>} />
         <Route path="/patients/settings" element={<RequireRole role="patient" redirectTo="/patients/login"><Settings /></RequireRole>} />
+        <Route path="/patients/processing" element={<SignupProcessing />} />
         <Route path="/trials/:slug" element={<TrialDetails />} />
         <Route path="/study/:nctId" element={<CtgovStudyDetails />} />
         <Route path="/contact" element={<ContactUs />} />
