@@ -4,7 +4,6 @@ export type ClinicalSummaryUploaderProps = {
   title?: string;
   acceptedTypes?: string[];
   maxFileSizeMB?: number;
-  profileId: string;
   summarizeApiUrl: string;
   writeProfileApiUrl: string;
   showEligibilityBadges?: boolean;
