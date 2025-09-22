@@ -13,15 +13,21 @@ export default function EligibleTrials(): JSX.Element {
     return Number.isFinite(v) && v > 0 ? Math.floor(v) : 0;
   }, [location.search]);
   React.useEffect(() => {
-    const update = () => setBase(getMatchedTrialsForCurrentUser());
+    let cancelled = false;
+    const update = async () => {
+      const list = await getRealMatchedTrialsForCurrentUser(100);
+      if (!cancelled) setBase(list);
+    };
     update();
-    window.addEventListener("storage", update);
-    window.addEventListener("visibilitychange", update);
-    window.addEventListener("focus", update as any);
+    const handler = () => update();
+    window.addEventListener("storage", handler);
+    window.addEventListener("visibilitychange", handler);
+    window.addEventListener("focus", handler as any);
     return () => {
-      window.removeEventListener("storage", update);
-      window.removeEventListener("visibilitychange", update);
-      window.removeEventListener("focus", update as any);
+      cancelled = true;
+      window.removeEventListener("storage", handler);
+      window.removeEventListener("visibilitychange", handler);
+      window.removeEventListener("focus", handler as any);
     };
   }, []);
 
