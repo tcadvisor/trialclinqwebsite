@@ -1,16 +1,26 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { trials } from "../../lib/trials";
+import { getMatchedTrialsForCurrentUser } from "../../lib/matching";
 import PatientHeader from "../../components/PatientHeader";
 
 export default function EligibleTrials(): JSX.Element {
   const [query, setQuery] = React.useState("");
+  const [base, setBase] = React.useState(() => getMatchedTrialsForCurrentUser());
+  React.useEffect(() => {
+    const update = () => setBase(getMatchedTrialsForCurrentUser());
+    update();
+    window.addEventListener("storage", update);
+    window.addEventListener("visibilitychange", update);
+    window.addEventListener("focus", update as any);
+    return () => {
+      window.removeEventListener("storage", update);
+      window.removeEventListener("visibilitychange", update);
+      window.removeEventListener("focus", update as any);
+    };
+  }, []);
 
   const items = React.useMemo(() => {
     const q = query.trim().toLowerCase();
-    const base = trials
-      .slice()
-      .sort((a, b) => b.aiScore - a.aiScore);
     if (!q) return base;
     return base.filter((t) =>
       [t.title, t.nctId, t.phase, t.status, t.location, t.center, ...t.interventions]
@@ -18,7 +28,7 @@ export default function EligibleTrials(): JSX.Element {
         .toLowerCase()
         .includes(q)
     );
-  }, [query]);
+  }, [query, base]);
 
   // Simple one-page pagination for now; structure allows future extension
   const page = 1;
