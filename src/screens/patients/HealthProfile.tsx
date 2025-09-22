@@ -5,6 +5,7 @@ import {
   Trash2Icon,
   PlusIcon,
   CheckCircle2,
+  AlertTriangle,
   MailIcon,
   PhoneIcon,
   UserIcon,
@@ -15,6 +16,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../../lib/auth";
 import PatientHeader from "../../components/PatientHeader";
+import { findAccountByEmail } from "../../lib/accountStore";
 
 // Editable profile types
 type Allergy = { name: string; note?: string };
@@ -52,13 +54,13 @@ const Section: React.FC<{ title: string; children: React.ReactNode; right?: Reac
   </div>
 );
 
-const Row: React.FC<{ label: string; value: string; icon?: React.ReactNode }> = ({ label, value, icon }) => (
+const Row: React.FC<{ label: string; value: string; icon?: React.ReactNode; missing?: boolean }> = ({ label, value, icon, missing }) => (
   <div className="flex items-center justify-between py-2">
     <div className="flex items-center gap-2 text-gray-600">
       {icon}
       <span className="text-sm">{label}</span>
     </div>
-    <div className="text-sm text-gray-900">{value}</div>
+    <div className={`text-sm ${missing ? "text-red-600" : "text-gray-900"}`}>{value || (missing ? "Required" : "")}</div>
   </div>
 );
 
@@ -301,18 +303,18 @@ export default function HealthProfile(): JSX.Element {
       patientId: "CUS_j2kthfmgv3bzr5r",
       email: "",
       emailVerified: false,
-      age: "27",
-      weight: "67kg",
-      phone: "+1 684 1116",
-      gender: "Female",
-      race: "Black / African American",
-      language: "English",
+      age: "",
+      weight: "",
+      phone: "",
+      gender: "",
+      race: "",
+      language: "",
       bloodGroup: "O+",
       genotype: "AA",
       hearingImpaired: false,
       visionImpaired: false,
-      primaryCondition: "Chronic Pain",
-      diagnosed: "2024",
+      primaryCondition: "",
+      diagnosed: "",
       allergies: [
         { name: "Pollen", note: "Itchy nose and watery eyes" },
         { name: "Caffeine", note: "Sore throat" },
@@ -325,9 +327,40 @@ export default function HealthProfile(): JSX.Element {
     };
   });
 
-  // Bootstrap email from auth if empty
+  // Bootstrap from auth/account and eligibility profile
   useEffect(() => {
-    if (!profile.email && user?.email) setProfile((p) => ({ ...p, email: user.email! }));
+    setProfile((prev) => {
+      let next = { ...prev };
+      if ((!next.email || next.email === "") && user?.email) next.email = user.email;
+      // Account phone
+      const acc = next.email ? findAccountByEmail(next.email) : undefined;
+      if (acc?.phone && (!next.phone || next.phone === "")) next.phone = acc.phone;
+      // Eligibility fields
+      try {
+        const raw = localStorage.getItem("tc_eligibility_profile");
+        if (raw) {
+          const el = JSON.parse(raw) as Partial<Record<string, string>>;
+          const dob = (el["dob"] as string) || "";
+          const calcAge = () => {
+            if (!dob) return "";
+            const d = new Date(dob);
+            if (isNaN(d.getTime())) return "";
+            const today = new Date();
+            let age = today.getFullYear() - d.getFullYear();
+            const m = today.getMonth() - d.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < d.getDate())) age--;
+            return String(age);
+          };
+          if (!next.age) next.age = calcAge();
+          if (el["gender"] && !next.gender) next.gender = el["gender"] as string;
+          if (el["race"] && !next.race) next.race = el["race"] as string;
+          if (el["language"] && !next.language) next.language = el["language"] as string;
+          if (el["condition"] && !next.primaryCondition) next.primaryCondition = el["condition"] as string;
+          if (el["year"] && !next.diagnosed) next.diagnosed = el["year"] as string;
+        }
+      } catch {}
+      return next;
+    });
   }, [user]);
 
   // Persist changes
@@ -481,12 +514,12 @@ export default function HealthProfile(): JSX.Element {
                           {!profile.emailVerified && <button onClick={()=>setProfile(p=>({...p, emailVerified:true}))} className="text-[#1033e5] text-xs underline">Verify Now</button>}
                         </div>
                       </div>
-                      <Row label="Age" value={profile.age} icon={<CalendarIcon className="w-4 h-4" />} />
-                      <Row label="Weight" value={profile.weight} icon={<WeightIcon className="w-4 h-4" />} />
-                      <Row label="Phone Number" value={profile.phone} icon={<PhoneIcon className="w-4 h-4" />} />
-                      <Row label="Gender" value={profile.gender} icon={<UserIcon className="w-4 h-4" />} />
-                      <Row label="Race" value={profile.race} />
-                      <Row label="Language Preference" value={profile.language} />
+                      <Row label="Age" value={profile.age} icon={<CalendarIcon className="w-4 h-4" />} missing={!profile.age} />
+                      <Row label="Weight" value={profile.weight} icon={<WeightIcon className="w-4 h-4" />} missing={!profile.weight} />
+                      <Row label="Phone Number" value={profile.phone} icon={<PhoneIcon className="w-4 h-4" />} missing={!profile.phone} />
+                      <Row label="Gender" value={profile.gender} icon={<UserIcon className="w-4 h-4" />} missing={!profile.gender} />
+                      <Row label="Race" value={profile.race} missing={!profile.race} />
+                      <Row label="Language Preference" value={profile.language} missing={!profile.language} />
                     </div>
                   )}
                 </Section>
@@ -613,10 +646,20 @@ export default function HealthProfile(): JSX.Element {
               </div>
             </div>
 
-            <div className="mt-6 text-sm text-gray-600 flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              <span>Profile is up to date</span>
-            </div>
+            {(() => {
+              const needs = !profile.weight || !profile.gender || !profile.phone || !profile.age || !profile.race || !profile.language;
+              return needs ? (
+                <div className="mt-6 text-sm text-red-600 flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4" />
+                  <span>Some details are missing. Please complete your profile.</span>
+                </div>
+              ) : (
+                <div className="mt-6 text-sm text-gray-600 flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  <span>Profile is up to date</span>
+                </div>
+              );
+            })()}
           </>
         )}
 
