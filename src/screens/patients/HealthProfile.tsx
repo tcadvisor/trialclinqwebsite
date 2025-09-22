@@ -348,7 +348,7 @@ export default function HealthProfile(): JSX.Element {
             if (m < 0 || (m === 0 && today.getDate() < d.getDate())) age--;
             return String(age);
           };
-          if (!next.age) next.age = calcAge();
+          if (!next.age) next.age = (el["age"] as string) || calcAge();
           if (el["gender"] && !next.gender) next.gender = el["gender"] as string;
           if (el["race"] && !next.race) next.race = el["race"] as string;
           if (el["language"] && !next.language) next.language = el["language"] as string;
