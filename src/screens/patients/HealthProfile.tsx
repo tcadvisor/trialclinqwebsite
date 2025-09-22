@@ -393,6 +393,24 @@ export default function HealthProfile(): JSX.Element {
     try { localStorage.setItem(PROFILE_KEY, JSON.stringify(profile)); } catch {}
   }, [profile]);
 
+  // Refresh from storage when uploader saves
+  useEffect(() => {
+    const refresh = () => {
+      try {
+        const raw = localStorage.getItem(PROFILE_KEY);
+        if (raw) setProfile(JSON.parse(raw) as HealthProfileData);
+      } catch {}
+    };
+    window.addEventListener("tc_profile_updated", refresh as any);
+    window.addEventListener("focus", refresh as any);
+    window.addEventListener("visibilitychange", refresh as any);
+    return () => {
+      window.removeEventListener("tc_profile_updated", refresh as any);
+      window.removeEventListener("focus", refresh as any);
+      window.removeEventListener("visibilitychange", refresh as any);
+    };
+  }, []);
+
   // Edit toggles
   const [editingPersonal, setEditingPersonal] = useState(false);
   const [editingHealth, setEditingHealth] = useState(false);
