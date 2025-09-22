@@ -2,10 +2,10 @@ import { describe, it, expect } from "vitest";
 import { buildMarkdownAppend } from "../ClinicalSummaryUploader";
 
 describe("ClinicalSummaryUploader - markdown builder", () => {
-  it("includes heading and request id and eligibility", () => {
+  it("includes heading, request id, and compact eligibility line", () => {
     const md = buildMarkdownAppend(
       {
-        summaryMarkdown: "Patient is a 62-year-old...",
+        summaryMarkdown: "- 62 y/o female with breast cancer.",
         eligibility: {
           overall: "Likely eligible",
           criteria: [
@@ -21,10 +21,8 @@ describe("ClinicalSummaryUploader - markdown builder", () => {
 
     expect(md).toMatch(/### Clinical Record Summary \(auto-generated\)/);
     expect(md).toMatch(/Request ID: REQ-123/);
-    expect(md).toMatch(/#### Trial Eligibility/);
-    expect(md).toMatch(/Overall: Likely eligible/);
-    expect(md).toMatch(/inc-age/);
-    expect(md).toMatch(/Missing data/);
+    expect(md).toMatch(/Eligibility — Overall: Likely eligible/);
+    expect(md).not.toMatch(/####/);
   });
 
   it("skips eligibility when not provided", () => {
@@ -32,6 +30,6 @@ describe("ClinicalSummaryUploader - markdown builder", () => {
       { summaryMarkdown: "Summary", eligibility: undefined, audit: { requestId: "X" } },
       true,
     );
-    expect(md).not.toMatch(/Trial Eligibility/);
+    expect(md).not.toMatch(/Eligibility —/);
   });
 });
