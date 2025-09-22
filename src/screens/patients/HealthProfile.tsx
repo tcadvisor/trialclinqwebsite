@@ -19,8 +19,8 @@ import PatientHeader from "../../components/PatientHeader";
 import { findAccountByEmail } from "../../lib/accountStore";
 
 // Editable profile types
-type Allergy = { name: string; note?: string };
-type Medication = { name: string; dose?: string; schedule?: string };
+type Allergy = { name: string; reaction?: string; severity?: "Mild" | "Moderate" | "Severe"; note?: string };
+type Medication = { name: string; dose?: string; amountDaily?: string; schedule?: string };
 
 type HealthProfileData = {
   patientId: string;
@@ -40,6 +40,7 @@ type HealthProfileData = {
   diagnosed: string;
   allergies: Allergy[];
   medications: Medication[];
+  additionalInfo: string;
 };
 
 const PROFILE_KEY = "tc_health_profile_v1";
@@ -321,6 +322,7 @@ export default function HealthProfile(): JSX.Element {
       diagnosed: "",
       allergies: [],
       medications: [],
+      additionalInfo: "",
     };
   });
 
@@ -369,20 +371,53 @@ export default function HealthProfile(): JSX.Element {
   // Edit toggles
   const [editingPersonal, setEditingPersonal] = useState(false);
   const [editingHealth, setEditingHealth] = useState(false);
+  const [editingAdditional, setEditingAdditional] = useState(false);
+
+  // Add forms state
+  const [addingAllergy, setAddingAllergy] = useState(false);
+  const [newAllergy, setNewAllergy] = useState<Allergy>({ name: "", reaction: "", severity: undefined, note: "" });
+  const [addingMedication, setAddingMedication] = useState(false);
+  const [newMedication, setNewMedication] = useState<Medication>({ name: "", dose: "", amountDaily: "", schedule: "" });
 
   // Allergy handlers
   function addAllergy() {
-    const name = prompt("Allergy name");
-    if (!name) return;
-    const note = prompt("Notes (optional)") || undefined;
-    setProfile((p) => ({ ...p, allergies: [...p.allergies, { name: name.trim(), note: note?.trim() || undefined }] }));
+    setAddingAllergy(true);
+  }
+  function saveNewAllergy() {
+    if (!newAllergy.name.trim()) return;
+    setProfile((p) => ({
+      ...p,
+      allergies: [
+        ...p.allergies,
+        {
+          name: newAllergy.name.trim(),
+          reaction: newAllergy.reaction?.trim() || undefined,
+          severity: newAllergy.severity,
+          note: newAllergy.note?.trim() || undefined,
+        },
+      ],
+    }));
+    setNewAllergy({ name: "", reaction: "", severity: undefined, note: "" });
+    setAddingAllergy(false);
+  }
+  function cancelNewAllergy() {
+    setNewAllergy({ name: "", reaction: "", severity: undefined, note: "" });
+    setAddingAllergy(false);
   }
   function editAllergy(index: number) {
     const current = profile.allergies[index];
     const name = prompt("Edit allergy name", current?.name);
     if (!name) return;
+    const reaction = prompt("Edit reaction (optional)", current?.reaction || "") || undefined;
+    const severityRaw = prompt("Edit severity (Mild, Moderate, Severe) (optional)", current?.severity || "") || undefined;
+    const sev = severityRaw === "Mild" || severityRaw === "Moderate" || severityRaw === "Severe" ? (severityRaw as "Mild" | "Moderate" | "Severe") : undefined;
     const note = prompt("Edit notes (optional)", current?.note || "") || undefined;
-    setProfile((p) => ({ ...p, allergies: p.allergies.map((a, i) => (i === index ? { name: name.trim(), note: note?.trim() || undefined } : a)) }));
+    setProfile((p) => ({
+      ...p,
+      allergies: p.allergies.map((a, i) =>
+        i === index ? { name: name.trim(), reaction: reaction?.trim() || undefined, severity: sev, note: note?.trim() || undefined } : a
+      ),
+    }));
   }
   function removeAllergy(index: number) {
     setProfile((p) => ({ ...p, allergies: p.allergies.filter((_, i) => i !== index) }));
@@ -390,19 +425,42 @@ export default function HealthProfile(): JSX.Element {
 
   // Medication handlers
   function addMedication() {
-    const name = prompt("Medication name");
-    if (!name) return;
-    const dose = prompt("Dose (optional)") || undefined;
-    const schedule = prompt("Schedule (optional)") || undefined;
-    setProfile((p) => ({ ...p, medications: [...p.medications, { name: name.trim(), dose: dose?.trim() || undefined, schedule: schedule?.trim() || undefined }] }));
+    setAddingMedication(true);
+  }
+  function saveNewMedication() {
+    if (!newMedication.name.trim()) return;
+    setProfile((p) => ({
+      ...p,
+      medications: [
+        ...p.medications,
+        {
+          name: newMedication.name.trim(),
+          dose: newMedication.dose?.trim() || undefined,
+          amountDaily: newMedication.amountDaily?.trim() || undefined,
+          schedule: newMedication.schedule?.trim() || undefined,
+        },
+      ],
+    }));
+    setNewMedication({ name: "", dose: "", amountDaily: "", schedule: "" });
+    setAddingMedication(false);
+  }
+  function cancelNewMedication() {
+    setNewMedication({ name: "", dose: "", amountDaily: "", schedule: "" });
+    setAddingMedication(false);
   }
   function editMedication(index: number) {
     const current = profile.medications[index];
     const name = prompt("Edit medication name", current?.name);
     if (!name) return;
     const dose = prompt("Edit dose (optional)", current?.dose || "") || undefined;
+    const amountDaily = prompt("Edit amount taken daily (optional)", current?.amountDaily || "") || undefined;
     const schedule = prompt("Edit schedule (optional)", current?.schedule || "") || undefined;
-    setProfile((p) => ({ ...p, medications: p.medications.map((m, i) => (i === index ? { name: name.trim(), dose: dose?.trim() || undefined, schedule: schedule?.trim() || undefined } : m)) }));
+    setProfile((p) => ({
+      ...p,
+      medications: p.medications.map((m, i) =>
+        i === index ? { name: name.trim(), dose: dose?.trim() || undefined, amountDaily: amountDaily?.trim() || undefined, schedule: schedule?.trim() || undefined } : m
+      ),
+    }));
   }
   function removeMedication(index: number) {
     setProfile((p) => ({ ...p, medications: p.medications.filter((_, i) => i !== index) }));
@@ -524,13 +582,16 @@ export default function HealthProfile(): JSX.Element {
               </div>
 
               <div>
-                <Section title="Allergies" right={<div className="flex items-center gap-2">{isFirstProfile && profile.allergies.length === 0 && (<span className="text-red-600 text-xs">Required</span>)}</div>}>
+                <Section title="Allergies" right={<div className="flex items-center gap-2">{profile.allergies.length === 0 && (<span className="text-red-600 text-xs">Required</span>)}</div>}>
                   <ul className="divide-y">
                     {profile.allergies.map((a, i) => (
                       <li key={i} className="py-3 flex items-start justify-between">
                         <div>
-                          <div className="text-sm font-medium">{a.name}</div>
-                          {a.note && <div className="text-xs text-gray-600">{a.note}</div>}
+                          <div className="text-sm font-medium">
+                            {a.name}
+                            {a.severity && <span className="ml-2 inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700">{a.severity}</span>}
+                          </div>
+                          {(a.reaction || a.note) && <div className="text-xs text-gray-600">{[a.reaction, a.note].filter(Boolean).join(" • ")}</div>}
                         </div>
                         <div className="flex items-center gap-2 text-gray-500">
                           <button onClick={()=>editAllergy(i)} aria-label="edit">
@@ -546,23 +607,52 @@ export default function HealthProfile(): JSX.Element {
                       <li className="py-3 text-sm text-gray-600">No allergies added</li>
                     )}
                   </ul>
-                  <button onClick={addAllergy} className="mt-3 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm">
-                    <PlusIcon className="w-4 h-4" /> Add another allergy
-                  </button>
+
+                  {addingAllergy && (
+                    <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                      <label className="text-gray-700">Allergy Name
+                        <input value={newAllergy.name} onChange={(e)=>setNewAllergy(a=>({...a, name:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2" />
+                      </label>
+                      <label className="text-gray-700">Severity
+                        <select value={newAllergy.severity || ""} onChange={(e)=>setNewAllergy(a=>({...a, severity: (e.target.value || undefined) as any}))} className="mt-1 w-full rounded-md border px-3 py-2 bg-white">
+                          <option value="">Select</option>
+                          <option>Mild</option>
+                          <option>Moderate</option>
+                          <option>Severe</option>
+                        </select>
+                      </label>
+                      <label className="text-gray-700">Reaction
+                        <input value={newAllergy.reaction || ""} onChange={(e)=>setNewAllergy(a=>({...a, reaction:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2" />
+                      </label>
+                      <label className="text-gray-700 sm:col-span-2">Notes
+                        <input value={newAllergy.note || ""} onChange={(e)=>setNewAllergy(a=>({...a, note:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2" />
+                      </label>
+                      <div className="sm:col-span-2 flex items-center gap-2">
+                        <button onClick={cancelNewAllergy} className="inline-flex items-center gap-1 text-sm rounded-full border px-3 py-1.5">Cancel</button>
+                        <button onClick={saveNewAllergy} disabled={!newAllergy.name.trim()} className={`inline-flex items-center gap-1 text-sm rounded-full px-3 py-1.5 ${newAllergy.name.trim()?"bg-gray-900 text-white":"bg-gray-200 text-gray-500 cursor-not-allowed"}`}>Save</button>
+                      </div>
+                    </div>
+                  )}
+
+                  {!addingAllergy && (
+                    <button onClick={addAllergy} className="mt-3 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm">
+                      <PlusIcon className="w-4 h-4" /> Add another allergy
+                    </button>
+                  )}
                 </Section>
               </div>
             </div>
 
             <div className="mt-4 grid md:grid-cols-3 gap-4">
               <div>
-                <Section title="Medications" right={<div>{isFirstProfile && profile.medications.length === 0 && (<span className="text-red-600 text-xs">Required</span>)}</div>}>
+                <Section title="Medications" right={<div>{profile.medications.length === 0 && (<span className="text-red-600 text-xs">Required</span>)}</div>}>
                   <ul className="divide-y">
                     {profile.medications.map((m, i) => (
                       <li key={i} className="py-3 flex items-start justify-between">
                         <div>
                           <div className="text-sm font-medium">{m.name}</div>
-                          {(m.dose || m.schedule) && (
-                            <div className="text-xs text-gray-600">{[m.dose, m.schedule].filter(Boolean).join(" ")}</div>
+                          {(m.dose || m.amountDaily || m.schedule) && (
+                            <div className="text-xs text-gray-600">{[m.dose, m.amountDaily ? `${m.amountDaily} per day` : "", m.schedule].filter(Boolean).join(" • ")}</div>
                           )}
                         </div>
                         <div className="flex items-center gap-2 text-gray-500">
@@ -579,9 +669,33 @@ export default function HealthProfile(): JSX.Element {
                       <li className="py-3 text-sm text-gray-600">No medications listed</li>
                     )}
                   </ul>
-                  <button onClick={addMedication} className="mt-3 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm">
-                    <PlusIcon className="w-4 h-4" /> Add another medication
-                  </button>
+
+                  {addingMedication && (
+                    <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                      <label className="text-gray-700">Medication Name
+                        <input value={newMedication.name} onChange={(e)=>setNewMedication(m=>({...m, name:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2" />
+                      </label>
+                      <label className="text-gray-700">Dose
+                        <input value={newMedication.dose || ""} onChange={(e)=>setNewMedication(m=>({...m, dose:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2" />
+                      </label>
+                      <label className="text-gray-700">Amount taken daily
+                        <input value={newMedication.amountDaily || ""} onChange={(e)=>setNewMedication(m=>({...m, amountDaily:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2" />
+                      </label>
+                      <label className="text-gray-700">Schedule
+                        <input value={newMedication.schedule || ""} onChange={(e)=>setNewMedication(m=>({...m, schedule:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2" />
+                      </label>
+                      <div className="sm:col-span-2 flex items-center gap-2">
+                        <button onClick={cancelNewMedication} className="inline-flex items-center gap-1 text-sm rounded-full border px-3 py-1.5">Cancel</button>
+                        <button onClick={saveNewMedication} disabled={!newMedication.name.trim()} className={`inline-flex items-center gap-1 text-sm rounded-full px-3 py-1.5 ${newMedication.name.trim()?"bg-gray-900 text-white":"bg-gray-200 text-gray-500 cursor-not-allowed"}`}>Save</button>
+                      </div>
+                    </div>
+                  )}
+
+                  {!addingMedication && (
+                    <button onClick={addMedication} className="mt-3 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm">
+                      <PlusIcon className="w-4 h-4" /> Add another medication
+                    </button>
+                  )}
                 </Section>
               </div>
 
@@ -632,20 +746,44 @@ export default function HealthProfile(): JSX.Element {
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
-                      <Row label="Blood Group" value={profile.bloodGroup} missing={isFirstProfile && !profile.bloodGroup} />
-                      <Row label="Genotype" value={profile.genotype} missing={isFirstProfile && !profile.genotype} />
+                      <Row label="Blood Group" value={profile.bloodGroup} missing={!profile.bloodGroup} />
+                      <Row label="Genotype" value={profile.genotype} missing={!profile.genotype} />
                       <Row label="Hearing Impaired" value={profile.hearingImpaired ? 'Yes' : 'No'} />
                       <Row label="Vision Impaired" value={profile.visionImpaired ? 'Yes' : 'No'} />
-                      <Row label="Primary Condition" value={profile.primaryCondition} missing={isFirstProfile && !profile.primaryCondition} />
-                      <Row label="Diagnosed" value={profile.diagnosed} missing={isFirstProfile && !profile.diagnosed} />
+                      <Row label="Primary Condition" value={profile.primaryCondition} missing={!profile.primaryCondition} />
+                      <Row label="Diagnosed" value={profile.diagnosed} missing={!profile.diagnosed} />
                     </div>
                   )}
                 </Section>
               </div>
             </div>
 
+            <div className="mt-4">
+              <Section
+                title="Additional Information"
+                right={
+                  editingAdditional ? (
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => setEditingAdditional(false)} className="inline-flex items-center gap-1 text-sm rounded-full border px-3 py-1.5">Cancel</button>
+                      <button onClick={() => setEditingAdditional(false)} className="inline-flex items-center gap-1 text-sm rounded-full bg-gray-900 text-white px-3 py-1.5">Save</button>
+                    </div>
+                  ) : (
+                    <button onClick={() => setEditingAdditional(true)} className="inline-flex items-center gap-1 text-sm rounded-full border px-3 py-1.5">
+                      <PencilIcon className="w-4 h-4" /> Edit
+                    </button>
+                  )
+                }
+              >
+                {editingAdditional ? (
+                  <textarea value={profile.additionalInfo} onChange={(e)=>setProfile(p=>({...p, additionalInfo:e.target.value}))} rows={4} className="w-full rounded-md border px-3 py-2 text-sm" placeholder="Any important details you'd like us to know..."/>
+                ) : (
+                  <div className="text-sm text-gray-700 min-h-[20px]">{profile.additionalInfo || "No additional information yet"}</div>
+                )}
+              </Section>
+            </div>
+
             {(() => {
-              const needs = !profile.weight || !profile.gender || !profile.phone || !profile.age || !profile.race || !profile.language || (isFirstProfile && (!profile.bloodGroup || !profile.genotype || !profile.primaryCondition || !profile.diagnosed || profile.allergies.length === 0 || profile.medications.length === 0));
+              const needs = !profile.weight || !profile.gender || !profile.phone || !profile.age || !profile.race || !profile.language || !profile.bloodGroup || !profile.genotype || !profile.primaryCondition || !profile.diagnosed || profile.allergies.length === 0 || profile.medications.length === 0;
               return needs ? (
                 <div className="mt-6 text-sm text-red-600 flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4" />
