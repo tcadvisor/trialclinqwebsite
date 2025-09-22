@@ -283,7 +283,7 @@ export default function ClinicalSummaryUploader(props: ClinicalSummaryUploaderPr
       const ctrl2 = new AbortController();
       const saveRes = await withTimeout(
         fetch(writeProfileApiUrl, {
-          method: "PATCH",
+          method: "PUT",
           headers: {
             "Content-Type": "application/json",
             [authHeaderName]: `Bearer ${token}`,
