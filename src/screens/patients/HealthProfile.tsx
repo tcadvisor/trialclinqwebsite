@@ -190,15 +190,12 @@ function Documents({ onCountChange }: { onCountChange?: (count: number) => void 
         {(() => {
           try {
             const cfg: any = (window as any).__clinicalSummaryUploaderProps || {};
-            const raw = localStorage.getItem(PROFILE_KEY);
-            const pid = cfg.profileId || (raw ? (JSON.parse(raw).patientId as string) : undefined);
-            if (cfg.summarizeApiUrl && cfg.writeProfileApiUrl && pid) {
+            if (cfg.summarizeApiUrl && cfg.writeProfileApiUrl) {
               return (
                 <ClinicalSummaryUploader
                   title={cfg.title || "Summarize Health Record"}
                   acceptedTypes={cfg.acceptedTypes || ["application/pdf", "text/plain", "application/json"]}
                   maxFileSizeMB={cfg.maxFileSizeMB || 25}
-                  profileId={pid}
                   summarizeApiUrl={cfg.summarizeApiUrl}
                   writeProfileApiUrl={cfg.writeProfileApiUrl}
                   showEligibilityBadges={cfg.showEligibilityBadges !== undefined ? !!cfg.showEligibilityBadges : true}
