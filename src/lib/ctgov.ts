@@ -36,7 +36,7 @@ export type CtgovResponse = {
 
 export type CtgovQuery = {
   q?: string
-  status?: string
+  status?: string | string[]
   type?: string
   loc?: string
   lat?: number
