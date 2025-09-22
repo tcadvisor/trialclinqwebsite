@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { getMatchedTrialsForCurrentUser } from "../../lib/matching";
+import { getRealMatchedTrialsForCurrentUser, type LiteTrial } from "../../lib/matching";
 import PatientHeader from "../../components/PatientHeader";
 import { useAuth } from "../../lib/auth";
 import { computeProfileCompletion } from "../../lib/profile";
@@ -9,17 +9,27 @@ export default function Dashboard(): JSX.Element {
   const { user } = useAuth();
   const name = user ? `${user.firstName} ${user.lastName}` : "";
   const [progress, setProgress] = useState(() => computeProfileCompletion());
-  const [items, setItems] = useState(() => getMatchedTrialsForCurrentUser());
+  const [items, setItems] = useState<LiteTrial[]>([]);
   useEffect(() => {
-    const update = () => setItems(getMatchedTrialsForCurrentUser());
+    let cancelled = false;
+    const update = async () => {
+      try {
+        const list = await getRealMatchedTrialsForCurrentUser(50);
+        if (!cancelled) setItems(list);
+      } catch {
+        if (!cancelled) setItems([]);
+      }
+    };
     update();
-    window.addEventListener("storage", update);
-    window.addEventListener("visibilitychange", update);
-    window.addEventListener("focus", update as any);
+    const handler = () => update();
+    window.addEventListener("storage", handler);
+    window.addEventListener("visibilitychange", handler);
+    window.addEventListener("focus", handler as any);
     return () => {
-      window.removeEventListener("storage", update);
-      window.removeEventListener("visibilitychange", update);
-      window.removeEventListener("focus", update as any);
+      cancelled = true;
+      window.removeEventListener("storage", handler);
+      window.removeEventListener("visibilitychange", handler);
+      window.removeEventListener("focus", handler as any);
     };
   }, []);
   useEffect(() => {
@@ -113,9 +123,9 @@ export default function Dashboard(): JSX.Element {
                 {items.slice(0, 4).map((t) => (
                   <tr key={t.slug} className="border-t">
                     <td className="px-4 py-3">
-                      <Link to={`/trials/${t.slug}`} className="text-gray-900 hover:underline">
+                      <a href={`https://clinicaltrials.gov/study/${encodeURIComponent(t.nctId)}`} target="_blank" rel="noopener noreferrer" className="text-gray-900 hover:underline">
                         {t.title}
-                      </Link>
+                      </a>
                     </td>
                     <td className="px-4 py-3 text-gray-600">{t.nctId}</td>
                     <td className="px-4 py-3">
