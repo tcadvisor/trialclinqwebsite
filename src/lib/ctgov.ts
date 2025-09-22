@@ -36,7 +36,7 @@ export type CtgovResponse = {
 
 export type CtgovQuery = {
   q?: string
-  status?: string
+  status?: string | string[]
   type?: string
   loc?: string
   lat?: number
@@ -66,7 +66,12 @@ export function buildStudiesUrl({ q = '', status = '', type = '', loc = '', lat,
   params.set('pageSize', String(pageSize))
   params.set('fields', fields)
   params.set('countTotal', 'true')
-  if (status) params.set('filter.overallStatus', status)
+  if (status) {
+    const add = (s: string) => { const v = (s || '').trim(); if (v) params.append('filter.overallStatus', v.toUpperCase()); };
+    if (Array.isArray(status)) status.forEach(add);
+    else if (typeof status === 'string' && status.includes(',')) status.split(',').forEach(add);
+    else add(String(status));
+  }
   if (type) params.set('filter.studyType', type)
   if (q) params.set('query.cond', q)
   if (loc) params.set('query.locn', loc)
