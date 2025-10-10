@@ -89,7 +89,7 @@ export const SearchResults = (): JSX.Element => {
   React.useEffect(() => {
     tokenMapRef.current = { 1: "" };
     setPage(1);
-    setPageToken("");
+    
   }, [preparedQ, preparedLoc, status, type, pageSize]);
 
   const studies = data?.studies ?? [];
@@ -294,8 +294,8 @@ export const SearchResults = (): JSX.Element => {
                     onClick={() => {
                       if (page > 1) {
                         setPage(page - 1);
-                        setPageToken("");
-                        try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch {}
+                        
+                        
                       }
                     }}
                     disabled={page <= 1}
@@ -319,8 +319,8 @@ export const SearchResults = (): JSX.Element => {
                           onClick={() => {
                             if (i === page) return;
                             setPage(i);
-                            setPageToken("");
-                            try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch {}
+                            
+                            
                           }}
                         >
                           {i}
@@ -339,8 +339,8 @@ export const SearchResults = (): JSX.Element => {
                         onClick={() => {
                           if (page < total) {
                             setPage(page + 1);
-                            setPageToken("");
-                            try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch {}
+                            
+                            
                           }
                         }}
                         disabled={!canNext}
