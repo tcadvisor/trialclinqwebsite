@@ -51,9 +51,13 @@ export const SearchResults = (): JSX.Element => {
       setError("");
       try {
         const isNct = /^NCT\d{8}$/i.test(q.trim());
-        const res = isNct
+        let res = isNct
           ? await fetchStudyByNctId(q.trim())
           : await fetchStudies({ q: preparedQ, status, type, loc: preparedLoc, pageSize, pageToken });
+        // Fallback: if smart query returns nothing, retry with raw query
+        if (!isNct && (!res.studies || res.studies.length === 0) && preparedQ !== q.trim()) {
+          res = await fetchStudies({ q: q.trim(), status, type, loc: preparedLoc, pageSize, pageToken });
+        }
         if (!mounted) return;
         setData(res);
         tokenMapRef.current[page] = pageToken;
