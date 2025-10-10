@@ -56,19 +56,19 @@ export const SearchResults = (): JSX.Element => {
           res = await fetchStudyByNctId(q.trim());
         } else {
           const loose = buildLooseCondQuery(q);
-          const attempts: Array<{ qq: string; st?: string; lc?: string; pn: number }> = [];
-          attempts.push({ qq: preparedQ, st: status, lc: preparedLoc, pn: page });
-          if (loose && loose !== preparedQ) attempts.push({ qq: loose, st: status, lc: preparedLoc, pn: page });
-          attempts.push({ qq: q.trim(), st: status, lc: preparedLoc, pn: page });
+          const attempts: Array<{ qq: string; st?: string; lc?: string }> = [];
+          attempts.push({ qq: preparedQ, st: status, lc: preparedLoc });
+          if (loose && loose !== preparedQ) attempts.push({ qq: loose, st: status, lc: preparedLoc });
+          attempts.push({ qq: q.trim(), st: status, lc: preparedLoc });
           // Drop status if needed
-          attempts.push({ qq: preparedQ, st: '', lc: preparedLoc, pn: page });
-          attempts.push({ qq: loose || preparedQ || q.trim(), st: '', lc: preparedLoc, pn: page });
+          attempts.push({ qq: preparedQ, st: '', lc: preparedLoc });
+          attempts.push({ qq: loose || preparedQ || q.trim(), st: '', lc: preparedLoc });
           // Drop location if still none
-          attempts.push({ qq: preparedQ, st: '', lc: '', pn: page });
-          attempts.push({ qq: loose || preparedQ || q.trim(), st: '', lc: '', pn: page });
+          attempts.push({ qq: preparedQ, st: '', lc: '' });
+          attempts.push({ qq: loose || preparedQ || q.trim(), st: '', lc: '' });
 
           for (const a of attempts) {
-            res = await fetchStudies({ q: a.qq, status: a.st, type, loc: a.lc, pageSize, pageNumber: a.pn });
+            res = await fetchStudies({ q: a.qq, status: a.st, type, loc: a.lc, pageSize, pageToken });
             if ((res.studies || []).length > 0 || res.nextPageToken !== undefined) break;
           }
         }
