@@ -1,5 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
+import { useAuth } from "../lib/auth";
 import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
@@ -7,12 +8,14 @@ import { Badge } from "../components/ui/badge";
 import { Separator } from "../components/ui/separator";
 import { ChevronDownIcon, MapPinIcon, Loader2 } from "lucide-react";
 import HomeHeader from "../components/HomeHeader";
+import { buildSmartCondQuery, buildLooseCondQuery, normalizeLocation } from "../lib/searchQuery";
 import {
   CtgovResponse,
   CtgovStudy,
   fetchStudies,
   formatNearestSitePreview,
   ctgovStudyDetailUrl,
+  fetchStudyByNctId,
 } from "../lib/ctgov";
 
 const solutionsLinks = ["Find a study", "More about trials", "How TrialCliniq help", "Blog"];
@@ -28,6 +31,8 @@ export const SearchResults = (): JSX.Element => {
 
   const [q, setQ] = React.useState<string>(initialQ);
   const [loc, setLoc] = React.useState<string>(initialLoc);
+  const preparedQ = React.useMemo(() => buildSmartCondQuery(q), [q]);
+  const preparedLoc = React.useMemo(() => normalizeLocation(loc), [loc]);
   const [status, setStatus] = React.useState<string>(initialStatus);
   const [type, setType] = React.useState<string>("");
   const [pageSize, setPageSize] = React.useState<number>(12);
@@ -45,7 +50,28 @@ export const SearchResults = (): JSX.Element => {
       setLoading(true);
       setError("");
       try {
-        const res = await fetchStudies({ q, status, type, loc, pageSize, pageToken });
+        const isNct = /^NCT\d{8}$/i.test(q.trim());
+        let res: CtgovResponse = { studies: [] };
+        if (isNct) {
+          res = await fetchStudyByNctId(q.trim());
+        } else {
+          const loose = buildLooseCondQuery(q);
+          const attempts: Array<{ qq: string; st?: string; lc?: string }> = [];
+          attempts.push({ qq: preparedQ, st: status, lc: preparedLoc });
+          if (loose && loose !== preparedQ) attempts.push({ qq: loose, st: status, lc: preparedLoc });
+          attempts.push({ qq: q.trim(), st: status, lc: preparedLoc });
+          // Drop status if needed
+          attempts.push({ qq: preparedQ, st: '', lc: preparedLoc });
+          attempts.push({ qq: loose || preparedQ || q.trim(), st: '', lc: preparedLoc });
+          // Drop location if still none
+          attempts.push({ qq: preparedQ, st: '', lc: '' });
+          attempts.push({ qq: loose || preparedQ || q.trim(), st: '', lc: '' });
+
+          for (const a of attempts) {
+            res = await fetchStudies({ q: a.qq, status: a.st, type, loc: a.lc, pageSize, pageToken });
+            if ((res.studies || []).length > 0 || res.nextPageToken !== undefined) break;
+          }
+        }
         if (!mounted) return;
         setData(res);
         tokenMapRef.current[page] = pageToken;
@@ -62,15 +88,17 @@ export const SearchResults = (): JSX.Element => {
     return () => {
       mounted = false;
     };
-  }, [q, status, type, loc, pageSize, pageToken, page]);
+  }, [q, preparedQ, preparedLoc, status, type, pageSize, pageToken, page]);
 
   React.useEffect(() => {
     tokenMapRef.current = { 1: "" };
     setPage(1);
-    setPageToken("");
-  }, [q, status, type, loc, pageSize]);
+    
+  }, [preparedQ, preparedLoc, status, type, pageSize]);
 
   const studies = data?.studies ?? [];
+
+  const { isAuthenticated, user } = useAuth();
 
   return (
     <div className="flex flex-col w-full items-center relative bg-white">
@@ -228,7 +256,11 @@ export const SearchResults = (): JSX.Element => {
                             View details
                           </Button>
                         </a>
-                        <Link to={`/patients/connect${nctId ? `?nctId=${encodeURIComponent(nctId)}` : ''}`}>
+                        <Link to={
+                          isAuthenticated && user?.role === 'patient'
+                            ? `/patients/check${nctId ? `?source=profile&nctId=${encodeURIComponent(nctId)}` : '?source=profile'}`
+                            : `/patients/connect${nctId ? `?nctId=${encodeURIComponent(nctId)}` : ''}`
+                        }>
                           <Button size="sm" className="bg-[#1033e5] text-white rounded-full whitespace-nowrap">
                             Check eligibility
                           </Button>
@@ -257,7 +289,7 @@ export const SearchResults = (): JSX.Element => {
               );
             })}
 
-            {!loading && !error && (
+            {!error && (data?.totalCount || 0) > 0 && (
               <div className="flex flex-col items-center gap-2">
                 <div className="flex items-center gap-2">
                   <Button
@@ -282,7 +314,6 @@ export const SearchResults = (): JSX.Element => {
                     const end = Math.min(total, start + maxButtons - 1);
                     const buttons = [] as JSX.Element[];
                     for (let i = start; i <= end; i++) {
-                      const known = i === 1 || tokenMapRef.current[i] !== undefined;
                       buttons.push(
                         <Button
                           key={i}
@@ -299,16 +330,15 @@ export const SearchResults = (): JSX.Element => {
                             let current = page;
                             let token = tokenMapRef.current[current] ?? "";
                             while (current < i) {
-                              const res = await fetchStudies({ q, status, type, loc, pageSize, pageToken: token });
-                              token = res.nextPageToken || "";
+                              const r = await fetchStudies({ q: preparedQ, status, type, loc: preparedLoc, pageSize, pageToken: token });
+                              token = r.nextPageToken || "";
                               tokenMapRef.current[current + 1] = token;
                               current += 1;
-                              if (!res.nextPageToken) break;
+                              if (!r.nextPageToken) break;
                             }
                             setPage(i);
                             setPageToken(tokenMapRef.current[i] ?? "");
                           }}
-                          disabled={!known && i > page + 5}
                         >
                           {i}
                         </Button>
@@ -316,22 +346,26 @@ export const SearchResults = (): JSX.Element => {
                     }
                     return buttons;
                   })()}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      const nextToken = data?.nextPageToken;
-                      if (nextToken !== undefined) {
-                        tokenMapRef.current[page + 1] = nextToken || "";
-                        setPage(page + 1);
-                        setPageToken(nextToken || "");
-                      }
-                    }}
-                    disabled={data?.nextPageToken === undefined}
-                    aria-label="Next page"
-                  >
-                    <ChevronDownIcon className="w-4 h-4 -rotate-90" />
-                  </Button>
+                  {(() => {
+                    return (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const nextToken = data?.nextPageToken;
+                          if (nextToken !== undefined) {
+                            tokenMapRef.current[page + 1] = nextToken || "";
+                            setPage(page + 1);
+                            setPageToken(nextToken || "");
+                          }
+                        }}
+                        disabled={data?.nextPageToken === undefined}
+                        aria-label="Next page"
+                      >
+                        <ChevronDownIcon className="w-4 h-4 -rotate-90" />
+                      </Button>
+                    );
+                  })()}
                 </div>
                 <div className="text-xs text-gray-500">
                   {(() => {

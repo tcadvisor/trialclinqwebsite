@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import SiteHeader from "../../components/SiteHeader";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
+import { X, ChevronDown } from "lucide-react";
 
 const US_STATES_AND_TERRITORIES = [
   "Alabama",
@@ -54,7 +55,6 @@ const US_STATES_AND_TERRITORIES = [
   "West Virginia",
   "Wisconsin",
   "Wyoming",
-  // Territories
   "American Samoa",
   "Guam",
   "Northern Mariana Islands",
@@ -62,13 +62,296 @@ const US_STATES_AND_TERRITORIES = [
   "U.S. Virgin Islands",
 ];
 
+type TagsInputProps = {
+  value: string[];
+  onChange: (next: string[]) => void;
+  placeholder: string;
+  "aria-label"?: string;
+};
+
+function TagsInput({ value, onChange, placeholder, "aria-label": ariaLabel }: TagsInputProps) {
+  const [input, setInput] = useState("");
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  function addTag(tag: string) {
+    const t = tag.trim();
+    if (!t) return;
+    const exists = value.some((v) => v.toLowerCase() === t.toLowerCase());
+    if (exists) return;
+    onChange([...value, t]);
+    setInput("");
+  }
+
+  function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter" || e.key === "," || e.key === "Tab") {
+      e.preventDefault();
+      addTag(input);
+    } else if (e.key === "Backspace" && !input) {
+      onChange(value.slice(0, -1));
+    }
+  }
+
+  function onPaste(e: React.ClipboardEvent<HTMLInputElement>) {
+    const text = e.clipboardData.getData("text");
+    if (!text) return;
+    const parts = text.split(/,|\n|\t/).map((p) => p.trim()).filter(Boolean);
+    if (parts.length) {
+      const merged = [...value];
+      for (const p of parts) {
+        const exists = merged.some((v) => v.toLowerCase() === p.toLowerCase());
+        if (!exists) merged.push(p);
+      }
+      onChange(merged);
+      setTimeout(() => inputRef.current?.focus(), 0);
+      e.preventDefault();
+    }
+  }
+
+  function removeTag(idx: number) {
+    const next = value.slice();
+    next.splice(idx, 1);
+    onChange(next);
+  }
+
+  return (
+    <div className="flex items-start gap-2 rounded-full border px-3 py-2">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="mt-1 text-gray-500"><path d="M21 21l-4.35-4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="10" cy="10" r="7" stroke="currentColor" strokeWidth="2"/></svg>
+      <div className="flex flex-wrap gap-2 flex-1 min-h-6">
+        {value.map((tag, idx) => (
+          <span key={tag + idx} className="inline-flex items-center gap-1 rounded-full bg-gray-100 text-gray-700 text-xs px-2 py-1">
+            {tag}
+            <button type="button" aria-label={`Remove ${tag}`} className="text-gray-500 hover:text-gray-700" onClick={() => removeTag(idx)}>
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </span>
+        ))}
+        <input
+          ref={inputRef}
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={onKeyDown}
+          onPaste={onPaste}
+          placeholder={placeholder}
+          aria-label={ariaLabel}
+          className="flex-1 outline-none text-sm min-w-[120px]"
+        />
+      </div>
+    </div>
+  );
+}
+
+const LANGUAGES = [
+  "English",
+  "Spanish",
+  "Mandarin Chinese",
+  "Cantonese",
+  "Hindi",
+  "Arabic",
+  "Bengali",
+  "Portuguese",
+  "Russian",
+  "Japanese",
+  "Punjabi",
+  "German",
+  "Javanese",
+  "Wu Chinese",
+  "Korean",
+  "French",
+  "Turkish",
+  "Vietnamese",
+  "Telugu",
+  "Marathi",
+  "Tamil",
+  "Urdu",
+  "Gujarati",
+  "Polish",
+  "Ukrainian",
+  "Italian",
+  "Persian (Farsi)",
+  "Dutch",
+  "Thai",
+  "Kannada",
+  "Malayalam",
+  "Odia",
+  "Burmese",
+  "Romanian",
+  "Greek",
+  "Hungarian",
+  "Czech",
+  "Swedish",
+  "Finnish",
+  "Norwegian",
+  "Danish",
+  "Hebrew",
+  "Amharic",
+  "Somali",
+  "Swahili",
+  "Filipino (Tagalog)",
+  "Malay",
+  "Indonesian",
+  "Hausa",
+  "Yoruba",
+  "Igbo",
+  "Zulu",
+  "Afrikaans",
+  "Albanian",
+  "Armenian",
+  "Bosnian",
+  "Bulgarian",
+  "Croatian",
+  "Estonian",
+  "Georgian",
+  "Icelandic",
+  "Irish",
+  "Khmer",
+  "Lao",
+  "Latvian",
+  "Lithuanian",
+  "Macedonian",
+  "Mongolian",
+  "Nepali",
+  "Pashto",
+  "Serbian",
+  "Sinhala",
+  "Slovak",
+  "Slovenian",
+  "Tigrinya",
+  "Turkmen",
+  "Uyghur",
+  "Uzbek",
+  "Haitian Creole",
+  "Kurdish",
+  "Luxembourgish",
+  "Catalan",
+  "Galician",
+  "Welsh",
+  "Scots Gaelic",
+  "Basque",
+  "Maori",
+];
+
+type MultiSelectDropdownProps = {
+  options: string[];
+  selected: string[];
+  onChange: (next: string[]) => void;
+  placeholder?: string;
+  "aria-label"?: string;
+};
+
+function MultiSelectDropdown({ options, selected, onChange, placeholder, "aria-label": ariaLabel }: MultiSelectDropdownProps) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const ref = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    function onDocClick(e: MouseEvent) {
+      if (!ref.current) return;
+      if (!ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, []);
+
+  const filtered = options.filter((o) => o.toLowerCase().includes(query.toLowerCase()));
+
+  function toggle(option: string) {
+    const exists = selected.includes(option);
+    onChange(
+      exists ? selected.filter((s) => s !== option) : [...selected, option]
+    );
+  }
+
+  function removeTag(option: string) {
+    onChange(selected.filter((s) => s !== option));
+  }
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        className="w-full text-left"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+      >
+        <div className="flex items-start gap-2 rounded-full border px-3 py-2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="mt-1 text-gray-500"><path d="M21 21l-4.35-4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="10" cy="10" r="7" stroke="currentColor" strokeWidth="2"/></svg>
+          <div className="flex flex-wrap gap-2 flex-1 min-h-6">
+            {selected.length === 0 && (
+              <span className="text-sm text-gray-500">{placeholder}</span>
+            )}
+            {selected.map((tag) => (
+              <span key={tag} className="inline-flex items-center gap-1 rounded-full bg-gray-100 text-gray-700 text-xs px-2 py-1">
+                {tag}
+                <span
+                  role="button"
+                  aria-label={`Remove ${tag}`}
+                  className="text-gray-500 hover:text-gray-700 cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeTag(tag);
+                  }}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </span>
+              </span>
+            ))}
+          </div>
+          <ChevronDown className="h-4 w-4 text-gray-500" />
+        </div>
+      </button>
+      {open && (
+        <div className="absolute z-10 mt-2 w-full rounded-lg border bg-white shadow-lg">
+          <div className="p-2 border-b">
+            <input
+              aria-label={ariaLabel}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search languages"
+              className="w-full rounded-md border px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <ul role="listbox" className="max-h-56 overflow-auto py-1">
+            {filtered.map((opt) => {
+              const checked = selected.includes(opt);
+              return (
+                <li key={opt} role="option" aria-selected={checked}>
+                  <button
+                    type="button"
+                    className={`flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 ${checked ? "bg-gray-50" : "bg-white"}`}
+                    onClick={() => toggle(opt)}
+                  >
+                    <input type="checkbox" readOnly checked={checked} className="h-4 w-4" />
+                    <span>{opt}</span>
+                  </button>
+                </li>
+              );
+            })}
+            {filtered.length === 0 && (
+              <li className="px-3 py-2 text-sm text-gray-500">No results</li>
+            )}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function SiteInformation(): JSX.Element {
   const navigate = useNavigate();
   const [country, setCountry] = useState("");
   const [usState, setUsState] = useState("");
+  const [conditions, setConditions] = useState<string[]>([]);
+  const [languages, setLanguages] = useState<string[]>([]);
+  const [errors, setErrors] = useState<{ conditions?: string; languages?: string }>({});
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const nextErrors: { conditions?: string; languages?: string } = {};
+    if (conditions.length === 0) nextErrors.conditions = "Please add at least one condition.";
+    if (languages.length === 0) nextErrors.languages = "Please add at least one language.";
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
     navigate("/providers/investigator-information");
   }
 
@@ -174,18 +457,25 @@ export default function SiteInformation(): JSX.Element {
 
             <div>
               <label className="block text-sm font-medium mb-1">Conditions Your Site Accepts<span className="text-red-500">*</span></label>
-              <div className="flex items-start gap-2 rounded-full border px-3 py-2">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="mt-1 text-gray-500"><path d="M21 21l-4.35-4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="10" cy="10" r="7" stroke="currentColor" strokeWidth="2"/></svg>
-                <input placeholder="You can add as many as apply. If you're unsure of the exact name, type what you know, we'll help match it." className="flex-1 outline-none text-sm" />
-              </div>
+              <TagsInput
+                value={conditions}
+                onChange={setConditions}
+                placeholder="You can add as many as apply. If you're unsure of the exact name, type what you know, we'll help match it."
+                aria-label="Conditions your site accepts"
+              />
+              {errors.conditions && <p className="text-xs text-red-600 mt-1">{errors.conditions}</p>}
             </div>
 
             <div>
               <label className="block text-sm font-medium mb-1">Languages spoken at site<span className="text-red-500">*</span></label>
-              <div className="flex items-start gap-2 rounded-full border px-3 py-2">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="mt-1 text-gray-500"><path d="M21 21l-4.35-4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="10" cy="10" r="7" stroke="currentColor" strokeWidth="2"/></svg>
-                <input placeholder="You can add as many as apply. If you're unsure of the exact name, type what you know, we'll help match it." className="flex-1 outline-none text-sm" />
-              </div>
+              <MultiSelectDropdown
+                options={LANGUAGES}
+                selected={languages}
+                onChange={setLanguages}
+                placeholder="Select one or more languages"
+                aria-label="Languages spoken at site"
+              />
+              {errors.languages && <p className="text-xs text-red-600 mt-1">{errors.languages}</p>}
             </div>
 
             <div className="flex items-center justify-between pt-2">

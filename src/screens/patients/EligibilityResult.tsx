@@ -35,15 +35,44 @@ export default function EligibilityResult(): JSX.Element {
   const navigate = useNavigate();
   const { search } = useLocation();
 
-  // Reconstruct basic results from stored profile
+  // Reconstruct basic results from stored profile, or fall back to health profile
   const profile = React.useMemo(() => {
-    try { return JSON.parse(localStorage.getItem("tc_eligibility_profile") || "{}"); } catch { return {}; }
+    try {
+      const stored = localStorage.getItem("tc_eligibility_profile");
+      if (stored) return JSON.parse(stored);
+      const hpRaw = localStorage.getItem("tc_health_profile_v1");
+      if (hpRaw) {
+        const hp = JSON.parse(hpRaw);
+        return {
+          condition: hp.primaryCondition || "",
+          year: hp.diagnosed || "",
+          meds: Array.isArray(hp.medications) ? hp.medications.map((m: any)=>m?.name).filter(Boolean).join(", ") : "",
+          age: hp.age ? parseInt(String(hp.age), 10) : undefined,
+          gender: hp.gender || "",
+          race: hp.race || "",
+          language: hp.language || "",
+        };
+      }
+    } catch {}
+    return {} as any;
   }, []);
+
+  const agePass = (() => {
+    if (profile && typeof profile.age === "number") return profile.age >= 18;
+    if (profile && profile.dob) {
+      const ms = Date.parse(profile.dob);
+      if (!Number.isNaN(ms)) {
+        const age = Math.floor((Date.now() - ms) / (365.25 * 24 * 3600 * 1000));
+        return age >= 18;
+      }
+    }
+    return false;
+  })();
 
   const checks: { label: string; pass: boolean }[] = [
     { label: "Condition match", pass: Boolean(profile.condition) },
     { label: "Location match", pass: Boolean(profile.zip || profile.distance) },
-    { label: "Age requirement", pass: (() => { if (!profile.dob) return false; const age = Math.floor((Date.now()-Date.parse(profile.dob))/(365.25*24*3600*1000)); return age >= 18; })() },
+    { label: "Age requirement", pass: agePass },
     { label: "Gender requirement", pass: Boolean(profile.gender) },
     { label: "Race requirement", pass: Boolean(profile.race) },
     { label: "Language requirement", pass: Boolean(profile.language) },
