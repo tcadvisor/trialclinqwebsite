@@ -347,20 +347,19 @@ export const SearchResults = (): JSX.Element => {
                     return buttons;
                   })()}
                   {(() => {
-                    const total = Math.max(1, Math.ceil((data?.totalCount || 0) / pageSize));
-                    const canNext = page < total;
                     return (
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          if (page < total) {
+                          const nextToken = data?.nextPageToken;
+                          if (nextToken !== undefined) {
+                            tokenMapRef.current[page + 1] = nextToken || "";
                             setPage(page + 1);
-                            
-                            
+                            setPageToken(nextToken || "");
                           }
                         }}
-                        disabled={!canNext}
+                        disabled={data?.nextPageToken === undefined}
                         aria-label="Next page"
                       >
                         <ChevronDownIcon className="w-4 h-4 -rotate-90" />
