@@ -74,10 +74,6 @@ export const SearchResults = (): JSX.Element => {
         }
         if (!mounted) return;
         setData(res);
-        tokenMapRef.current[page] = pageToken;
-        if (res.nextPageToken !== undefined) {
-          tokenMapRef.current[page + 1] = res.nextPageToken || "";
-        }
       } catch (e: any) {
         if (!mounted) return;
         setError("Failed to load studies. Please try again.");
