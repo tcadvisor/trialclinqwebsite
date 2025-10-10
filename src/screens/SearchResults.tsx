@@ -320,11 +320,24 @@ export const SearchResults = (): JSX.Element => {
                           variant={i === page ? 'default' : 'outline'}
                           size="sm"
                           className={i === page ? 'bg-[#1033e5] text-white' : ''}
-                          onClick={() => {
+                          onClick={async () => {
                             if (i === page) return;
+                            if (i === 1 || tokenMapRef.current[i] !== undefined) {
+                              setPage(i);
+                              setPageToken(tokenMapRef.current[i] ?? "");
+                              return;
+                            }
+                            let current = page;
+                            let token = tokenMapRef.current[current] ?? "";
+                            while (current < i) {
+                              const r = await fetchStudies({ q: preparedQ, status, type, loc: preparedLoc, pageSize, pageToken: token });
+                              token = r.nextPageToken || "";
+                              tokenMapRef.current[current + 1] = token;
+                              current += 1;
+                              if (!r.nextPageToken) break;
+                            }
                             setPage(i);
-                            
-                            
+                            setPageToken(tokenMapRef.current[i] ?? "");
                           }}
                         >
                           {i}
