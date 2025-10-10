@@ -289,7 +289,7 @@ export const SearchResults = (): JSX.Element => {
               );
             })}
 
-            {!loading && !error && (
+            {!error && (data?.totalCount || 0) > 0 && (
               <div className="flex flex-col items-center gap-2">
                 <div className="flex items-center gap-2">
                   <Button
