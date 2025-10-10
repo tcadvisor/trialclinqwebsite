@@ -31,23 +31,8 @@ export const SearchResults = (): JSX.Element => {
 
   const [q, setQ] = React.useState<string>(initialQ);
   const [loc, setLoc] = React.useState<string>(initialLoc);
-  const preparedQ = React.useMemo(() => {
-    // Build smarter query from raw input
-    try {
-      const { buildSmartCondQuery } = require('../lib/searchQuery');
-      return buildSmartCondQuery(q);
-    } catch {
-      return q;
-    }
-  }, [q]);
-  const preparedLoc = React.useMemo(() => {
-    try {
-      const { normalizeLocation } = require('../lib/searchQuery');
-      return normalizeLocation(loc);
-    } catch {
-      return loc;
-    }
-  }, [loc]);
+  const preparedQ = React.useMemo(() => buildSmartCondQuery(q), [q]);
+  const preparedLoc = React.useMemo(() => normalizeLocation(loc), [loc]);
   const [status, setStatus] = React.useState<string>(initialStatus);
   const [type, setType] = React.useState<string>("");
   const [pageSize, setPageSize] = React.useState<number>(12);
