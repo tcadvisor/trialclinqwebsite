@@ -8,7 +8,7 @@ import { Badge } from "../components/ui/badge";
 import { Separator } from "../components/ui/separator";
 import { ChevronDownIcon, MapPinIcon, Loader2 } from "lucide-react";
 import HomeHeader from "../components/HomeHeader";
-import { buildSmartCondQuery, normalizeLocation } from "../lib/searchQuery";
+import { buildSmartCondQuery, buildLooseCondQuery, normalizeLocation } from "../lib/searchQuery";
 import {
   CtgovResponse,
   CtgovStudy,
@@ -51,12 +51,26 @@ export const SearchResults = (): JSX.Element => {
       setError("");
       try {
         const isNct = /^NCT\d{8}$/i.test(q.trim());
-        let res = isNct
-          ? await fetchStudyByNctId(q.trim())
-          : await fetchStudies({ q: preparedQ, status, type, loc: preparedLoc, pageSize, pageToken });
-        // Fallback: if smart query returns nothing, retry with raw query
-        if (!isNct && (!res.studies || res.studies.length === 0) && preparedQ !== q.trim()) {
-          res = await fetchStudies({ q: q.trim(), status, type, loc: preparedLoc, pageSize, pageToken });
+        let res: CtgovResponse = { studies: [] };
+        if (isNct) {
+          res = await fetchStudyByNctId(q.trim());
+        } else {
+          const loose = buildLooseCondQuery(q);
+          const attempts: Array<{ qq: string; st?: string; lc?: string }> = [];
+          attempts.push({ qq: preparedQ, st: status, lc: preparedLoc });
+          if (loose && loose !== preparedQ) attempts.push({ qq: loose, st: status, lc: preparedLoc });
+          attempts.push({ qq: q.trim(), st: status, lc: preparedLoc });
+          // Drop status if needed
+          attempts.push({ qq: preparedQ, st: '', lc: preparedLoc });
+          attempts.push({ qq: loose || preparedQ || q.trim(), st: '', lc: preparedLoc });
+          // Drop location if still none
+          attempts.push({ qq: preparedQ, st: '', lc: '' });
+          attempts.push({ qq: loose || preparedQ || q.trim(), st: '', lc: '' });
+
+          for (const a of attempts) {
+            res = await fetchStudies({ q: a.qq, status: a.st, type, loc: a.lc, pageSize, pageToken });
+            if ((res.studies || []).length > 0 || res.nextPageToken !== undefined) break;
+          }
         }
         if (!mounted) return;
         setData(res);
