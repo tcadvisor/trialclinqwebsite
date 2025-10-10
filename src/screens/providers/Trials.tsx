@@ -25,7 +25,11 @@ export default function ProviderTrials(): JSX.Element {
     setError("");
     try {
       const isNct = /^NCT\d{8}$/i.test(q);
-      const res = isNct ? await fetchStudyByNctId(q) : await fetchStudies({ q: buildSmartCondQuery(q), pageSize: 12 });
+      let res = isNct ? await fetchStudyByNctId(q) : await fetchStudies({ q: buildSmartCondQuery(q), pageSize: 12 });
+      if (!isNct && ((res.studies || []).length === 0)) {
+        const loose = buildLooseCondQuery(q);
+        res = await fetchStudies({ q: loose || q, pageSize: 12 });
+      }
       setStudies(res.studies || []);
       if ((res.studies || []).length === 0) setError("No studies found.");
     } catch (e) {
