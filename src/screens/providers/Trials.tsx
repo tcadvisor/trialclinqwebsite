@@ -4,6 +4,7 @@ import { Search, Loader2, Plus, Pencil, Trash2 } from "lucide-react";
 import SiteHeader from "../../components/SiteHeader";
 import { CtgovStudy, fetchStudies, ctgovStudyDetailUrl, formatNearestSitePreview, fetchStudyByNctId } from "../../lib/ctgov";
 import { addTrial, getAddedTrials, isTrialAdded } from "../../lib/providerTrials";
+import { buildSmartCondQuery } from "../../lib/searchQuery";
 
 export default function ProviderTrials(): JSX.Element {
   const [query, setQuery] = React.useState("");
@@ -24,7 +25,7 @@ export default function ProviderTrials(): JSX.Element {
     setError("");
     try {
       const isNct = /^NCT\d{8}$/i.test(q);
-      const res = isNct ? await fetchStudyByNctId(q) : await fetchStudies({ q, pageSize: 12 });
+      const res = isNct ? await fetchStudyByNctId(q) : await fetchStudies({ q: buildSmartCondQuery(q), pageSize: 12 });
       setStudies(res.studies || []);
       if ((res.studies || []).length === 0) setError("No studies found.");
     } catch (e) {
