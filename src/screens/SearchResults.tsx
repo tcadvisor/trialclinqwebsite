@@ -56,7 +56,7 @@ export const SearchResults = (): JSX.Element => {
           res = await fetchStudyByNctId(q.trim());
         } else {
           const loose = buildLooseCondQuery(q);
-          const attempts: Array<{ qq: string; st?: string; lc?: string }> = [];
+          const attempts: Array<{ qq: string; st?: string; lc?: string; pn: number }> = [];
           attempts.push({ qq: preparedQ, st: status, lc: preparedLoc });
           if (loose && loose !== preparedQ) attempts.push({ qq: loose, st: status, lc: preparedLoc });
           attempts.push({ qq: q.trim(), st: status, lc: preparedLoc });
