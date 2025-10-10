@@ -4,7 +4,7 @@ import { Search, Loader2, Plus, Pencil, Trash2 } from "lucide-react";
 import SiteHeader from "../../components/SiteHeader";
 import { CtgovStudy, fetchStudies, ctgovStudyDetailUrl, formatNearestSitePreview, fetchStudyByNctId } from "../../lib/ctgov";
 import { addTrial, getAddedTrials, isTrialAdded } from "../../lib/providerTrials";
-import { buildSmartCondQuery } from "../../lib/searchQuery";
+import { buildSmartCondQuery, buildLooseCondQuery } from "../../lib/searchQuery";
 
 export default function ProviderTrials(): JSX.Element {
   const [query, setQuery] = React.useState("");
