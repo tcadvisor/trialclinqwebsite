@@ -297,9 +297,9 @@ export const SearchResults = (): JSX.Element => {
                     size="sm"
                     onClick={() => {
                       if (page > 1) {
-                        const prev = page - 1;
-                        setPage(prev);
-                        setPageToken(tokenMapRef.current[prev] ?? "");
+                        setPage(page - 1);
+                        setPageToken("");
+                        try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch {}
                       }
                     }}
                     disabled={page <= 1}
@@ -314,33 +314,18 @@ export const SearchResults = (): JSX.Element => {
                     const end = Math.min(total, start + maxButtons - 1);
                     const buttons = [] as JSX.Element[];
                     for (let i = start; i <= end; i++) {
-                      const known = i === 1 || tokenMapRef.current[i] !== undefined;
                       buttons.push(
                         <Button
                           key={i}
                           variant={i === page ? 'default' : 'outline'}
                           size="sm"
                           className={i === page ? 'bg-[#1033e5] text-white' : ''}
-                          onClick={async () => {
+                          onClick={() => {
                             if (i === page) return;
-                            if (i === 1 || tokenMapRef.current[i] !== undefined) {
-                              setPage(i);
-                              setPageToken(tokenMapRef.current[i] ?? "");
-                              return;
-                            }
-                            let current = page;
-                            let token = tokenMapRef.current[current] ?? "";
-                            while (current < i) {
-                              const res = await fetchStudies({ q: preparedQ, status, type, loc: preparedLoc, pageSize, pageToken: token });
-                              token = res.nextPageToken || "";
-                              tokenMapRef.current[current + 1] = token;
-                              current += 1;
-                              if (!res.nextPageToken) break;
-                            }
                             setPage(i);
-                            setPageToken(tokenMapRef.current[i] ?? "");
+                            setPageToken("");
+                            try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch {}
                           }}
-                          disabled={!known && i > page + 5}
                         >
                           {i}
                         </Button>
@@ -348,22 +333,27 @@ export const SearchResults = (): JSX.Element => {
                     }
                     return buttons;
                   })()}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      const nextToken = data?.nextPageToken;
-                      if (nextToken !== undefined) {
-                        tokenMapRef.current[page + 1] = nextToken || "";
-                        setPage(page + 1);
-                        setPageToken(nextToken || "");
-                      }
-                    }}
-                    disabled={data?.nextPageToken === undefined}
-                    aria-label="Next page"
-                  >
-                    <ChevronDownIcon className="w-4 h-4 -rotate-90" />
-                  </Button>
+                  {(() => {
+                    const total = Math.max(1, Math.ceil((data?.totalCount || 0) / pageSize));
+                    const canNext = page < total;
+                    return (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          if (page < total) {
+                            setPage(page + 1);
+                            setPageToken("");
+                            try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch {}
+                          }
+                        }}
+                        disabled={!canNext}
+                        aria-label="Next page"
+                      >
+                        <ChevronDownIcon className="w-4 h-4 -rotate-90" />
+                      </Button>
+                    );
+                  })()}
                 </div>
                 <div className="text-xs text-gray-500">
                   {(() => {
