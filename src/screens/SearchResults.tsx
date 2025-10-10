@@ -297,9 +297,9 @@ export const SearchResults = (): JSX.Element => {
                     size="sm"
                     onClick={() => {
                       if (page > 1) {
-                        setPage(page - 1);
-                        
-                        
+                        const prev = page - 1;
+                        setPage(prev);
+                        setPageToken(tokenMapRef.current[prev] ?? "");
                       }
                     }}
                     disabled={page <= 1}
