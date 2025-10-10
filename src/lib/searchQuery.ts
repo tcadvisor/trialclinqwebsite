@@ -93,8 +93,8 @@ export function buildSmartCondQuery(raw: string): string {
     else residual.push(t)
   }
 
-  // Build residual term string (AND them)
-  const residualAnd = residual.join(' ')
+  // Build residual term string as strict AND
+  const residualAnd = residual.map((t) => (t.includes(' ') ? `"${t}"` : t)).join(' AND ')
 
   // Prefer to AND all term groups; within groups use OR
   const parts = [...groups, ...tokenGroups]
@@ -104,6 +104,38 @@ export function buildSmartCondQuery(raw: string): string {
   if (parts.length === 0) return source
 
   return parts.join(' AND ')
+}
+
+export function buildLooseCondQuery(raw: string): string {
+  const source = (raw || '').trim()
+  if (!source) return ''
+
+  const groups: string[] = []
+  let working = source
+
+  for (const entry of PHRASE_SYNONYMS) {
+    if (entry.pattern.test(working)) {
+      groups.push(`(${Array.from(new Set(entry.group)).join(' OR ')})`)
+      working = working.replace(new RegExp(entry.pattern, 'gi'), ' ')
+    }
+  }
+
+  let tokens = removeStopwords(tokenize(working))
+
+  const tokenGroups: string[] = []
+  const residual: string[] = []
+  for (const t of tokens) {
+    const syn = TOKEN_SYNONYMS[t]
+    if (syn) tokenGroups.push(`(${Array.from(new Set(syn)).join(' OR ')})`)
+    else residual.push(t)
+  }
+
+  const residualOr = residual.map((t) => (t.includes(' ') ? `"${t}"` : t)).join(' OR ')
+
+  const parts = [...groups, ...tokenGroups]
+  if (residualOr) parts.push(residualOr)
+  if (parts.length === 0) return source
+  return parts.join(' OR ')
 }
 
 export function normalizeLocation(raw: string): string {
