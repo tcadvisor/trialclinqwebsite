@@ -14,6 +14,7 @@ import {
   fetchStudies,
   formatNearestSitePreview,
   ctgovStudyDetailUrl,
+  fetchStudyByNctId,
 } from "../lib/ctgov";
 
 const solutionsLinks = ["Find a study", "More about trials", "How TrialCliniq help", "Blog"];
@@ -29,6 +30,23 @@ export const SearchResults = (): JSX.Element => {
 
   const [q, setQ] = React.useState<string>(initialQ);
   const [loc, setLoc] = React.useState<string>(initialLoc);
+  const preparedQ = React.useMemo(() => {
+    // Build smarter query from raw input
+    try {
+      const { buildSmartCondQuery } = require('../lib/searchQuery');
+      return buildSmartCondQuery(q);
+    } catch {
+      return q;
+    }
+  }, [q]);
+  const preparedLoc = React.useMemo(() => {
+    try {
+      const { normalizeLocation } = require('../lib/searchQuery');
+      return normalizeLocation(loc);
+    } catch {
+      return loc;
+    }
+  }, [loc]);
   const [status, setStatus] = React.useState<string>(initialStatus);
   const [type, setType] = React.useState<string>("");
   const [pageSize, setPageSize] = React.useState<number>(12);
@@ -46,7 +64,10 @@ export const SearchResults = (): JSX.Element => {
       setLoading(true);
       setError("");
       try {
-        const res = await fetchStudies({ q, status, type, loc, pageSize, pageToken });
+        const isNct = /^NCT\d{8}$/i.test(q.trim());
+        const res = isNct
+          ? await fetchStudyByNctId(q.trim())
+          : await fetchStudies({ q: preparedQ, status, type, loc: preparedLoc, pageSize, pageToken });
         if (!mounted) return;
         setData(res);
         tokenMapRef.current[page] = pageToken;
@@ -63,13 +84,13 @@ export const SearchResults = (): JSX.Element => {
     return () => {
       mounted = false;
     };
-  }, [q, status, type, loc, pageSize, pageToken, page]);
+  }, [q, preparedQ, preparedLoc, status, type, pageSize, pageToken, page]);
 
   React.useEffect(() => {
     tokenMapRef.current = { 1: "" };
     setPage(1);
     setPageToken("");
-  }, [q, status, type, loc, pageSize]);
+  }, [preparedQ, preparedLoc, status, type, pageSize]);
 
   const studies = data?.studies ?? [];
 
@@ -306,7 +327,7 @@ export const SearchResults = (): JSX.Element => {
                             let current = page;
                             let token = tokenMapRef.current[current] ?? "";
                             while (current < i) {
-                              const res = await fetchStudies({ q, status, type, loc, pageSize, pageToken: token });
+                              const res = await fetchStudies({ q: preparedQ, status, type, loc: preparedLoc, pageSize, pageToken: token });
                               token = res.nextPageToken || "";
                               tokenMapRef.current[current + 1] = token;
                               current += 1;
