@@ -88,7 +88,7 @@ export const SearchResults = (): JSX.Element => {
     return () => {
       mounted = false;
     };
-  }, [q, preparedQ, preparedLoc, status, type, pageSize, page]);
+  }, [q, preparedQ, preparedLoc, status, type, pageSize, pageToken, page]);
 
   React.useEffect(() => {
     tokenMapRef.current = { 1: "" };
