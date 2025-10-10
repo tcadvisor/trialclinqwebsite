@@ -8,6 +8,7 @@ import { Badge } from "../components/ui/badge";
 import { Separator } from "../components/ui/separator";
 import { ChevronDownIcon, MapPinIcon, Loader2 } from "lucide-react";
 import HomeHeader from "../components/HomeHeader";
+import { buildSmartCondQuery, normalizeLocation } from "../lib/searchQuery";
 import {
   CtgovResponse,
   CtgovStudy,
