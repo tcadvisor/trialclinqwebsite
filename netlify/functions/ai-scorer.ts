@@ -40,7 +40,7 @@ export const handler: Handler = async (event) => {
         authorization: `Bearer ${key}`,
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: "gpt-4o",
         temperature: 0.2,
         messages: [
           { role: "system", content: "You score clinical trial eligibility and fit. Output ONLY JSON with integer score (0-100) and rationale (<=160 chars)." },
