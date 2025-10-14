@@ -69,12 +69,9 @@ function profileToText(p: MinimalProfile): string {
   if (p.medications && p.medications.length) lines.push(`Current medications: ${p.medications.join(', ')}`);
   if (p.allergies && p.allergies.length) lines.push(`Allergies: ${p.allergies.join(', ')}`);
   if (p.additionalInfo) lines.push(`Additional info: ${p.additionalInfo}`);
-  try { const loc = (require as any) ? null : null; } catch {}
-  // Inject location prefs from geocode util (runtime import to avoid cycles)
-  try {
-    const mod = require as any;
-  } catch {}
-  const lp = (() => { try { return (window as any).tc_readLocPref ? (window as any).tc_readLocPref() : null; } catch { return null; } })();
+  const lp = readLocPref();
+  if (lp.loc) lines.push(`Home location: ${lp.loc}`);
+  if (lp.radius) lines.push(`Travel radius: ${lp.radius}`);
   return lines.join('\n');
 }
 
