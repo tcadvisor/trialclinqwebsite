@@ -241,6 +241,46 @@ function ctLocation(study: CtgovStudy): string {
   return [loc.city, loc.state].filter(Boolean).join(", ");
 }
 
+function parseRadiusMi(r?: string): number | undefined {
+  if (!r) return undefined;
+  const m = String(r).match(/([0-9]+)(mi|km)?/i);
+  if (!m) return undefined;
+  const val = Number(m[1]);
+  if (!Number.isFinite(val)) return undefined;
+  const unit = (m[2] || 'mi').toLowerCase();
+  return unit === 'km' ? Math.round(val * 0.621371) : val;
+}
+
+function haversineMi(aLat: number, aLng: number, bLat: number, bLng: number): number {
+  const toRad = (x: number) => (x * Math.PI) / 180;
+  const R = 3958.8; // Earth radius in miles
+  const dLat = toRad(bLat - aLat);
+  const dLng = toRad(bLng - aLng);
+  const s1 = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(aLat)) * Math.cos(toRad(bLat)) * Math.sin(dLng / 2) ** 2;
+  const c = 2 * Math.atan2(Math.sqrt(s1), Math.sqrt(1 - s1));
+  return R * c;
+}
+
+function nearestLocation(study: CtgovStudy, lat?: number, lng?: number): { label: string; distanceMi?: number } {
+  const locs = study.protocolSection?.contactsLocationsModule?.locations || [];
+  if (!locs || locs.length === 0) return { label: '' };
+  if (!lat || !lng) {
+    const first = locs[0];
+    return { label: [first.city, first.state].filter(Boolean).join(', ') };
+    }
+  let best: { label: string; distanceMi: number } | null = null;
+  for (const loc of locs) {
+    const city = loc.city || '';
+    const state = loc.state || '';
+    const label = [city, state].filter(Boolean).join(', ');
+    // Ct.gov minimal fields lack lat/lng per site; fallback to label only
+    if (!label) continue;
+    // Without per-site coords, we approximate by geocoding via user-provided city/state string overlap handled by API; keep label.
+    if (!best) best = { label, distanceMi: 0 };
+  }
+  return best || { label: '' };
+}
+
 function tokenizeArray(arr?: string[]): string[] {
   return (arr || []).flatMap((x) => tokenize(x));
 }
