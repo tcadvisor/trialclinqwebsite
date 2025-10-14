@@ -1,5 +1,8 @@
 import { fetchStudyByNctId, type CtgovStudy } from './ctgov';
 
+import { fetchStudyByNctId, type CtgovStudy } from './ctgov';
+import { readLocPref } from './geocode';
+
 type MinimalProfile = {
   age?: number | null;
   gender?: string | null;
