@@ -14,7 +14,7 @@ type MinimalProfile = {
 
 export type AiScoreResult = { score: number; rationale?: string };
 
-const CACHE_KEY = 'tc_ai_scores_v3';
+const CACHE_KEY = 'tc_ai_scores_v4';
 
 function clamp(n: number, min = 0, max = 100) {
   return Math.max(min, Math.min(max, n));
@@ -175,11 +175,14 @@ export async function scoreStudyWithAI(nctId: string, profile: MinimalProfile, s
   const timeout = setTimeout(() => controller.abort(), 30000);
 
   let result: AiScoreResult | null = null;
-  const configuredUrl = (import.meta as any).env?.VITE_AI_SCORER_URL as string | undefined;
-  const defaultUrl = '/.netlify/functions/ai-scorer';
-  const webhookUrl = configuredUrl || defaultUrl;
-  result = await callWebhook(webhookUrl, { profile, nctId, study, prompt }, controller.signal);
-  if (!result) result = await callOpenAI(prompt, controller.signal);
+  // Prefer direct OpenAI first to avoid any proxy issues
+  result = await callOpenAI(prompt, controller.signal);
+  if (!result) {
+    const configuredUrl = (import.meta as any).env?.VITE_AI_SCORER_URL as string | undefined;
+    const defaultUrl = '/.netlify/functions/ai-scorer';
+    const webhookUrl = configuredUrl || defaultUrl;
+    result = await callWebhook(webhookUrl, { profile, nctId, study, prompt }, controller.signal);
+  }
 
   clearTimeout(timeout);
 
