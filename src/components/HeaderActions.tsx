@@ -71,7 +71,7 @@ export default function HeaderActions() {
     <div className="relative flex items-center gap-3" ref={menuRef}>
       <button
         className="px-4 py-2 text-sm rounded-full border border-blue-600 text-blue-700 hover:bg-blue-50"
-        onClick={() => setSignInOpen((v) => !v)}
+        onClick={() => { setGetStartedOpen(false); setSignInOpen((v) => !v); }}
         type="button"
         aria-haspopup="menu"
         aria-expanded={signInOpen}
@@ -93,7 +93,7 @@ export default function HeaderActions() {
 
       <button
         className="px-4 py-2 text-sm rounded-full bg-blue-600 text-white hover:bg-blue-700"
-        onClick={() => setGetStartedOpen((v) => !v)}
+        onClick={() => { setSignInOpen(false); setGetStartedOpen((v) => !v); }}
         type="button"
         aria-haspopup="menu"
         aria-expanded={getStartedOpen}

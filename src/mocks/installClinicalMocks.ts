@@ -49,7 +49,17 @@ export function installClinicalMocks() {
       } catch (_) {
         // fall through to real fetch
       }
-      return originalFetch(input as any, init);
+      try {
+        return await originalFetch(input as any, init);
+      } catch (err) {
+        // Log and return a 502-like Response so callers receive a Response instead of an uncaught exception
+        // This prevents uncaught "TypeError: Failed to fetch" bubbling from the mock wrapper.
+        // The real network error is logged for debugging in the console.
+        try {
+          console.error("Original fetch failed in clinical mocks:", err);
+        } catch (_) {}
+        return new Response(JSON.stringify({ error: "Network error" }), { status: 502, headers: { "Content-Type": "application/json" } });
+      }
     };
 
     w.__clinicalMocksInstalled = true;

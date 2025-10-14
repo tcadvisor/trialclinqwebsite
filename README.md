@@ -30,4 +30,10 @@ If you are satisfied with the result, you can finally build the project for rele
 npm run build
 ```
 # trialclinqwebsite
+
+Serverless proxy note:
+
+- A Netlify function was added at netlify/functions/book-demo.ts to proxy booking requests to your Zapier webhook.
+- Set BOOKING_WEBHOOK_URL in your Netlify site settings to your Zapier webhook (e.g. https://hooks.zapier.com/hooks/catch/...).
+- Deploy the site to Netlify. The client will POST to /.netlify/functions/book-demo (no CORS issues).
 # testingwebsite

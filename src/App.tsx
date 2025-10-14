@@ -29,6 +29,7 @@ import Settings from "./screens/patients/Settings";
 import EligibilityCheck from "./screens/patients/EligibilityCheck";
 import EligibilityResult from "./screens/patients/EligibilityResult";
 import ContactUs from "./screens/support/ContactUs";
+import BookDemo from "./screens/support/BookDemo";
 import EhrDirectory from "./screens/patients/EhrDirectory";
 import Consent from "./screens/patients/Consent";
 import SignupProcessing from "./screens/patients/SignupProcessing";
@@ -77,6 +78,7 @@ function App() {
         <Route path="/trials/:slug" element={<TrialDetails />} />
         <Route path="/study/:nctId" element={<CtgovStudyDetails />} />
         <Route path="/contact" element={<ContactUs />} />
+        <Route path="/book-demo" element={<BookDemo />} />
       </Routes>
     </Router>
   );

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Search, HelpCircle, Shield, UserPlus, LogIn, FileText, Megaphone, Layers, LifeBuoy } from "lucide-react";
 import HeaderActions from "./HeaderActions";
@@ -7,9 +7,23 @@ export default function HomeHeader() {
   const [patientsOpen, setPatientsOpen] = useState(false);
   const [sitesOpen, setSitesOpen] = useState(false);
 
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    function onDocClick(e: MouseEvent) {
+      if (!containerRef.current) return;
+      if (e.target instanceof Node && !containerRef.current.contains(e.target)) {
+        setPatientsOpen(false);
+        setSitesOpen(false);
+      }
+    }
+    document.addEventListener("click", onDocClick);
+    return () => document.removeEventListener("click", onDocClick);
+  }, []);
+
   return (
     <header className="sticky top-0 z-30 bg-white/80 backdrop-blur border-b">
-      <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
+      <div ref={containerRef} className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
         <Link to="/" className="flex items-center gap-2 shrink-0">
           <img
             alt="TrialCliniq"
@@ -23,7 +37,7 @@ export default function HomeHeader() {
               className="hover:text-gray-600 inline-flex items-center gap-1"
               aria-haspopup="menu"
               aria-expanded={patientsOpen}
-              onClick={() => setPatientsOpen((v) => !v)}
+              onClick={() => { setSitesOpen(false); setPatientsOpen((v) => !v); }}
             >
               Patients and Families
               <span className={`ml-1 text-gray-400 transition-transform ${patientsOpen ? "rotate-180" : "group-hover:rotate-180"}`}>▾</span>
@@ -87,7 +101,7 @@ export default function HomeHeader() {
               className="hover:text-gray-600 inline-flex items-center gap-1"
               aria-haspopup="menu"
               aria-expanded={sitesOpen}
-              onClick={() => setSitesOpen((v) => !v)}
+              onClick={() => { setPatientsOpen(false); setSitesOpen((v) => !v); }}
             >
               Sites & Investigators
               <span className={`ml-1 text-gray-400 transition-transform ${sitesOpen ? "rotate-180" : "group-hover:rotate-180"}`}>▾</span>
