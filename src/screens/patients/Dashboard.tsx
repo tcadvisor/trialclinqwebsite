@@ -10,6 +10,8 @@ export default function Dashboard(): JSX.Element {
   const name = user ? `${user.firstName} ${user.lastName}` : "";
   const [progress, setProgress] = useState(() => computeProfileCompletion());
   const [items, setItems] = useState<LiteTrial[]>([]);
+  const [whyOpen, setWhyOpen] = useState(false);
+  const [whyContent, setWhyContent] = useState<string>("");
   useEffect(() => {
     let cancelled = false;
     const update = async () => {
@@ -141,12 +143,14 @@ export default function Dashboard(): JSX.Element {
                     <td className="px-4 py-3">
                       <span>{t.aiScore}%</span>
                       {(t.aiRationale || t.reason) && (
-                        <span
+                        <button
+                          type="button"
+                          onClick={() => { setWhyContent(`${t.title}\n\n${t.aiRationale || t.reason}`); setWhyOpen(true); }}
                           className="ml-2 inline-flex items-center rounded-full border px-2 py-0.5 text-xs text-gray-600 hover:bg-gray-50"
-                          title={(t.aiRationale || t.reason) as string}
+                          aria-label="Why this match"
                         >
                           Why
-                        </span>
+                        </button>
                       )}
                     </td>
                     <td className="px-4 py-3 text-gray-600">{t.interventions.join(' / ')}</td>
@@ -161,6 +165,19 @@ export default function Dashboard(): JSX.Element {
           </div>
         </section>
       </main>
+
+      {whyOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setWhyOpen(false)} />
+          <div className="relative z-10 w-full max-w-md rounded-xl border bg-white p-4 shadow-lg">
+            <div className="flex items-start justify-between">
+              <h3 className="text-sm font-semibold text-gray-800">Why this trial matches you</h3>
+              <button className="rounded-md p-1 text-gray-500 hover:bg-gray-100" onClick={() => setWhyOpen(false)} aria-label="Close">✕</button>
+            </div>
+            <div className="mt-3 whitespace-pre-wrap text-sm text-gray-700">{whyContent}</div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
