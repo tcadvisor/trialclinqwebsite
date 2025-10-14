@@ -242,10 +242,12 @@ function summarizeReason(study: CtgovStudy, profile: MinimalProfile): string {
   for (const t of condToks.concat(addlToks)) if (pool.has(t) && matched.length < 4) matched.push(t);
   const status = study.protocolSection?.statusModule?.overallStatus || "";
   const loc = ctLocation(study);
+  const pref = readLocationPref();
   const pieces: string[] = [];
   if (status) pieces.push(/recruit/i.test(status) ? "Recruiting" : status);
   if (matched.length) pieces.push(`Matched on: ${matched.join(', ')}`);
-  if (loc) pieces.push(`Location: ${loc}`);
+  if (loc) pieces.push(`Site: ${loc}`);
+  if (pref.loc) pieces.push(`Near: ${pref.loc}`);
   const s = pieces.join(" · ");
   return s.length > 160 ? s.slice(0, 157) + "..." : s;
 }
