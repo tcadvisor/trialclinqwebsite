@@ -494,6 +494,34 @@ export default function HealthProfile(): JSX.Element {
   const [addingMedication, setAddingMedication] = useState(false);
   const [newMedication, setNewMedication] = useState<Medication>({ name: "", dose: "", amountDaily: "", schedule: "" });
 
+  // Travel preferences (stored in eligibility profile)
+  const [travelLoc, setTravelLoc] = useState<string>(() => {
+    try {
+      const raw = localStorage.getItem("tc_eligibility_profile");
+      if (!raw) return "";
+      const el = JSON.parse(raw) as Partial<Record<string,string>>;
+      return String(el.loc || "");
+    } catch { return ""; }
+  });
+  const [travelRadius, setTravelRadius] = useState<string>(() => {
+    try {
+      const raw = localStorage.getItem("tc_eligibility_profile");
+      if (!raw) return "50mi";
+      const el = JSON.parse(raw) as Partial<Record<string,string>>;
+      return String(el.radius || "50mi");
+    } catch { return "50mi"; }
+  });
+
+  function saveTravelPrefs() {
+    try {
+      const raw = localStorage.getItem("tc_eligibility_profile");
+      const base = raw ? (JSON.parse(raw) as Record<string, any>) : {};
+      const next = { ...base, loc: travelLoc.trim(), radius: travelRadius };
+      localStorage.setItem("tc_eligibility_profile", JSON.stringify(next));
+      window.dispatchEvent(new Event("storage"));
+    } catch {}
+  }
+
   // Allergy handlers
   function addAllergy() {
     setAddingAllergy(true);
@@ -760,6 +788,22 @@ export default function HealthProfile(): JSX.Element {
 
             <div className="mt-4 grid md:grid-cols-3 gap-4">
               <div>
+                <Section title="Travel Preferences">
+                  <div className="grid grid-cols-1 gap-3 text-sm">
+                    <label className="text-gray-700">Home location (City, State or ZIP)
+                      <input value={travelLoc} onChange={(e)=>setTravelLoc(e.target.value)} className="mt-1 w-full rounded-md border px-3 py-2" placeholder="e.g. 10001 or Buffalo, NY" />
+                    </label>
+                    <label className="text-gray-700">Travel radius
+                      <select value={travelRadius} onChange={(e)=>setTravelRadius(e.target.value)} className="mt-1 w-full rounded-md border px-3 py-2 bg-white">
+                        {["25mi","50mi","100mi","200mi"].map(r => <option key={r} value={r}>{r}</option>)}
+                      </select>
+                    </label>
+                    <div>
+                      <button onClick={saveTravelPrefs} className="inline-flex items-center gap-1 text-sm rounded-full bg-gray-900 text-white px-3 py-1.5">Save</button>
+                    </div>
+                  </div>
+                </Section>
+
                 <Section title="Medications" right={<div>{profile.medications.length === 0 && (<span className="text-red-600 text-xs">Required</span>)}</div>}>
                   <ul className="divide-y">
                     {profile.medications.map((m, i) => (

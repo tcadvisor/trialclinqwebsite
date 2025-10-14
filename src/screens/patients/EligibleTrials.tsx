@@ -6,6 +6,8 @@ import PatientHeader from "../../components/PatientHeader";
 export default function EligibleTrials(): JSX.Element {
   const [query, setQuery] = React.useState("");
   const [base, setBase] = React.useState<LiteTrial[]>([]);
+  const [whyOpen, setWhyOpen] = React.useState(false);
+  const [whyContent, setWhyContent] = React.useState<string>("");
   const location = useLocation();
   const offset = React.useMemo(() => {
     const params = new URLSearchParams(location.search);
@@ -42,9 +44,15 @@ export default function EligibleTrials(): JSX.Element {
     );
   }, [query, base]);
 
-  // Simple one-page pagination for now; structure allows future extension
-  const page = 1;
-  const pageCount = 1;
+  // Pagination
+  const pageSize = 25;
+  const page = React.useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    const v = Number(params.get("page"));
+    return Number.isFinite(v) && v > 0 ? Math.floor(v) : 1;
+  }, [location.search]);
+  const pageCount = Math.max(1, Math.ceil(items.length / pageSize));
+  const pageItems = React.useMemo(() => items.slice((page - 1) * pageSize, page * pageSize), [items, page, pageSize]);
 
   const pill = (text: string, color: 'green' | 'violet') => (
     <span
@@ -83,13 +91,13 @@ export default function EligibleTrials(): JSX.Element {
                 <th className="px-4 py-3 font-medium">Trial ID</th>
                 <th className="px-4 py-3 font-medium">Trial Status</th>
                 <th className="px-4 py-3 font-medium">Trial Phase</th>
-                <th className="px-4 py-3 font-medium">Interventions</th>
                 <th className="px-4 py-3 font-medium">Compatibility Score</th>
-                <th className="px-4 py-3 font-medium"></th>
+                <th className="px-4 py-3 font-medium">Interventions</th>
+                <th className="px-4 py-3 font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {items.slice(offset).map((t) => (
+              {pageItems.map((t) => (
                 <tr key={t.slug} className="border-t">
                   <td className="px-4 py-3">
                     <a href={`https://clinicaltrials.gov/study/${encodeURIComponent(t.nctId)}`} target="_blank" rel="noopener noreferrer" className="text-gray-900 hover:underline">
@@ -102,7 +110,24 @@ export default function EligibleTrials(): JSX.Element {
                   </td>
                   <td className="px-4 py-3">{pill(t.phase, 'violet')}</td>
                   <td className="px-4 py-3 text-gray-600">{t.interventions.join(' / ')}</td>
-                  <td className="px-4 py-3">{t.aiScore}%</td>
+                  <td className="px-4 py-3 align-top">
+                    <div className="flex items-center">
+                      <span>{t.aiScore}%</span>
+                      {(t.aiRationale || t.reason) && (
+                        <button
+                          type="button"
+                          onClick={() => { setWhyContent(`${t.title}\n\n${t.aiRationale || t.reason}`); setWhyOpen(true); }}
+                          className="ml-2 inline-flex items-center rounded-full border px-2 py-0.5 text-xs text-gray-600 hover:bg-gray-50"
+                          aria-label="Why this match"
+                        >
+                          Why
+                        </button>
+                      )}
+                    </div>
+                    {(t.aiRationale || t.reason) && (
+                      <div className="mt-1 text-xs text-gray-500 line-clamp-2">{t.aiRationale || t.reason}</div>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-right">
                     <a
                       href={`https://clinicaltrials.gov/study/${encodeURIComponent(t.nctId)}`}
@@ -118,7 +143,7 @@ export default function EligibleTrials(): JSX.Element {
               {items.length === 0 && (
                 <tr>
                   <td colSpan={7} className="px-4 py-6 text-center text-gray-500">
-                    No trials match your search.
+                    No trials to show. Add your primary condition and location in your <a href="/patients/health-profile" className="underline">Health Profile</a> to get matches.
                   </td>
                 </tr>
               )}
@@ -126,17 +151,38 @@ export default function EligibleTrials(): JSX.Element {
           </table>
           <div className="border-t px-4 py-3 flex items-center justify-between text-sm text-gray-600">
             <div className="flex items-center gap-2">
-              <button className="rounded-lg border px-3 py-1.5 hover:bg-gray-50" disabled>
+              <button
+                className="rounded-lg border px-3 py-1.5 hover:bg-gray-50 disabled:opacity-50"
+                onClick={() => { const p = Math.max(1, page - 1); const params = new URLSearchParams(location.search); params.set('page', String(p)); window.history.replaceState({}, '', `${location.pathname}?${params.toString()}`); }}
+                disabled={page <= 1}
+              >
                 Previous
               </button>
-              <button className="rounded-lg border px-3 py-1.5 hover:bg-gray-50" disabled>
+              <button
+                className="rounded-lg border px-3 py-1.5 hover:bg-gray-50 disabled:opacity-50"
+                onClick={() => { const p = Math.min(pageCount, page + 1); const params = new URLSearchParams(location.search); params.set('page', String(p)); window.history.replaceState({}, '', `${location.pathname}?${params.toString()}`); }}
+                disabled={page >= pageCount}
+              >
                 Next
               </button>
             </div>
-            <div>Page {page} of {pageCount}</div>
+            <div>Page {page} of {pageCount} · {items.length} matches</div>
           </div>
         </div>
       </main>
+
+      {whyOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setWhyOpen(false)} />
+          <div className="relative z-10 w-full max-w-md rounded-xl border bg-white p-4 shadow-lg">
+            <div className="flex items-start justify-between">
+              <h3 className="text-sm font-semibold text-gray-800">Why this trial matches you</h3>
+              <button className="rounded-md p-1 text-gray-500 hover:bg-gray-100" onClick={() => setWhyOpen(false)} aria-label="Close">✕</button>
+            </div>
+            <div className="mt-3 whitespace-pre-wrap text-sm text-gray-700">{whyContent}</div>
+          </div>
+        </div>
+      )}
 
       <footer className="w-full border-t mt-16">
         <div className="w-full max-w-[1200px] mx-auto px-4 py-6 text-sm text-gray-600 flex items-center justify-between">
