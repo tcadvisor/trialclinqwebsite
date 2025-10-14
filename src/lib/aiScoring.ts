@@ -175,13 +175,16 @@ export async function scoreStudyWithAI(nctId: string, profile: MinimalProfile, s
   const timeout = setTimeout(() => controller.abort(), 30000);
 
   let result: AiScoreResult | null = null;
-  // Prefer direct OpenAI first to avoid any proxy issues
-  result = await callOpenAI(prompt, controller.signal);
+  // Prefer serverless scorer first (secure, reliable); then direct OpenAI
+  const configuredUrl = (import.meta as any).env?.VITE_AI_SCORER_URL as string | undefined;
+  const defaultUrl = '/.netlify/functions/ai-scorer';
+  const webhookUrl = configuredUrl || defaultUrl;
+  result = await callWebhook(webhookUrl, { profile, nctId, study, prompt }, controller.signal);
   if (!result) {
-    const configuredUrl = (import.meta as any).env?.VITE_AI_SCORER_URL as string | undefined;
-    const defaultUrl = '/.netlify/functions/ai-scorer';
-    const webhookUrl = configuredUrl || defaultUrl;
-    result = await callWebhook(webhookUrl, { profile, nctId, study, prompt }, controller.signal);
+    result = await callOpenAI(prompt, controller.signal);
+  }
+  if (!result) {
+    return null;
   }
 
   clearTimeout(timeout);
