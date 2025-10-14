@@ -9,16 +9,18 @@ export default function SignupPersonalDetails(): JSX.Element {
   const [gender, setGender] = React.useState("");
   const [race, setRace] = React.useState("");
   const [language, setLanguage] = React.useState("");
+  const [loc, setLoc] = React.useState("");
+  const [radius, setRadius] = React.useState("50mi");
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!age || !weight || !gender || !race || !language) return;
+    if (!age || !weight || !gender || !race || !language || !loc) return;
     let prev: Record<string, unknown> = {};
     try {
       const raw = localStorage.getItem("tc_eligibility_profile");
       if (raw) prev = JSON.parse(raw) as Record<string, unknown>;
     } catch {}
-    const next = { ...prev, age, weight, gender, race, language };
+    const next = { ...prev, age, weight, gender, race, language, loc, radius };
     try { localStorage.setItem("tc_eligibility_profile", JSON.stringify(next)); } catch {}
     navigate("/patients/processing");
   }
@@ -68,8 +70,30 @@ export default function SignupPersonalDetails(): JSX.Element {
               </div>
               <div className="sm:col-span-2">
                 <label className="block text-sm font-medium">Primary Language Spoken<span className="text-red-500">*</span></label>
-                <input value={language} onChange={(e)=>setLanguage(e.target.value)} className="mt-2 w-full rounded-full border px-4 py-2" placeholder="e.g. English" required />
+                <select value={language} onChange={(e)=>setLanguage(e.target.value)} className="mt-2 w-full rounded-full border px-4 py-2" required>
+                  <option value="">Select language</option>
+                  {[
+                    "English",
+                    "Spanish",
+                    "French",
+                    "German",
+                    "Italian",
+                    "Portuguese",
+                  ].map((lng)=> (<option key={lng} value={lng}>{lng}</option>))}
+                </select>
               </div>
+
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium">Your Location (City, State or ZIP)<span className="text-red-500">*</span></label>
+                <input value={loc} onChange={(e)=>setLoc(e.target.value)} className="mt-2 w-full rounded-full border px-4 py-2" placeholder="e.g. 10001 or Buffalo, NY" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium">Search Radius</label>
+                <select value={radius} onChange={(e)=>setRadius(e.target.value)} className="mt-2 w-full rounded-full border px-4 py-2">
+                  {["25mi","50mi","100mi","200mi"].map((r)=> (<option key={r} value={r}>{r}</option>))}
+                </select>
+              </div>
+              <div />
             </div>
           </div>
 

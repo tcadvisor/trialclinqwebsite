@@ -1,6 +1,7 @@
 import { trials as staticTrials, type Trial } from "./trials";
 import { computeProfileCompletion } from "./profile";
 import { fetchStudies, type CtgovStudy } from "./ctgov";
+import { geocodeLocPref } from "./geocode";
 
 export type MinimalProfile = {
   age?: number | null;
@@ -21,6 +22,8 @@ export type LiteTrial = {
   interventions: string[];
   center: string;
   location: string;
+  reason?: string;
+  aiRationale?: string;
 };
 
 const PROFILE_KEY = "tc_health_profile_v1";
@@ -45,6 +48,19 @@ function parseAgeFromEligibility(): number | null {
   }
 }
 
+function readLocationPref(): { loc: string; radius?: string } {
+  try {
+    const raw = localStorage.getItem(ELIGIBILITY_KEY);
+    if (!raw) return { loc: "" };
+    const data = JSON.parse(raw) as Partial<Record<string, string>>;
+    const loc = String(data["loc"] || "").trim();
+    const radius = String(data["radius"] || "").trim() || undefined;
+    return { loc, radius };
+  } catch {
+    return { loc: "" };
+  }
+}
+
 export function readCurrentHealthProfile(): MinimalProfile {
   let age: number | null = null;
   let gender: string | null = null;
@@ -65,7 +81,21 @@ export function readCurrentHealthProfile(): MinimalProfile {
       additionalInfo = (p?.additionalInfo ? String(p.additionalInfo) : "").trim() || null;
     }
   } catch {}
-  if (age == null) age = parseAgeFromEligibility();
+  if (age == null) {
+    // Try DOB-based calc
+    age = parseAgeFromEligibility();
+    if (age == null) {
+      // Fallback: explicit age provided during signup personal details
+      try {
+        const raw = localStorage.getItem(ELIGIBILITY_KEY);
+        if (raw) {
+          const data = JSON.parse(raw) as Partial<Record<string, string>>;
+          const v = Number(data["age"]);
+          if (Number.isFinite(v)) age = v;
+        }
+      } catch {}
+    }
+  }
   return { age, gender, primaryCondition, medications, allergies, additionalInfo };
 }
 
@@ -211,8 +241,71 @@ function ctLocation(study: CtgovStudy): string {
   return [loc.city, loc.state].filter(Boolean).join(", ");
 }
 
+function parseRadiusMi(r?: string): number | undefined {
+  if (!r) return undefined;
+  const m = String(r).match(/([0-9]+)(mi|km)?/i);
+  if (!m) return undefined;
+  const val = Number(m[1]);
+  if (!Number.isFinite(val)) return undefined;
+  const unit = (m[2] || 'mi').toLowerCase();
+  return unit === 'km' ? Math.round(val * 0.621371) : val;
+}
+
+function haversineMi(aLat: number, aLng: number, bLat: number, bLng: number): number {
+  const toRad = (x: number) => (x * Math.PI) / 180;
+  const R = 3958.8; // Earth radius in miles
+  const dLat = toRad(bLat - aLat);
+  const dLng = toRad(bLng - aLng);
+  const s1 = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(aLat)) * Math.cos(toRad(bLat)) * Math.sin(dLng / 2) ** 2;
+  const c = 2 * Math.atan2(Math.sqrt(s1), Math.sqrt(1 - s1));
+  return R * c;
+}
+
+function nearestLocation(study: CtgovStudy, lat?: number, lng?: number): { label: string; distanceMi?: number } {
+  const locs = study.protocolSection?.contactsLocationsModule?.locations || [];
+  if (!locs || locs.length === 0) return { label: '' };
+  if (!lat || !lng) {
+    const first = locs[0];
+    return { label: [first.city, first.state].filter(Boolean).join(', ') };
+    }
+  let best: { label: string; distanceMi: number } | null = null;
+  for (const loc of locs) {
+    const city = loc.city || '';
+    const state = loc.state || '';
+    const label = [city, state].filter(Boolean).join(', ');
+    // Ct.gov minimal fields lack lat/lng per site; fallback to label only
+    if (!label) continue;
+    // Without per-site coords, we approximate by geocoding via user-provided city/state string overlap handled by API; keep label.
+    if (!best) best = { label, distanceMi: 0 };
+  }
+  return best || { label: '' };
+}
+
 function tokenizeArray(arr?: string[]): string[] {
   return (arr || []).flatMap((x) => tokenize(x));
+}
+
+function summarizeReason(study: CtgovStudy, profile: MinimalProfile): string {
+  const title = study.protocolSection?.identificationModule?.briefTitle || "";
+  const titleToks = tokenize(title);
+  const studyConds = study.protocolSection?.conditionsModule?.conditions || [];
+  const studyCondToks = tokenizeArray(studyConds);
+  const condToks = tokenize(profile.primaryCondition || "");
+  const addlToks = tokenize(profile.additionalInfo || "");
+  const pool = new Set(titleToks.concat(studyCondToks));
+  const matched: string[] = [];
+  for (const t of condToks.concat(addlToks)) if (pool.has(t) && matched.length < 4) matched.push(t);
+  const status = study.protocolSection?.statusModule?.overallStatus || "";
+  const loc = ctLocation(study);
+  const pref = readLocationPref();
+  const pieces: string[] = [];
+  if (status) pieces.push(/recruit/i.test(status) ? "Recruiting" : status);
+  if (matched.length) pieces.push(`Matched on: ${matched.join(', ')}`);
+  if (loc) pieces.push(`Site: ${loc}`);
+  if (pref.loc) pieces.push(`Near: ${pref.loc}`);
+  if (pref.radius) pieces.push(`Within ${pref.radius}`);
+  const s = pieces.join(" · ");
+  return s.length > 160 ? s.slice(0, 157) + "..." : s;
 }
 
 function computeStudyScore(study: CtgovStudy, profile: MinimalProfile): number {
@@ -232,13 +325,21 @@ function computeStudyScore(study: CtgovStudy, profile: MinimalProfile): number {
 
   const locTokens = tokenize(ctLocation(study));
   const addlTokens = tokenize(profile.additionalInfo || "");
-  const locOverlap = intersectCount(locTokens, addlTokens);
-  const locScore = clamp(locOverlap * 3, 0, 10);
+  const pref = readLocationPref();
+  const prefTokens = tokenize(pref.loc || "");
+  const locOverlap = intersectCount(locTokens, addlTokens.concat(prefTokens));
+  const locScore = clamp(locOverlap * 5, 0, 15);
 
   const { breakdown } = computeProfileCompletion();
   const completenessBoost = Math.round((breakdown.healthProfile / 35) * 10);
 
-  return clamp(base + condition + locScore + completenessBoost, 0, 100);
+  return clamp(base + condition + ageLikeBoost(profile, study) + locScore + completenessBoost, 0, 100);
+}
+
+function ageLikeBoost(profile: MinimalProfile, study: CtgovStudy): number {
+  // Optional minor boost when age range seems compatible based on min/max present in study title/conditions
+  // This is a placeholder-neutral helper that returns 0 for now since CtGov light data here lacks min/max fields.
+  return 0;
 }
 
 export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<LiteTrial[]> {
@@ -256,20 +357,20 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
     'ACTIVE_NOT_RECRUITING',
   ];
 
+  const { loc } = readLocationPref();
+  const geo = await geocodeLocPref();
   const fetchSet = async (query: string) => {
-    const results = await Promise.all(statuses.map((s) => fetchStudies({ q: query, status: s, pageSize })));
+    const results = await Promise.all(statuses.map((s) => fetchStudies({ q: query, status: s, pageSize, loc, lat: geo.lat, lng: geo.lng, radius: geo.radius })));
     return results.flatMap((r) => r.studies || []);
   };
 
   let studies = await fetchSet(q);
   if (!studies || studies.length === 0) {
-    // Fallback 1: try without status filter
-    const r = await fetchStudies({ q, pageSize });
+    const r = await fetchStudies({ q, pageSize, loc, lat: geo.lat, lng: geo.lng, radius: geo.radius });
     studies = r.studies || [];
   }
   if ((!studies || studies.length === 0) && q && q !== qPrimary) {
-    // Fallback 2: try primary only
-    const r2 = await fetchStudies({ q: qPrimary, pageSize });
+    const r2 = await fetchStudies({ q: qPrimary, pageSize, loc, lat: geo.lat, lng: geo.lng, radius: geo.radius });
     studies = r2.studies || [];
   }
   if (!studies) studies = [];
@@ -287,6 +388,7 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
     const location = ctLocation(s);
     const aiScore = computeStudyScore(s, profile);
     const conds = s.protocolSection?.conditionsModule?.conditions || [];
+    const reason = summarizeReason(s, profile);
     list.push({
       slug: nct.toLowerCase(),
       nctId: nct,
@@ -297,9 +399,18 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
       interventions: conds.slice(0, 3),
       center,
       location,
+      reason,
     });
   }
 
   list.sort((a, b) => b.aiScore - a.aiScore);
-  return list;
+
+  // Try AI rescoring for the top 15 when an AI backend is configured; fallback silently otherwise
+  try {
+    const { scoreTopKWithAI } = await import('./aiScoring');
+    const rescored = await scoreTopKWithAI(list, 15, profile);
+    return rescored;
+  } catch {
+    return list;
+  }
 }

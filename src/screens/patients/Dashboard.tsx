@@ -10,6 +10,8 @@ export default function Dashboard(): JSX.Element {
   const name = user ? `${user.firstName} ${user.lastName}` : "";
   const [progress, setProgress] = useState(() => computeProfileCompletion());
   const [items, setItems] = useState<LiteTrial[]>([]);
+  const [whyOpen, setWhyOpen] = useState(false);
+  const [whyContent, setWhyContent] = useState<string>("");
   useEffect(() => {
     let cancelled = false;
     const update = async () => {
@@ -138,7 +140,24 @@ export default function Dashboard(): JSX.Element {
                         {t.phase}
                       </span>
                     </td>
-                    <td className="px-4 py-3">{t.aiScore}%</td>
+                    <td className="px-4 py-3 align-top">
+                      <div className="flex items-center">
+                        <span>{t.aiScore}%</span>
+                        {(t.aiRationale || t.reason) && (
+                          <button
+                            type="button"
+                            onClick={() => { setWhyContent(`${t.title}\n\n${t.aiRationale || t.reason}`); setWhyOpen(true); }}
+                            className="ml-2 inline-flex items-center rounded-full border px-2 py-0.5 text-xs text-gray-600 hover:bg-gray-50"
+                            aria-label="Why this match"
+                          >
+                            Why
+                          </button>
+                        )}
+                      </div>
+                      {(t.aiRationale || t.reason) && (
+                        <div className="mt-1 text-xs text-gray-500 line-clamp-2">{t.aiRationale || t.reason}</div>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-gray-600">{t.interventions.join(' / ')}</td>
                     <td className="px-4 py-3 text-right">
                       <a href={`https://clinicaltrials.gov/study/${encodeURIComponent(t.nctId)}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs hover:bg-gray-50">View on ClinicalTrials.gov</a>
@@ -147,10 +166,23 @@ export default function Dashboard(): JSX.Element {
                 ))}
               </tbody>
             </table>
-            <Link to="/patients/eligible?offset=4" className="border-t px-4 py-3 block text-sm text-gray-600 hover:bg-gray-50">See more</Link>
+            <Link to="/patients/eligible?page=1" className="border-t px-4 py-3 block text-sm text-gray-600 hover:bg-gray-50">See more</Link>
           </div>
         </section>
       </main>
+
+      {whyOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setWhyOpen(false)} />
+          <div className="relative z-10 w-full max-w-md rounded-xl border bg-white p-4 shadow-lg">
+            <div className="flex items-start justify-between">
+              <h3 className="text-sm font-semibold text-gray-800">Why this trial matches you</h3>
+              <button className="rounded-md p-1 text-gray-500 hover:bg-gray-100" onClick={() => setWhyOpen(false)} aria-label="Close">✕</button>
+            </div>
+            <div className="mt-3 whitespace-pre-wrap text-sm text-gray-700">{whyContent}</div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
