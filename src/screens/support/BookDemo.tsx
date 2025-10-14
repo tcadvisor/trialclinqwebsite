@@ -17,6 +17,28 @@ export default function BookDemo() {
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [tz, setTz] = useState(defaultTz);
+  const allTimeZones = useMemo<string[]>(() => {
+    const anyIntl: any = Intl as any;
+    try {
+      if (typeof anyIntl.supportedValuesOf === "function") {
+        const z: string[] = anyIntl.supportedValuesOf("timeZone");
+        if (Array.isArray(z) && z.length) return z;
+      }
+    } catch {}
+    return [
+      "UTC",
+      "America/New_York","America/Chicago","America/Denver","America/Los_Angeles","America/Phoenix","America/Toronto","America/Vancouver","America/Sao_Paulo",
+      "Europe/London","Europe/Paris","Europe/Berlin","Europe/Madrid","Europe/Rome","Europe/Amsterdam","Europe/Zurich","Europe/Stockholm","Europe/Oslo","Europe/Copenhagen",
+      "Asia/Tokyo","Asia/Seoul","Asia/Shanghai","Asia/Hong_Kong","Asia/Singapore","Asia/Kolkata","Asia/Dubai",
+      "Australia/Sydney","Australia/Melbourne","Pacific/Auckland","Africa/Johannesburg",
+    ];
+  }, []);
+  const zonesSorted = useMemo(() => {
+    const set = new Set(allTimeZones);
+    // Make sure default appears in list
+    set.add(defaultTz);
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [allTimeZones, defaultTz]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -192,7 +214,14 @@ export default function BookDemo() {
                 </label>
                 <label className="text-sm text-gray-700">
                   <span className="block mb-1">Time zone</span>
-                  <input type="text" value={tz} onChange={(e) => setTz(e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Time zone" />
+                  <select value={tz} onChange={(e) => setTz(e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Time zone">
+                    <option value={defaultTz}>Current: {defaultTz}</option>
+                    <optgroup label="All time zones">
+                      {zonesSorted.map((z) => (
+                        <option key={z} value={z}>{z}</option>
+                      ))}
+                    </optgroup>
+                  </select>
                 </label>
               </div>
 
