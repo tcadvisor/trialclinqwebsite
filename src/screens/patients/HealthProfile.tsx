@@ -494,6 +494,34 @@ export default function HealthProfile(): JSX.Element {
   const [addingMedication, setAddingMedication] = useState(false);
   const [newMedication, setNewMedication] = useState<Medication>({ name: "", dose: "", amountDaily: "", schedule: "" });
 
+  // Travel preferences (stored in eligibility profile)
+  const [travelLoc, setTravelLoc] = useState<string>(() => {
+    try {
+      const raw = localStorage.getItem("tc_eligibility_profile");
+      if (!raw) return "";
+      const el = JSON.parse(raw) as Partial<Record<string,string>>;
+      return String(el.loc || "");
+    } catch { return ""; }
+  });
+  const [travelRadius, setTravelRadius] = useState<string>(() => {
+    try {
+      const raw = localStorage.getItem("tc_eligibility_profile");
+      if (!raw) return "50mi";
+      const el = JSON.parse(raw) as Partial<Record<string,string>>;
+      return String(el.radius || "50mi");
+    } catch { return "50mi"; }
+  });
+
+  function saveTravelPrefs() {
+    try {
+      const raw = localStorage.getItem("tc_eligibility_profile");
+      const base = raw ? (JSON.parse(raw) as Record<string, any>) : {};
+      const next = { ...base, loc: travelLoc.trim(), radius: travelRadius };
+      localStorage.setItem("tc_eligibility_profile", JSON.stringify(next));
+      window.dispatchEvent(new Event("storage"));
+    } catch {}
+  }
+
   // Allergy handlers
   function addAllergy() {
     setAddingAllergy(true);
