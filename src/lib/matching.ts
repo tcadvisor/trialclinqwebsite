@@ -304,7 +304,7 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
   // Try AI rescoring for the top 15 when an AI backend is configured; fallback silently otherwise
   try {
     const { scoreTopKWithAI } = await import('./aiScoring');
-    const rescored = await scoreTopKWithAI(list, 15);
+    const rescored = await scoreTopKWithAI(list, 15, profile);
     return rescored;
   } catch {
     return list;
