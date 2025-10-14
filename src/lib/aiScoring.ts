@@ -11,7 +11,7 @@ type MinimalProfile = {
 
 export type AiScoreResult = { score: number; rationale?: string };
 
-const CACHE_KEY = 'tc_ai_scores_v1';
+const CACHE_KEY = 'tc_ai_scores_v2';
 
 function clamp(n: number, min = 0, max = 100) {
   return Math.max(min, Math.min(max, n));
@@ -208,10 +208,14 @@ export async function scoreTopKWithAI<T extends { nctId: string; aiScore: number
 
   await Promise.all([worker(0), worker(1), worker(2)]);
 
+  const forceAi = String((import.meta as any).env?.VITE_FORCE_AI_SCORING || '').toLowerCase() === 'true';
   const merged = items.map((it, idx) => {
     const r = idx < top.length ? results[idx] : undefined;
     if (r && typeof r.score === 'number') {
       return { ...it, aiScore: clamp(Math.round(r.score)), aiRationale: r.rationale } as any;
+    }
+    if (forceAi && idx < top.length) {
+      return { ...it, aiScore: 1, aiRationale: 'AI scorer unavailable; retry soon' } as any;
     }
     return it as any;
   });
