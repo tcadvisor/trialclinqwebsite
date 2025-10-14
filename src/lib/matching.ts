@@ -264,12 +264,10 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
 
   let studies = await fetchSet(q);
   if (!studies || studies.length === 0) {
-    // Fallback 1: try without status filter
     const r = await fetchStudies({ q, pageSize });
     studies = r.studies || [];
   }
   if ((!studies || studies.length === 0) && q && q !== qPrimary) {
-    // Fallback 2: try primary only
     const r2 = await fetchStudies({ q: qPrimary, pageSize });
     studies = r2.studies || [];
   }
@@ -302,5 +300,13 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
   }
 
   list.sort((a, b) => b.aiScore - a.aiScore);
-  return list;
+
+  // Try AI rescoring for the top 15 when an AI backend is configured; fallback silently otherwise
+  try {
+    const { scoreTopKWithAI } = await import('./aiScoring');
+    const rescored = await scoreTopKWithAI(list, 15);
+    return rescored;
+  } catch {
+    return list;
+  }
 }
