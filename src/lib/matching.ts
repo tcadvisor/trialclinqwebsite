@@ -308,6 +308,10 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
   const qAlt = qAltTokens.slice(0, 3).join(" ");
   const q = qPrimary || qAlt || "";
 
+  if (!q) {
+    return [];
+  }
+
   const pageSize = Math.max(10, Math.min(100, limit));
   const statuses = [
     'RECRUITING',
