@@ -1,6 +1,7 @@
 import { trials as staticTrials, type Trial } from "./trials";
 import { computeProfileCompletion } from "./profile";
 import { fetchStudies, type CtgovStudy } from "./ctgov";
+import { geocodeLocPref } from "./geocode";
 
 export type MinimalProfile = {
   age?: number | null;
