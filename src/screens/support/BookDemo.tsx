@@ -97,14 +97,8 @@ export default function BookDemo() {
       return;
     }
 
-    try {
-      openMailClient(details);
-      setSuccess(true);
-    } catch {
-      setError("Unable to initiate email. Please email chandler@trialcliniq.com with your booking details.");
-    } finally {
-      setSubmitting(false);
-    }
+    setError("We couldn't submit via Zapier. Please email chandler@trialcliniq.com with your booking details.");
+    setSubmitting(false);
   }
 
   return (
