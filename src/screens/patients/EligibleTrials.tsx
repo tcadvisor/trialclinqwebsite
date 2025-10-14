@@ -102,7 +102,17 @@ export default function EligibleTrials(): JSX.Element {
                   </td>
                   <td className="px-4 py-3">{pill(t.phase, 'violet')}</td>
                   <td className="px-4 py-3 text-gray-600">{t.interventions.join(' / ')}</td>
-                  <td className="px-4 py-3">{t.aiScore}%</td>
+                  <td className="px-4 py-3">
+                    <span>{t.aiScore}%</span>
+                    {(t.aiRationale || t.reason) && (
+                      <span
+                        className="ml-2 inline-flex items-center rounded-full border px-2 py-0.5 text-xs text-gray-600 hover:bg-gray-50"
+                        title={(t.aiRationale || t.reason) as string}
+                      >
+                        Why
+                      </span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-right">
                     <a
                       href={`https://clinicaltrials.gov/study/${encodeURIComponent(t.nctId)}`}
