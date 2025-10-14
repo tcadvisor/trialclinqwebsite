@@ -110,17 +110,22 @@ export default function EligibleTrials(): JSX.Element {
                   </td>
                   <td className="px-4 py-3">{pill(t.phase, 'violet')}</td>
                   <td className="px-4 py-3 text-gray-600">{t.interventions.join(' / ')}</td>
-                  <td className="px-4 py-3">
-                    <span>{t.aiScore}%</span>
+                  <td className="px-4 py-3 align-top">
+                    <div className="flex items-center">
+                      <span>{t.aiScore}%</span>
+                      {(t.aiRationale || t.reason) && (
+                        <button
+                          type="button"
+                          onClick={() => { setWhyContent(`${t.title}\n\n${t.aiRationale || t.reason}`); setWhyOpen(true); }}
+                          className="ml-2 inline-flex items-center rounded-full border px-2 py-0.5 text-xs text-gray-600 hover:bg-gray-50"
+                          aria-label="Why this match"
+                        >
+                          Why
+                        </button>
+                      )}
+                    </div>
                     {(t.aiRationale || t.reason) && (
-                      <button
-                        type="button"
-                        onClick={() => { setWhyContent(`${t.title}\n\n${t.aiRationale || t.reason}`); setWhyOpen(true); }}
-                        className="ml-2 inline-flex items-center rounded-full border px-2 py-0.5 text-xs text-gray-600 hover:bg-gray-50"
-                        aria-label="Why this match"
-                      >
-                        Why
-                      </button>
+                      <div className="mt-1 text-xs text-gray-500 line-clamp-2">{t.aiRationale || t.reason}</div>
                     )}
                   </td>
                   <td className="px-4 py-3 text-right">
