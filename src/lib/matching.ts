@@ -21,6 +21,7 @@ export type LiteTrial = {
   interventions: string[];
   center: string;
   location: string;
+  reason?: string;
   aiRationale?: string;
 };
 
@@ -216,6 +217,26 @@ function tokenizeArray(arr?: string[]): string[] {
   return (arr || []).flatMap((x) => tokenize(x));
 }
 
+function summarizeReason(study: CtgovStudy, profile: MinimalProfile): string {
+  const title = study.protocolSection?.identificationModule?.briefTitle || "";
+  const titleToks = tokenize(title);
+  const studyConds = study.protocolSection?.conditionsModule?.conditions || [];
+  const studyCondToks = tokenizeArray(studyConds);
+  const condToks = tokenize(profile.primaryCondition || "");
+  const addlToks = tokenize(profile.additionalInfo || "");
+  const pool = new Set(titleToks.concat(studyCondToks));
+  const matched: string[] = [];
+  for (const t of condToks.concat(addlToks)) if (pool.has(t) && matched.length < 4) matched.push(t);
+  const status = study.protocolSection?.statusModule?.overallStatus || "";
+  const loc = ctLocation(study);
+  const pieces: string[] = [];
+  if (status) pieces.push(/recruit/i.test(status) ? "Recruiting" : status);
+  if (matched.length) pieces.push(`Matched on: ${matched.join(', ')}`);
+  if (loc) pieces.push(`Location: ${loc}`);
+  const s = pieces.join(" · ");
+  return s.length > 160 ? s.slice(0, 157) + "..." : s;
+}
+
 function computeStudyScore(study: CtgovStudy, profile: MinimalProfile): number {
   const title = study.protocolSection?.identificationModule?.briefTitle || "";
   const titleToks = tokenize(title);
@@ -286,6 +307,7 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
     const location = ctLocation(s);
     const aiScore = computeStudyScore(s, profile);
     const conds = s.protocolSection?.conditionsModule?.conditions || [];
+    const reason = summarizeReason(s, profile);
     list.push({
       slug: nct.toLowerCase(),
       nctId: nct,
@@ -296,6 +318,7 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
       interventions: conds.slice(0, 3),
       center,
       location,
+      reason,
     });
   }
 
