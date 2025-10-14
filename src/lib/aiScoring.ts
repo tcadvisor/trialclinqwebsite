@@ -1,5 +1,13 @@
 import { fetchStudyByNctId, type CtgovStudy } from './ctgov';
-import { readCurrentHealthProfile, type MinimalProfile } from './matching';
+
+type MinimalProfile = {
+  age?: number | null;
+  gender?: string | null;
+  primaryCondition?: string | null;
+  medications?: string[];
+  allergies?: string[];
+  additionalInfo?: string | null;
+};
 
 export type AiScoreResult = { score: number; rationale?: string };
 
@@ -173,8 +181,8 @@ export async function scoreStudyWithAI(nctId: string, profile: MinimalProfile, s
 export async function scoreTopKWithAI<T extends { nctId: string; aiScore: number }>(
   items: T[],
   k: number,
+  profile: MinimalProfile,
 ): Promise<Array<T & { aiRationale?: string }>> {
-  const profile = readCurrentHealthProfile();
   const top = items.slice(0, Math.min(k, items.length));
 
   // Concurrency limiter 3
