@@ -269,13 +269,21 @@ function computeStudyScore(study: CtgovStudy, profile: MinimalProfile): number {
 
   const locTokens = tokenize(ctLocation(study));
   const addlTokens = tokenize(profile.additionalInfo || "");
-  const locOverlap = intersectCount(locTokens, addlTokens);
-  const locScore = clamp(locOverlap * 3, 0, 10);
+  const pref = readLocationPref();
+  const prefTokens = tokenize(pref.loc || "");
+  const locOverlap = intersectCount(locTokens, addlTokens.concat(prefTokens));
+  const locScore = clamp(locOverlap * 5, 0, 15);
 
   const { breakdown } = computeProfileCompletion();
   const completenessBoost = Math.round((breakdown.healthProfile / 35) * 10);
 
-  return clamp(base + condition + locScore + completenessBoost, 0, 100);
+  return clamp(base + condition + ageLikeBoost(profile, study) + locScore + completenessBoost, 0, 100);
+}
+
+function ageLikeBoost(profile: MinimalProfile, study: CtgovStudy): number {
+  // Optional minor boost when age range seems compatible based on min/max present in study title/conditions
+  // This is a placeholder-neutral helper that returns 0 for now since CtGov light data here lacks min/max fields.
+  return 0;
 }
 
 export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<LiteTrial[]> {
