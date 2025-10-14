@@ -161,7 +161,7 @@ export default function Dashboard(): JSX.Element {
                 ))}
               </tbody>
             </table>
-            <Link to="/patients/eligible?offset=4" className="border-t px-4 py-3 block text-sm text-gray-600 hover:bg-gray-50">See more</Link>
+            <Link to="/patients/eligible?page=1" className="border-t px-4 py-3 block text-sm text-gray-600 hover:bg-gray-50">See more</Link>
           </div>
         </section>
       </main>
