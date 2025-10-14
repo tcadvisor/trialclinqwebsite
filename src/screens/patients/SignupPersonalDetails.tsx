@@ -68,7 +68,17 @@ export default function SignupPersonalDetails(): JSX.Element {
               </div>
               <div className="sm:col-span-2">
                 <label className="block text-sm font-medium">Primary Language Spoken<span className="text-red-500">*</span></label>
-                <input value={language} onChange={(e)=>setLanguage(e.target.value)} className="mt-2 w-full rounded-full border px-4 py-2" placeholder="e.g. English" required />
+                <select value={language} onChange={(e)=>setLanguage(e.target.value)} className="mt-2 w-full rounded-full border px-4 py-2" required>
+                  <option value="">Select language</option>
+                  {[
+                    "English",
+                    "Spanish",
+                    "French",
+                    "German",
+                    "Italian",
+                    "Portuguese",
+                  ].map((lng)=> (<option key={lng} value={lng}>{lng}</option>))}
+                </select>
               </div>
             </div>
           </div>
