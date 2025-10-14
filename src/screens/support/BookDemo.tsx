@@ -58,6 +58,7 @@ export default function BookDemo() {
           email,
           phone,
           affiliation,
+          comments,
           date,
           time,
           timezone: tz,
