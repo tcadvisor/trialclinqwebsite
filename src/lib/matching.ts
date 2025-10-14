@@ -21,6 +21,7 @@ export type LiteTrial = {
   interventions: string[];
   center: string;
   location: string;
+  aiRationale?: string;
 };
 
 const PROFILE_KEY = "tc_health_profile_v1";
