@@ -26,8 +26,8 @@ export async function geocodeLocPref(): Promise<{ lat?: number; lng?: number; ra
   const cache = readCache();
   if (cache[loc]) return { ...cache[loc], radius };
 
-  const url = (import.meta as any).env?.VITE_GEO_WEBHOOK_URL as string | undefined;
-  if (!url) return { radius };
+  const configured = (import.meta as any).env?.VITE_GEO_WEBHOOK_URL as string | undefined;
+  const url = configured || '/.netlify/functions/geocode';
 
   try {
     const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ q: loc }) });
