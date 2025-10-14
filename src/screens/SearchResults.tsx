@@ -111,6 +111,14 @@ export const SearchResults = (): JSX.Element => {
 
   const { isAuthenticated, user } = useAuth();
 
+  const calcTotalPages = React.useCallback((): number => {
+    const apiTotal = Math.ceil(((data?.totalCount || 0)) / pageSize);
+    if (apiTotal > 0) return apiTotal;
+    const keys = Object.keys(tokenMapRef.current).map((k) => parseInt(k, 10)).filter((n) => !isNaN(n));
+    const known = keys.length ? Math.max(...keys) : 1;
+    return Math.max(known, page + (data?.nextPageToken ? 1 : 0));
+  }, [data?.totalCount, data?.nextPageToken, pageSize, page]);
+
   return (
     <div className="flex flex-col w-full items-center relative bg-white">
       <HomeHeader />
@@ -319,7 +327,7 @@ export const SearchResults = (): JSX.Element => {
                     <ChevronDownIcon className="w-4 h-4 rotate-90" />
                   </Button>
                   {(() => {
-                    const total = Math.max(1, Math.ceil((data?.totalCount || 0) / pageSize));
+                    const total = calcTotalPages();
                     const maxButtons = 5;
                     const start = Math.max(1, Math.min(page - Math.floor(maxButtons / 2), total - maxButtons + 1));
                     const end = Math.min(total, start + maxButtons - 1);
@@ -383,7 +391,7 @@ export const SearchResults = (): JSX.Element => {
                 </div>
                 <div className="text-xs text-gray-500">
                   {(() => {
-                    const total = Math.max(1, Math.ceil((data?.totalCount || 0) / pageSize));
+                    const total = calcTotalPages();
                     return `Page ${page} of ${total}`;
                   })()}
                 </div>
