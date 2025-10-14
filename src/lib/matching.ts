@@ -301,18 +301,19 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
     'ACTIVE_NOT_RECRUITING',
   ];
 
+  const { loc } = readLocationPref();
   const fetchSet = async (query: string) => {
-    const results = await Promise.all(statuses.map((s) => fetchStudies({ q: query, status: s, pageSize })));
+    const results = await Promise.all(statuses.map((s) => fetchStudies({ q: query, status: s, pageSize, loc })));
     return results.flatMap((r) => r.studies || []);
   };
 
   let studies = await fetchSet(q);
   if (!studies || studies.length === 0) {
-    const r = await fetchStudies({ q, pageSize });
+    const r = await fetchStudies({ q, pageSize, loc });
     studies = r.studies || [];
   }
   if ((!studies || studies.length === 0) && q && q !== qPrimary) {
-    const r2 = await fetchStudies({ q: qPrimary, pageSize });
+    const r2 = await fetchStudies({ q: qPrimary, pageSize, loc });
     studies = r2.studies || [];
   }
   if (!studies) studies = [];
