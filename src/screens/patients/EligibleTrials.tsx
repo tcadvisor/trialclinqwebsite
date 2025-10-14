@@ -44,9 +44,15 @@ export default function EligibleTrials(): JSX.Element {
     );
   }, [query, base]);
 
-  // Simple one-page pagination for now; structure allows future extension
-  const page = 1;
-  const pageCount = 1;
+  // Pagination
+  const pageSize = 25;
+  const page = React.useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    const v = Number(params.get("page"));
+    return Number.isFinite(v) && v > 0 ? Math.floor(v) : 1;
+  }, [location.search]);
+  const pageCount = Math.max(1, Math.ceil(items.length / pageSize));
+  const pageItems = React.useMemo(() => items.slice((page - 1) * pageSize, page * pageSize), [items, page, pageSize]);
 
   const pill = (text: string, color: 'green' | 'violet') => (
     <span
@@ -91,7 +97,7 @@ export default function EligibleTrials(): JSX.Element {
               </tr>
             </thead>
             <tbody>
-              {items.slice(offset).map((t) => (
+              {pageItems.map((t) => (
                 <tr key={t.slug} className="border-t">
                   <td className="px-4 py-3">
                     <a href={`https://clinicaltrials.gov/study/${encodeURIComponent(t.nctId)}`} target="_blank" rel="noopener noreferrer" className="text-gray-900 hover:underline">
@@ -140,14 +146,22 @@ export default function EligibleTrials(): JSX.Element {
           </table>
           <div className="border-t px-4 py-3 flex items-center justify-between text-sm text-gray-600">
             <div className="flex items-center gap-2">
-              <button className="rounded-lg border px-3 py-1.5 hover:bg-gray-50" disabled>
+              <button
+                className="rounded-lg border px-3 py-1.5 hover:bg-gray-50 disabled:opacity-50"
+                onClick={() => { const p = Math.max(1, page - 1); const params = new URLSearchParams(location.search); params.set('page', String(p)); window.history.replaceState({}, '', `${location.pathname}?${params.toString()}`); }}
+                disabled={page <= 1}
+              >
                 Previous
               </button>
-              <button className="rounded-lg border px-3 py-1.5 hover:bg-gray-50" disabled>
+              <button
+                className="rounded-lg border px-3 py-1.5 hover:bg-gray-50 disabled:opacity-50"
+                onClick={() => { const p = Math.min(pageCount, page + 1); const params = new URLSearchParams(location.search); params.set('page', String(p)); window.history.replaceState({}, '', `${location.pathname}?${params.toString()}`); }}
+                disabled={page >= pageCount}
+              >
                 Next
               </button>
             </div>
-            <div>Page {page} of {pageCount}</div>
+            <div>Page {page} of {pageCount} · {items.length} matches</div>
           </div>
         </div>
       </main>
