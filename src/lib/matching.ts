@@ -303,6 +303,7 @@ function summarizeReason(study: CtgovStudy, profile: MinimalProfile): string {
   if (matched.length) pieces.push(`Matched on: ${matched.join(', ')}`);
   if (loc) pieces.push(`Site: ${loc}`);
   if (pref.loc) pieces.push(`Near: ${pref.loc}`);
+  if (pref.radius) pieces.push(`Within ${pref.radius}`);
   const s = pieces.join(" · ");
   return s.length > 160 ? s.slice(0, 157) + "..." : s;
 }
