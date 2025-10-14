@@ -77,6 +77,9 @@ function studyToText(study: CtgovStudy): string {
   const phases = study.protocolSection?.designModule?.phases || [];
   const loc = study.protocolSection?.contactsLocationsModule?.locations?.[0];
   const location = [loc?.city, loc?.state, loc?.country].filter(Boolean).join(', ');
+  const summary = (study as any)?.protocolSection?.descriptionModule?.briefSummary || '';
+  const criteria = (study as any)?.protocolSection?.eligibilityModule?.eligibilityCriteria || '';
+  const critShort = String(criteria).slice(0, 1200);
   return [
     `NCT: ${id}`,
     `Title: ${title}`,
@@ -84,7 +87,9 @@ function studyToText(study: CtgovStudy): string {
     `Conditions: ${conditions.join('; ')}`,
     `Phases: ${phases.join(', ')}`,
     `Location: ${location}`,
-  ].join('\n');
+    summary ? `Summary: ${summary}` : '',
+    critShort ? `Eligibility Criteria: ${critShort}` : '',
+  ].filter(Boolean).join('\n');
 }
 
 function isAiConfigured() {
@@ -161,11 +166,13 @@ export async function scoreStudyWithAI(nctId: string, profile: MinimalProfile, s
   const prompt = `Patient Profile\n${pText}\n\nTrial\n${sText}\n\nStrictly output JSON: {"score": 0-100 integer, "rationale": "<=160 chars"}. Score higher if inclusion likely and exclusion not triggered; reward location/age/gender fit.`;
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 20000);
+  const timeout = setTimeout(() => controller.abort(), 25000);
 
   let result: AiScoreResult | null = null;
-  const webhookUrl = (import.meta as any).env?.VITE_AI_SCORER_URL as string | undefined;
-  if (webhookUrl) result = await callWebhook(webhookUrl, { profile, nctId, study, prompt }, controller.signal);
+  const configuredUrl = (import.meta as any).env?.VITE_AI_SCORER_URL as string | undefined;
+  const defaultUrl = '/.netlify/functions/ai-scorer';
+  const webhookUrl = configuredUrl || defaultUrl;
+  result = await callWebhook(webhookUrl, { profile, nctId, study, prompt }, controller.signal);
   if (!result) result = await callOpenAI(prompt, controller.signal);
 
   clearTimeout(timeout);
