@@ -45,8 +45,7 @@ export default function BookDemo() {
   }
 
   async function sendViaWebhook(details: string) {
-    if (!WEBHOOK) return false;
-    const payload = JSON.stringify({
+    const payloadObj = {
       subject: "DEMO BOOKING",
       to: "chandler@trialcliniq.com",
       details,
@@ -58,37 +57,41 @@ export default function BookDemo() {
       date,
       time,
       timezone: tz,
-    });
+    };
 
-    // Try a normal fetch first
+    // First try a same-origin serverless proxy (recommended for CORS-free delivery).
     try {
-      const res = await fetch(WEBHOOK, {
+      const res = await fetch("/.netlify/functions/book-demo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payloadObj),
+      });
+      if (res.ok) return true;
+      // if 404, fall through to direct webhook attempt (useful in local dev)
+    } catch (err) {
+      // ignore and try direct webhook below
+    }
+
+    // If no serverless proxy available (local dev), fallback to direct webhook using the client-side env var.
+    if (!WEBHOOK) return false;
+    const payload = JSON.stringify(payloadObj);
+
+    // Try direct normal fetch first (may fail due to CORS)
+    try {
+      const res2 = await fetch(WEBHOOK, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: payload,
       });
-
-      // Some endpoints (like Zapier) may reject CORS but still accept the request when using an opaque request.
-      // If we get an opaque response (type === 'opaque'), treat that as success.
-      if (res.type === "opaqueredirect" || (res as any).type === "opaque" || res.type === "opaque") {
-        return true;
-      }
-
-      if (res.ok) return true;
+      if (res2.type === "opaqueredirect" || (res2 as any).type === "opaque" || res2.type === "opaque") return true;
+      if (res2.ok) return true;
     } catch (err) {
       // network or CORS error
     }
 
-    // Fallback: try sending as an opaque request (no-cors). This won't allow us to read the response,
-    // but the browser will attempt to send the request. Many webhook receivers (Zapier) will accept it.
+    // Try no-cors opaque request as a last resort
     try {
-      await fetch(WEBHOOK, {
-        method: "POST",
-        mode: "no-cors",
-        headers: { "Content-Type": "application/json" },
-        body: payload,
-      });
-      // If fetch didn't throw, assume it was sent.
+      await fetch(WEBHOOK, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: payload });
       return true;
     } catch (err) {
       return false;
