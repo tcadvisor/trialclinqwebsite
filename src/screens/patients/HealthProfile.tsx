@@ -788,6 +788,22 @@ export default function HealthProfile(): JSX.Element {
 
             <div className="mt-4 grid md:grid-cols-3 gap-4">
               <div>
+                <Section title="Travel Preferences">
+                  <div className="grid grid-cols-1 gap-3 text-sm">
+                    <label className="text-gray-700">Home location (City, State or ZIP)
+                      <input value={travelLoc} onChange={(e)=>setTravelLoc(e.target.value)} className="mt-1 w-full rounded-md border px-3 py-2" placeholder="e.g. 10001 or Buffalo, NY" />
+                    </label>
+                    <label className="text-gray-700">Travel radius
+                      <select value={travelRadius} onChange={(e)=>setTravelRadius(e.target.value)} className="mt-1 w-full rounded-md border px-3 py-2 bg-white">
+                        {["25mi","50mi","100mi","200mi"].map(r => <option key={r} value={r}>{r}</option>)}
+                      </select>
+                    </label>
+                    <div>
+                      <button onClick={saveTravelPrefs} className="inline-flex items-center gap-1 text-sm rounded-full bg-gray-900 text-white px-3 py-1.5">Save</button>
+                    </div>
+                  </div>
+                </Section>
+
                 <Section title="Medications" right={<div>{profile.medications.length === 0 && (<span className="text-red-600 text-xs">Required</span>)}</div>}>
                   <ul className="divide-y">
                     {profile.medications.map((m, i) => (
