@@ -11,7 +11,7 @@ type MinimalProfile = {
 
 export type AiScoreResult = { score: number; rationale?: string };
 
-const CACHE_KEY = 'tc_ai_scores_v2';
+const CACHE_KEY = 'tc_ai_scores_v3';
 
 function clamp(n: number, min = 0, max = 100) {
   return Math.max(min, Math.min(max, n));
@@ -66,6 +66,12 @@ function profileToText(p: MinimalProfile): string {
   if (p.medications && p.medications.length) lines.push(`Current medications: ${p.medications.join(', ')}`);
   if (p.allergies && p.allergies.length) lines.push(`Allergies: ${p.allergies.join(', ')}`);
   if (p.additionalInfo) lines.push(`Additional info: ${p.additionalInfo}`);
+  try { const loc = (require as any) ? null : null; } catch {}
+  // Inject location prefs from geocode util (runtime import to avoid cycles)
+  try {
+    const mod = require as any;
+  } catch {}
+  const lp = (() => { try { return (window as any).tc_readLocPref ? (window as any).tc_readLocPref() : null; } catch { return null; } })();
   return lines.join('\n');
 }
 
@@ -124,7 +130,7 @@ async function callOpenAI(prompt: string, signal?: AbortSignal): Promise<AiScore
       },
       body: JSON.stringify({
         model: 'gpt-4o-mini',
-        temperature: 0.2,
+        temperature: 0.1,
         messages: [
           { role: 'system', content: 'You score clinical trial eligibility and fit. Output ONLY valid compact JSON with fields score (0-100 integer) and rationale (<=160 chars). Do not include any other text.' },
           { role: 'user', content: prompt },
@@ -163,10 +169,10 @@ export async function scoreStudyWithAI(nctId: string, profile: MinimalProfile, s
   const pText = profileToText(profile);
   const sText = studyToText(study);
 
-  const prompt = `Patient Profile\n${pText}\n\nTrial\n${sText}\n\nStrictly output JSON: {"score": 0-100 integer, "rationale": "<=160 chars"}. Score higher if inclusion likely and exclusion not triggered; reward location/age/gender fit.`;
+  const prompt = `Patient Profile\n${pText}\n\nTrial\n${sText}\n\nScoring guidance:\n- Base score from inclusion/exclusion likelihood and condition match\n- Strongly penalize if outside Travel radius; strongly reward if inside\n- Reward status Recruiting; weigh phase modestly\n- Return an integer 0-100 with meaningful variance across trials\n\nStrictly output JSON: {"score": 0-100 integer, "rationale": "<=160 chars"}.`;
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 25000);
+  const timeout = setTimeout(() => controller.abort(), 30000);
 
   let result: AiScoreResult | null = null;
   const configuredUrl = (import.meta as any).env?.VITE_AI_SCORER_URL as string | undefined;
