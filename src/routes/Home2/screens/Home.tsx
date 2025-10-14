@@ -227,7 +227,7 @@ export default function Home() {
           </div>
           <h3 className="text-2xl font-semibold mb-4">See How TrialCliniq Can Optimize Your Recruitment</h3>
           <p className="text-gray-600 mb-6">Book a personalized demo and discover faster, data-driven trial enrollment.</p>
-          <Link to="/search-results" className="inline-flex items-center gap-2 rounded-full bg-gray-900 px-6 py-3 text-white hover:bg-black">Book a Demo <ArrowRight className="h-4 w-4" /></Link>
+          <Link to="/book-demo" className="inline-flex items-center gap-2 rounded-full bg-gray-900 px-6 py-3 text-white hover:bg-black">Book a Demo <ArrowRight className="h-4 w-4" /></Link>
         </div>
       </section>
 
