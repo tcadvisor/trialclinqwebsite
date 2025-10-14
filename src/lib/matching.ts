@@ -81,7 +81,21 @@ export function readCurrentHealthProfile(): MinimalProfile {
       additionalInfo = (p?.additionalInfo ? String(p.additionalInfo) : "").trim() || null;
     }
   } catch {}
-  if (age == null) age = parseAgeFromEligibility();
+  if (age == null) {
+    // Try DOB-based calc
+    age = parseAgeFromEligibility();
+    if (age == null) {
+      // Fallback: explicit age provided during signup personal details
+      try {
+        const raw = localStorage.getItem(ELIGIBILITY_KEY);
+        if (raw) {
+          const data = JSON.parse(raw) as Partial<Record<string, string>>;
+          const v = Number(data["age"]);
+          if (Number.isFinite(v)) age = v;
+        }
+      } catch {}
+    }
+  }
   return { age, gender, primaryCondition, medications, allergies, additionalInfo };
 }
 
