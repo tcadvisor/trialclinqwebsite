@@ -9,16 +9,18 @@ export default function SignupPersonalDetails(): JSX.Element {
   const [gender, setGender] = React.useState("");
   const [race, setRace] = React.useState("");
   const [language, setLanguage] = React.useState("");
+  const [loc, setLoc] = React.useState("");
+  const [radius, setRadius] = React.useState("50mi");
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!age || !weight || !gender || !race || !language) return;
+    if (!age || !weight || !gender || !race || !language || !loc) return;
     let prev: Record<string, unknown> = {};
     try {
       const raw = localStorage.getItem("tc_eligibility_profile");
       if (raw) prev = JSON.parse(raw) as Record<string, unknown>;
     } catch {}
-    const next = { ...prev, age, weight, gender, race, language };
+    const next = { ...prev, age, weight, gender, race, language, loc, radius };
     try { localStorage.setItem("tc_eligibility_profile", JSON.stringify(next)); } catch {}
     navigate("/patients/processing");
   }
