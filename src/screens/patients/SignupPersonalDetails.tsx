@@ -82,6 +82,18 @@ export default function SignupPersonalDetails(): JSX.Element {
                   ].map((lng)=> (<option key={lng} value={lng}>{lng}</option>))}
                 </select>
               </div>
+
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium">Your Location (City, State or ZIP)<span className="text-red-500">*</span></label>
+                <input value={loc} onChange={(e)=>setLoc(e.target.value)} className="mt-2 w-full rounded-full border px-4 py-2" placeholder="e.g. 10001 or Buffalo, NY" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium">Search Radius</label>
+                <select value={radius} onChange={(e)=>setRadius(e.target.value)} className="mt-2 w-full rounded-full border px-4 py-2">
+                  {["25mi","50mi","100mi","200mi"].map((r)=> (<option key={r} value={r}>{r}</option>))}
+                </select>
+              </div>
+              <div />
             </div>
           </div>
 
