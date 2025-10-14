@@ -303,18 +303,19 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
   ];
 
   const { loc } = readLocationPref();
+  const geo = await geocodeLocPref();
   const fetchSet = async (query: string) => {
-    const results = await Promise.all(statuses.map((s) => fetchStudies({ q: query, status: s, pageSize, loc })));
+    const results = await Promise.all(statuses.map((s) => fetchStudies({ q: query, status: s, pageSize, loc, lat: geo.lat, lng: geo.lng, radius: geo.radius })));
     return results.flatMap((r) => r.studies || []);
   };
 
   let studies = await fetchSet(q);
   if (!studies || studies.length === 0) {
-    const r = await fetchStudies({ q, pageSize, loc });
+    const r = await fetchStudies({ q, pageSize, loc, lat: geo.lat, lng: geo.lng, radius: geo.radius });
     studies = r.studies || [];
   }
   if ((!studies || studies.length === 0) && q && q !== qPrimary) {
-    const r2 = await fetchStudies({ q: qPrimary, pageSize, loc });
+    const r2 = await fetchStudies({ q: qPrimary, pageSize, loc, lat: geo.lat, lng: geo.lng, radius: geo.radius });
     studies = r2.studies || [];
   }
   if (!studies) studies = [];
