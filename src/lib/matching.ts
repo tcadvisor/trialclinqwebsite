@@ -47,6 +47,19 @@ function parseAgeFromEligibility(): number | null {
   }
 }
 
+function readLocationPref(): { loc: string; radius?: string } {
+  try {
+    const raw = localStorage.getItem(ELIGIBILITY_KEY);
+    if (!raw) return { loc: "" };
+    const data = JSON.parse(raw) as Partial<Record<string, string>>;
+    const loc = String(data["loc"] || "").trim();
+    const radius = String(data["radius"] || "").trim() || undefined;
+    return { loc, radius };
+  } catch {
+    return { loc: "" };
+  }
+}
+
 export function readCurrentHealthProfile(): MinimalProfile {
   let age: number | null = null;
   let gender: string | null = null;
