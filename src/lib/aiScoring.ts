@@ -129,7 +129,7 @@ async function callOpenAI(prompt: string, signal?: AbortSignal): Promise<AiScore
         'authorization': `Bearer ${key}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4o',
         temperature: 0.1,
         messages: [
           { role: 'system', content: 'You score clinical trial eligibility and fit. Output ONLY valid compact JSON with fields score (0-100 integer) and rationale (<=160 chars). Do not include any other text.' },
