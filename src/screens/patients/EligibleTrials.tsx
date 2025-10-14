@@ -91,9 +91,9 @@ export default function EligibleTrials(): JSX.Element {
                 <th className="px-4 py-3 font-medium">Trial ID</th>
                 <th className="px-4 py-3 font-medium">Trial Status</th>
                 <th className="px-4 py-3 font-medium">Trial Phase</th>
-                <th className="px-4 py-3 font-medium">Interventions</th>
                 <th className="px-4 py-3 font-medium">Compatibility Score</th>
-                <th className="px-4 py-3 font-medium"></th>
+                <th className="px-4 py-3 font-medium">Interventions</th>
+                <th className="px-4 py-3 font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -138,7 +138,7 @@ export default function EligibleTrials(): JSX.Element {
               {items.length === 0 && (
                 <tr>
                   <td colSpan={7} className="px-4 py-6 text-center text-gray-500">
-                    No trials match your search.
+                    No trials to show. Add your primary condition and location in your <a href="/patients/health-profile" className="underline">Health Profile</a> to get matches.
                   </td>
                 </tr>
               )}
