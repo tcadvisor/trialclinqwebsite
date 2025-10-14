@@ -39,6 +39,7 @@ export const SearchResults = (): JSX.Element => {
   const [page, setPage] = React.useState<number>(1);
   const [pageToken, setPageToken] = React.useState<string>("");
   const tokenMapRef = React.useRef<Record<number, string>>({ 1: "" });
+  const [activeQuery, setActiveQuery] = React.useState<{ qq: string; st?: string; lc?: string } | null>(null);
 
   const [data, setData] = React.useState<CtgovResponse | null>(null);
   const [loading, setLoading] = React.useState<boolean>(false);
@@ -52,31 +53,40 @@ export const SearchResults = (): JSX.Element => {
       try {
         const isNct = /^NCT\d{8}$/i.test(q.trim());
         let res: CtgovResponse = { studies: [] };
+        let used: { qq: string; st?: string; lc?: string } | null = null;
         if (isNct) {
           res = await fetchStudyByNctId(q.trim());
+          used = { qq: q.trim(), st: '', lc: '' };
         } else {
           const loose = buildLooseCondQuery(q);
           const attempts: Array<{ qq: string; st?: string; lc?: string }> = [];
           attempts.push({ qq: preparedQ, st: status, lc: preparedLoc });
           if (loose && loose !== preparedQ) attempts.push({ qq: loose, st: status, lc: preparedLoc });
           attempts.push({ qq: q.trim(), st: status, lc: preparedLoc });
-          // Drop status if needed
           attempts.push({ qq: preparedQ, st: '', lc: preparedLoc });
           attempts.push({ qq: loose || preparedQ || q.trim(), st: '', lc: preparedLoc });
-          // Drop location if still none
           attempts.push({ qq: preparedQ, st: '', lc: '' });
           attempts.push({ qq: loose || preparedQ || q.trim(), st: '', lc: '' });
 
-          for (const a of attempts) {
+          if (page > 1 || pageToken) {
+            const a = activeQuery || attempts[0];
+            used = a;
             res = await fetchStudies({ q: a.qq, status: a.st, type, loc: a.lc, pageSize, pageToken });
-            if ((res.studies || []).length > 0 || res.nextPageToken !== undefined) break;
+          } else {
+            for (const a of attempts) {
+              const r = await fetchStudies({ q: a.qq, status: a.st, type, loc: a.lc, pageSize, pageToken: "" });
+              res = r;
+              used = a;
+              if ((r.studies || []).length > 0 || r.nextPageToken !== undefined) break;
+            }
           }
         }
         if (!mounted) return;
         setData(res);
+        if (used) setActiveQuery(used);
         tokenMapRef.current[page] = pageToken;
-        if (res.nextPageToken !== undefined) {
-          tokenMapRef.current[page + 1] = res.nextPageToken || "";
+        if (res.nextPageToken) {
+          tokenMapRef.current[page + 1] = res.nextPageToken;
         }
       } catch (e: any) {
         if (!mounted) return;
@@ -92,13 +102,22 @@ export const SearchResults = (): JSX.Element => {
 
   React.useEffect(() => {
     tokenMapRef.current = { 1: "" };
+    setActiveQuery(null);
     setPage(1);
-    
+    setPageToken("");
   }, [preparedQ, preparedLoc, status, type, pageSize]);
 
   const studies = data?.studies ?? [];
 
   const { isAuthenticated, user } = useAuth();
+
+  const calcTotalPages = React.useCallback((): number => {
+    const apiTotal = Math.ceil(((data?.totalCount || 0)) / pageSize);
+    if (apiTotal > 0) return apiTotal;
+    const keys = Object.keys(tokenMapRef.current).map((k) => parseInt(k, 10)).filter((n) => !isNaN(n));
+    const known = keys.length ? Math.max(...keys) : 1;
+    return Math.max(known, page + (data?.nextPageToken ? 1 : 0));
+  }, [data?.totalCount, data?.nextPageToken, pageSize, page]);
 
   return (
     <div className="flex flex-col w-full items-center relative bg-white">
@@ -289,7 +308,7 @@ export const SearchResults = (): JSX.Element => {
               );
             })}
 
-            {!error && (data?.totalCount || 0) > 0 && (
+            {!error && (studies.length > 0 || data?.nextPageToken !== undefined || page > 1) && (
               <div className="flex flex-col items-center gap-2">
                 <div className="flex items-center gap-2">
                   <Button
@@ -308,7 +327,7 @@ export const SearchResults = (): JSX.Element => {
                     <ChevronDownIcon className="w-4 h-4 rotate-90" />
                   </Button>
                   {(() => {
-                    const total = Math.max(1, Math.ceil((data?.totalCount || 0) / pageSize));
+                    const total = calcTotalPages();
                     const maxButtons = 5;
                     const start = Math.max(1, Math.min(page - Math.floor(maxButtons / 2), total - maxButtons + 1));
                     const end = Math.min(total, start + maxButtons - 1);
@@ -327,12 +346,15 @@ export const SearchResults = (): JSX.Element => {
                               setPageToken(tokenMapRef.current[i] ?? "");
                               return;
                             }
+                            const aq = activeQuery || { qq: preparedQ, st: status, lc: preparedLoc };
                             let current = page;
                             let token = tokenMapRef.current[current] ?? "";
                             while (current < i) {
-                              const r = await fetchStudies({ q: preparedQ, status, type, loc: preparedLoc, pageSize, pageToken: token });
+                              const r = await fetchStudies({ q: aq.qq, status: aq.st, type, loc: aq.lc, pageSize, pageToken: token });
                               token = r.nextPageToken || "";
-                              tokenMapRef.current[current + 1] = token;
+                              if (r.nextPageToken) {
+                                tokenMapRef.current[current + 1] = r.nextPageToken;
+                              }
                               current += 1;
                               if (!r.nextPageToken) break;
                             }
@@ -353,13 +375,13 @@ export const SearchResults = (): JSX.Element => {
                         size="sm"
                         onClick={() => {
                           const nextToken = data?.nextPageToken;
-                          if (nextToken !== undefined) {
-                            tokenMapRef.current[page + 1] = nextToken || "";
+                          if (nextToken) {
+                            tokenMapRef.current[page + 1] = nextToken;
                             setPage(page + 1);
-                            setPageToken(nextToken || "");
+                            setPageToken(nextToken);
                           }
                         }}
-                        disabled={data?.nextPageToken === undefined}
+                        disabled={!data?.nextPageToken}
                         aria-label="Next page"
                       >
                         <ChevronDownIcon className="w-4 h-4 -rotate-90" />
@@ -369,7 +391,7 @@ export const SearchResults = (): JSX.Element => {
                 </div>
                 <div className="text-xs text-gray-500">
                   {(() => {
-                    const total = Math.max(1, Math.ceil((data?.totalCount || 0) / pageSize));
+                    const total = calcTotalPages();
                     return `Page ${page} of ${total}`;
                   })()}
                 </div>
