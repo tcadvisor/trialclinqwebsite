@@ -2,8 +2,9 @@ export function installClinicalMocks() {
   try {
     const w = window as any;
     if (w.__clinicalMocksInstalled) return;
-    // Enable by default; allow disabling by setting window.__enableClinicalMocks = false
-    const enabled = w.__enableClinicalMocks !== false;
+    // Enable only when explicitly turned on to avoid interfering with real network calls.
+    // Set window.__enableClinicalMocks = true in the console to enable mocks during local testing.
+    const enabled = w.__enableClinicalMocks === true;
     if (!enabled) return;
 
     const summarizePath = "/api/summarize";
