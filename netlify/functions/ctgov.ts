@@ -75,17 +75,28 @@ export const handler: Handler = async (event) => {
       }
       if (query.type) params.set('filter.studyType', query.type);
       if (query.q) params.set('query.cond', query.q);
-      if (query.loc) params.set('query.locn', query.loc);
       if (typeof query.lat === 'number' && typeof query.lng === 'number') {
         const r = query.radius || '50mi';
         params.set('filter.geo', `distance(${query.lat},${query.lng},${r})`);
+      } else if (query.loc) {
+        params.set('query.locn', query.loc);
       }
       if (typeof query.pageNumber === 'number' && query.pageNumber > 0) params.set('pageNumber', String(query.pageNumber));
       if (query.pageToken) params.set('pageToken', query.pageToken);
 
-      const url = `${CT_BASE}/studies?${params.toString()}`;
-      const res = await fetch(url);
+      let url = `${CT_BASE}/studies?${params.toString()}`;
+      let res = await fetch(url);
+      if (!res.ok && res.status === 404) {
+        // Fallback: retry without geo filter, using textual location if provided
+        const p2 = new URLSearchParams(params);
+        p2.delete('filter.geo');
+        if (query.loc && !p2.get('query.locn')) p2.set('query.locn', query.loc);
+        url = `${CT_BASE}/studies?${p2.toString()}`;
+        res = await fetch(url);
+      }
       if (!res.ok) {
+        // Gracefully degrade to empty set on 404/400 to avoid client errors
+        if (res.status === 404 || res.status === 400) return cors(200, { studies: [], totalCount: 0 });
         const text = await res.text().catch(() => '');
         return cors(res.status, { error: text || `HTTP ${res.status}` });
       }
