@@ -149,7 +149,7 @@ export default function Dashboard(): JSX.Element {
                 {items.slice(0, 4).map((t) => (
                   <tr key={t.slug} className="border-t hover:bg-gray-50/60 transition-colors">
                     <td className="px-4 py-3 align-top">
-                      <Link to={`/study/${t.nctId}`} className="text-gray-900 hover:underline line-clamp-2">
+                      <Link to={`/study/${t.nctId}`} state={{ score: t.aiScore, rationale: t.aiRationale || t.reason }} className="text-gray-900 hover:underline line-clamp-2">
                         {t.title}
                       </Link>
                       <div className="mt-1 text-xs text-gray-500 flex flex-wrap gap-2">
