@@ -106,6 +106,8 @@ function isAiConfigured() {
   return Boolean(url || key);
 }
 
+import { safeFetch } from './fetchUtils';
+
 async function callWebhook(url: string, payload: any, signal?: AbortSignal): Promise<AiScoreResult | null> {
   // Cache webhook health in localStorage to avoid repeated failing fetches that pollute logs.
   const key = 'tc_ai_webhook_status_v1';
