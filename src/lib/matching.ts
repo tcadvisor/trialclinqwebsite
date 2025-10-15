@@ -381,9 +381,8 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
 
   const candidateRadii = (r?: string): string[] => {
     const baseMi = parseRadiusMi(r);
-    const seq = [baseMi ?? 50, 200, 300, 500, 1000]
-      .filter((v, i, a) => typeof v === 'number' && Number.isFinite(v) && a.indexOf(v) === i)
-      .sort((a, b) => (a as number) - (b as number)) as number[];
+    if (typeof baseMi === 'number' && Number.isFinite(baseMi)) return [`${baseMi}mi`];
+    const seq = [50, 200, 300, 500, 1000];
     return seq.map((v) => `${v}mi`);
   };
 
@@ -479,11 +478,13 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
   }
 
   // Compute distance for tie-breaks using location geocoding (cached) without altering AI score
+  let radMiComputed: number | undefined;
   try {
     const user = await geocodeLocPref();
     const uLat = typeof user.lat === 'number' ? user.lat : undefined;
     const uLng = typeof user.lng === 'number' ? user.lng : undefined;
     const radMi = parseRadiusMi(user.radius);
+    radMiComputed = radMi;
     if (uLat != null && uLng != null) {
       const labels = Array.from(new Set(list.map((t) => (t.location || '').trim()).filter(Boolean)));
       const locMap = new Map<string, { lat: number; lng: number }>();
@@ -504,6 +505,15 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
       }
     }
   } catch {}
+
+  // If a travel radius is set, filter out trials beyond it when we could compute distance
+  if (typeof radMiComputed === 'number') {
+    const within = list.filter((t) => typeof t.distanceMi !== 'number' || (t.distanceMi as number) <= (radMiComputed as number));
+    if (within.length > 0) {
+      list.length = 0;
+      list.push(...within);
+    }
+  }
 
   // Sort by AI score desc; on ties prefer closer distance
   list.sort((a, b) => {
