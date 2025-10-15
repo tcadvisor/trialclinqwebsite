@@ -328,7 +328,7 @@ function summarizeReason(study: CtgovStudy, profile: MinimalProfile): string {
   return s.length > 160 ? s.slice(0, 157) + "..." : s;
 }
 
-function computeStudyScore(study: CtgovStudy, profile: MinimalProfile): number {
+export function computeStudyScore(study: CtgovStudy, profile: MinimalProfile): number {
   const title = study.protocolSection?.identificationModule?.briefTitle || "";
   const titleToks = tokenize(title);
   const studyConds = study.protocolSection?.conditionsModule?.conditions || [];
