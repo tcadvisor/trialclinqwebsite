@@ -1,6 +1,6 @@
 import { trials as staticTrials, type Trial } from "./trials";
 import { computeProfileCompletion } from "./profile";
-import { fetchStudies, type CtgovStudy } from "./ctgov";
+import { fetchStudies, fetchStudyByNctId, type CtgovStudy } from "./ctgov";
 import { geocodeLocPref, geocodeText } from "./geocode";
 
 export type MinimalProfile = {
@@ -394,16 +394,35 @@ function extractAgeRangeFromText(s: string): { min?: number; max?: number; maxEx
   return null;
 }
 
-function isAgeCompatible(userAge: number | null | undefined, s: CtgovStudy): boolean {
-  if (userAge == null || !Number.isFinite(userAge as number)) return true; // cannot enforce without age
+function extractGenderRestrictionFromText(s: string): 'male' | 'female' | null {
+  const t = (s || '').toLowerCase();
+  if (/(female|women|woman)\s*-?\s*only\b/.test(t) || /\bfemales?\s+only\b/.test(t)) return 'female';
+  if (/(male|men|man)\s*-?\s*only\b/.test(t) || /\bmales?\s+only\b/.test(t)) return 'male';
+  if (/women\sof\schild-bearing\s*potential|pregnan/i.test(t)) return 'female';
+  return null;
+}
+
+function isAgeCompatible(userAge: number | null | undefined, s: CtgovStudy, eligText?: string): boolean {
+  if (userAge == null || !Number.isFinite(userAge as number)) return true;
   const title = (s.protocolSection?.identificationModule?.briefTitle || '').toString();
-  const rng = extractAgeRangeFromText(title);
-  if (!rng) return true; // if unknown, do not filter
+  const combined = `${title}\n${eligText || ''}`;
+  const rng = extractAgeRangeFromText(combined);
+  if (!rng) return true;
   const a = userAge as number;
   if (rng.min != null && a < rng.min) return false;
-  if (rng.max != null) {
-    if (rng.maxExclusive ? a >= rng.max : a > rng.max) return false;
-  }
+  if (rng.max != null) { if (rng.maxExclusive ? a >= rng.max : a > rng.max) return false; }
+  return true;
+}
+
+function isGenderCompatible(userGender: string | null | undefined, s: CtgovStudy, eligText?: string): boolean {
+  const g = (userGender || '').toLowerCase();
+  if (!g) return true;
+  const title = (s.protocolSection?.identificationModule?.briefTitle || '').toString();
+  const combined = `${title}\n${eligText || ''}`;
+  const restr = extractGenderRestrictionFromText(combined);
+  if (!restr) return true;
+  if (restr === 'female' && !g.startsWith('fem')) return false;
+  if (restr === 'male' && !g.startsWith('male')) return false;
   return true;
 }
 
@@ -548,7 +567,32 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
     if (within.length > 0) { list.length = 0; list.push(...within); }
   }
 
-  list.sort((a, b) => {
+  // Strict eligibility enforcement for top results using detailed criteria (age + gender)
+  async function applyEligibilityGate(items: typeof list, topN: number): Promise<typeof list> {
+    const top = items.slice(0, Math.min(topN, items.length));
+    const chunks: typeof top[] = [];
+    for (let i = 0; i < top.length; i += 10) chunks.push(top.slice(i, i + 10));
+    const toRemove = new Set<string>();
+    for (const chunk of chunks) {
+      const details = await Promise.all(chunk.map(async (t) => {
+        try { return await fetchStudyByNctId(t.nctId); } catch { return { studies: [] as CtgovStudy[] }; }
+      }));
+      for (let i = 0; i < chunk.length; i++) {
+        const t = chunk[i];
+        const d = details[i];
+        const s = (d.studies && d.studies[0]) as CtgovStudy | undefined;
+        const elig = (s as any)?.protocolSection?.eligibilityModule?.eligibilityCriteria as string | undefined;
+        const okAge = isAgeCompatible(profile.age, s || ({} as CtgovStudy), elig);
+        const okGender = isGenderCompatible(profile.gender, s || ({} as CtgovStudy), elig);
+        if (!okAge || !okGender) toRemove.add(t.nctId);
+      }
+    }
+    return items.filter((t) => !toRemove.has(t.nctId));
+  }
+
+  const gated = await applyEligibilityGate(list, 40);
+
+  gated.sort((a, b) => {
     const s = (b.aiScore ?? 0) - (a.aiScore ?? 0);
     if (s !== 0) return s;
     const da = typeof a.distanceMi === 'number' ? a.distanceMi : Number.POSITIVE_INFINITY;
@@ -558,9 +602,9 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
 
   try {
     const { scoreTopKWithAI } = await import('./aiScoring');
-    const rescored = await scoreTopKWithAI(list, 15, profile);
+    const rescored = await scoreTopKWithAI(gated, 15, profile);
     return rescored;
   } catch {
-    return list;
+    return gated;
   }
 }
