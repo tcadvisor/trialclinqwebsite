@@ -78,7 +78,25 @@ export function readCurrentHealthProfile(): MinimalProfile {
       primaryCondition = (p?.primaryCondition ? String(p.primaryCondition) : "").trim() || null;
       if (Array.isArray(p?.medications)) medications = p.medications.map((m: any) => String(m?.name || "").toLowerCase()).filter(Boolean);
       if (Array.isArray(p?.allergies)) allergies = p.allergies.map((m: any) => String(m?.name || "").toLowerCase()).filter(Boolean);
-      additionalInfo = (p?.additionalInfo ? String(p.additionalInfo) : "").trim() || null;
+      const baseInfo = (p?.additionalInfo ? String(p.additionalInfo) : "").trim();
+      const extras: string[] = [];
+      if (p?.ecog) extras.push(`ECOG: ${p.ecog}`);
+      if (p?.diseaseStage) extras.push(`Stage/Subtype: ${p.diseaseStage}`);
+      if (p?.biomarkers) extras.push(`Biomarkers: ${p.biomarkers}`);
+      if (Array.isArray(p?.priorTherapies) && p.priorTherapies.length) {
+        const list = p.priorTherapies.map((t: any) => [t?.name, t?.date].filter(Boolean).join(' ')).filter(Boolean).join('; ');
+        if (list) extras.push(`Prior tx: ${list}`);
+      }
+      if (p?.comorbidityCardiac || p?.comorbidityRenal || p?.comorbidityHepatic || p?.comorbidityAutoimmune) {
+        const c = [p.comorbidityCardiac&&'cardiac', p.comorbidityRenal&&'renal', p.comorbidityHepatic&&'hepatic', p.comorbidityAutoimmune&&'autoimmune'].filter(Boolean).join(', ');
+        if (c) extras.push(`Comorbidities: ${c}`);
+      }
+      if (p?.infectionHIV || p?.infectionHBV || p?.infectionHCV) {
+        const inf = [p.infectionHIV&&'HIV', p.infectionHBV&&'HBV', p.infectionHCV&&'HCV'].filter(Boolean).join(', ');
+        if (inf) extras.push(`Infections: ${inf}`);
+      }
+      const combined = [baseInfo, extras.join('\n')].filter(Boolean).join('\n');
+      additionalInfo = combined || null;
     }
   } catch {}
   if (age == null) {
