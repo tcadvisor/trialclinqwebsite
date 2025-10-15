@@ -73,7 +73,31 @@ export default function Dashboard(): JSX.Element {
             <p className="mt-2 text-sm text-gray-600">
               You can quickly upload newly acquired medical records to make trial matches more specific
             </p>
-            <button className="mt-4 inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm hover:bg-gray-50">
+            <input
+              ref={(el) => { (window as any).__dashUploadRef = el; }}
+              type="file"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files && e.target.files[0];
+                if (!f) return;
+                try {
+                  const raw = localStorage.getItem("tc_docs");
+                  const list = raw ? (JSON.parse(raw) as any[]) : [];
+                  const id = `${Date.now()}_${Math.random().toString(36).slice(2)}`;
+                  const item = { id, name: f.name, type: f.type, size: f.size, uploadedAt: new Date().toISOString() };
+                  list.unshift(item);
+                  localStorage.setItem("tc_docs", JSON.stringify(list));
+                  try { window.dispatchEvent(new Event("storage")); } catch {}
+                  alert("File added to your records. For detailed summarization, use Health Profile > Documents.");
+                } catch {}
+                // reset input
+                try { (e.target as HTMLInputElement).value = ""; } catch {}
+              }}
+            />
+            <button
+              className="mt-4 inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm hover:bg-gray-50"
+              onClick={() => { const el = (window as any).__dashUploadRef as HTMLInputElement | undefined; el?.click(); }}
+            >
               Upload file
             </button>
           </div>
