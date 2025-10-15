@@ -433,6 +433,17 @@ export default function HealthProfile(): JSX.Element {
       allergies: [],
       medications: [],
       additionalInfo: "",
+      ecog: "",
+      diseaseStage: "",
+      biomarkers: "",
+      priorTherapies: [],
+      comorbidityCardiac: false,
+      comorbidityRenal: false,
+      comorbidityHepatic: false,
+      comorbidityAutoimmune: false,
+      infectionHIV: false,
+      infectionHBV: false,
+      infectionHCV: false,
     };
   });
 
