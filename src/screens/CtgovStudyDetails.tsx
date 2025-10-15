@@ -291,6 +291,19 @@ export default function CtgovStudyDetails(): JSX.Element {
               </CardContent>
             </Card>
 
+            {suggestions.length > 0 && (
+              <Card>
+                <CardContent className="p-6 space-y-3">
+                  <h2 className="text-lg font-semibold">To confirm eligibility</h2>
+                  <Separator />
+                  <ul className="list-disc pl-5 space-y-2 text-sm text-gray-700">
+                    {suggestions.map((s, i) => (<li key={i}>{s}</li>))}
+                  </ul>
+                  <div className="text-xs text-gray-500">Tip: update your <a className="underline" href="/patients/health-profile">Health Profile</a> so we can auto-check these.</div>
+                </CardContent>
+              </Card>
+            )}
+
             <Card>
               <CardContent className="p-6 space-y-4">
                 <h2 className="text-lg font-semibold">Eligibility</h2>
