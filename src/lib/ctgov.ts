@@ -96,8 +96,13 @@ export async function fetchStudies(query: CtgovQuery, _signal?: AbortSignal): Pr
       signal: _signal,
     });
     if (!res.ok) {
-      const text = await res.text().catch(() => '')
-      throw new Error(`HTTP ${res.status}${text ? `: ${text}` : ''}`)
+      console.warn('fetchStudies proxy returned non-OK', res.status)
+      try {
+        const body = await res.json().catch(() => null)
+        // If server returned an empty result set, normalize to empty response
+        if (body && (Array.isArray(body.studies) || body.totalCount === 0)) return body as CtgovResponse
+      } catch {}
+      return { studies: [] }
     }
     return (await res.json()) as CtgovResponse
   } catch (e: any) {
