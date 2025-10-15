@@ -421,24 +421,26 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
   // 1) Primary or additional-info query with geo+statuses
   let studies = await fetchSet(q, { withGeo: true, withStatuses: true });
 
-  // 2) If empty, try single call with geo+no statuses (broader)
+  const strictRadius = typeof (geo as any)?.lat === 'number' && typeof (geo as any)?.lng === 'number' && typeof parseRadiusMi(geo.radius) === 'number';
+
+  // 2) If empty, try single call with geo+no statuses (broader) unless strict radius is set
   if (!studies || studies.length === 0) {
-    studies = await fetchSet(q, { withGeo: true, withStatuses: false });
+    if (!strictRadius) studies = await fetchSet(q, { withGeo: true, withStatuses: false });
   }
 
-  // 3) If still empty, try loc-only (no geo) with statuses
+  // 3) If still empty, try loc-only (no geo) with statuses unless strict radius is set
   if (!studies || studies.length === 0) {
-    studies = await fetchSet(q, { withGeo: false, withStatuses: true });
+    if (!strictRadius) studies = await fetchSet(q, { withGeo: false, withStatuses: true });
   }
 
-  // 4) If still empty and additional-info query was used, try the primary condition explicitly
+  // 4) If still empty and additional-info query was used, try the primary condition explicitly (respect strict radius)
   if ((!studies || studies.length === 0) && q && q !== qPrimary) {
-    studies = await fetchSet(qPrimary || '', { withGeo: true, withStatuses: true });
+    studies = await fetchSet(qPrimary || '', { withGeo: !strictRadius ? true : true, withStatuses: true });
   }
 
-  // 5) As last resort, try loc-only with no statuses
+  // 5) As last resort, try loc-only with no statuses unless strict radius is set
   if (!studies || studies.length === 0) {
-    studies = await fetchSet(q, { withGeo: false, withStatuses: false });
+    if (!strictRadius) studies = await fetchSet(q, { withGeo: false, withStatuses: false });
   }
 
   if (!studies || studies.length === 0) {
