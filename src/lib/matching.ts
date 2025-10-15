@@ -1,7 +1,7 @@
 import { trials as staticTrials, type Trial } from "./trials";
 import { computeProfileCompletion } from "./profile";
 import { fetchStudies, type CtgovStudy } from "./ctgov";
-import { geocodeLocPref } from "./geocode";
+import { geocodeLocPref, geocodeText } from "./geocode";
 
 export type MinimalProfile = {
   age?: number | null;
@@ -478,22 +478,41 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
     });
   }
 
-  // Approximate proximity using token overlap to avoid per-trial geocoding network calls
+  // Compute distance for tie-breaks using location geocoding (cached) without altering AI score
   try {
     const user = await geocodeLocPref();
-    const userLabel = (user && (user.label || '')) || (readLocationPref().loc || '');
-    const userTokens = tokenize(userLabel);
-    for (const t of list) {
-      const locTokens = tokenize(t.location || '');
-      const overlap = intersectCount(locTokens, userTokens);
-      t.inRadius = overlap > 0;
-      const proximityBoost = overlap > 0 ? Math.min(30, overlap * 10) : 0; // small boost for token match
-      t.aiScore = clamp(t.aiScore + proximityBoost, 0, 100);
+    const uLat = typeof user.lat === 'number' ? user.lat : undefined;
+    const uLng = typeof user.lng === 'number' ? user.lng : undefined;
+    const radMi = parseRadiusMi(user.radius);
+    if (uLat != null && uLng != null) {
+      const labels = Array.from(new Set(list.map((t) => (t.location || '').trim()).filter(Boolean)));
+      const locMap = new Map<string, { lat: number; lng: number }>();
+      const geos = await Promise.all(labels.map(async (lbl) => [lbl, await geocodeText(lbl)] as const));
+      for (const [lbl, g] of geos) {
+        const glat = g && typeof g.lat === 'number' ? (g.lat as number) : undefined;
+        const glng = g && typeof g.lng === 'number' ? (g.lng as number) : undefined;
+        if (glat != null && glng != null) locMap.set(lbl, { lat: glat, lng: glng });
+      }
+      for (const t of list) {
+        const key = (t.location || '').trim();
+        const g = key ? locMap.get(key) : undefined;
+        if (g) {
+          const d = haversineMi(uLat, uLng, g.lat, g.lng);
+          t.distanceMi = Math.round(d);
+          t.inRadius = typeof radMi === 'number' ? d <= radMi : undefined;
+        }
+      }
     }
   } catch {}
 
-  // Sort strictly by AI score (we used token overlap to nudge nearby trials)
-  list.sort((a, b) => b.aiScore - a.aiScore);
+  // Sort by AI score desc; on ties prefer closer distance
+  list.sort((a, b) => {
+    const s = (b.aiScore ?? 0) - (a.aiScore ?? 0);
+    if (s !== 0) return s;
+    const da = typeof a.distanceMi === 'number' ? a.distanceMi : Number.POSITIVE_INFINITY;
+    const db = typeof b.distanceMi === 'number' ? b.distanceMi : Number.POSITIVE_INFINITY;
+    return da - db;
+  });
 
   // Try AI rescoring for the top 15 when an AI backend is configured; fallback silently otherwise
   try {
