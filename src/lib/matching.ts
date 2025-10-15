@@ -642,6 +642,23 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
 
   const gated = await applyEligibilityGate(list, 40);
 
+  // Location influence: boost nearby trials significantly; mildly penalize far ones
+  for (const t of gated) {
+    if (typeof (t as any).distanceMi === 'number') {
+      const d = (t as any).distanceMi as number;
+      let boost = 0;
+      if (typeof radMiComputed === 'number' && Number.isFinite(radMiComputed)) {
+        const r = radMiComputed as number;
+        if (d <= r) boost = 25 * (1 - d / r);
+        else boost = -15 * Math.min(2, (d - r) / r);
+      } else {
+        const dd = Math.min(500, d);
+        boost = 20 * (1 - dd / 500);
+      }
+      (t as any).aiScore = clamp(Math.round(((t as any).aiScore ?? 0) + boost), 0, 100);
+    }
+  }
+
   gated.sort((a, b) => {
     const s = (b.aiScore ?? 0) - (a.aiScore ?? 0);
     if (s !== 0) return s;
