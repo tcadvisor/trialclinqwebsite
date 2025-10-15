@@ -19,35 +19,32 @@ export function readLocPref(): { loc: string; radius?: string } {
   } catch { return { loc: '' }; }
 }
 
-export async function geocodeLocPref(): Promise<{ lat?: number; lng?: number; label?: string; radius?: string }> {
-  const { loc, radius } = readLocPref();
-  if (!loc) return { radius };
-
+export async function geocodeText(q: string): Promise<{ lat?: number; lng?: number; label?: string } | null> {
+  const key = q.trim();
+  if (!key) return null;
   const cache = readCache();
-  if (cache[loc]) return { ...cache[loc], radius };
+  if (cache[key]) return { ...cache[key] };
 
   const configured = (import.meta as any).env?.VITE_GEO_WEBHOOK_URL as string | undefined;
   const url = configured || '/.netlify/functions/geocode';
 
-  // attempt serverless first
   try {
-    const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ q: loc }) });
+    const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ q: key }) });
     if (res.ok) {
       const data = (await res.json()) as any;
       const lat = Number(data.lat);
       const lng = Number(data.lng);
       const label = typeof data.label === 'string' ? data.label : undefined;
       if (Number.isFinite(lat) && Number.isFinite(lng)) {
-        cache[loc] = { lat, lng, label };
+        cache[key] = { lat, lng, label };
         writeCache(cache);
-        return { lat, lng, label, radius };
+        return { lat, lng, label };
       }
     }
   } catch {}
 
-  // fallback 1: direct ZIP lookup (US)
   try {
-    const zip = String(loc).match(/^(\d{5})(?:-\d{4})?$/)?.[1];
+    const zip = String(key).match(/^(\d{5})(?:-\d{4})?$/)?.[1];
     if (zip) {
       const zres = await fetch(`https://api.zippopotam.us/us/${zip}`);
       if (zres.ok) {
@@ -59,17 +56,16 @@ export async function geocodeLocPref(): Promise<{ lat?: number; lng?: number; la
         const state = String(place?.["state abbreviation"] || place?.state || '').trim();
         const label = [city, state].filter(Boolean).join(', ');
         if (Number.isFinite(flat) && Number.isFinite(flng)) {
-          cache[loc] = { lat: flat, lng: flng, label };
+          cache[key] = { lat: flat, lng: flng, label };
           writeCache(cache);
-          return { lat: flat, lng: flng, label, radius };
+          return { lat: flat, lng: flng, label };
         }
       }
     }
   } catch {}
 
-  // fallback 2: direct Nominatim query (any string)
   try {
-    const params = new URLSearchParams({ format: 'jsonv2', limit: '1', q: loc });
+    const params = new URLSearchParams({ format: 'jsonv2', limit: '1', q: key });
     const nres = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`);
     if (nres.ok) {
       const arr = (await nres.json()) as Array<any>;
@@ -78,12 +74,23 @@ export async function geocodeLocPref(): Promise<{ lat?: number; lng?: number; la
       const flng = Number(first?.lon);
       const label = (first?.display_name || '').toString();
       if (Number.isFinite(flat) && Number.isFinite(flng)) {
-        cache[loc] = { lat: flat, lng: flng, label };
+        cache[key] = { lat: flat, lng: flng, label };
         writeCache(cache);
-        return { lat: flat, lng: flng, label, radius };
+        return { lat: flat, lng: flng, label };
       }
     }
   } catch {}
 
+  return null;
+}
+
+export async function geocodeLocPref(): Promise<{ lat?: number; lng?: number; label?: string; radius?: string }> {
+  const { loc, radius } = readLocPref();
+  if (!loc) return { radius };
+
+  const g = await geocodeText(loc);
+  if (g && Number.isFinite(g.lat as any) && Number.isFinite(g.lng as any)) {
+    return { ...g, radius };
+  }
   return { radius };
 }
