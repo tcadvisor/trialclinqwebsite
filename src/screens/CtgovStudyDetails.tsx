@@ -7,7 +7,7 @@ import { Separator } from "../components/ui/separator";
 import { Loader2, MapPinIcon, ArrowLeft } from "lucide-react";
 import { fetchStudyByNctId, CtgovStudy, formatNearestSitePreview } from "../lib/ctgov";
 import { Button } from "../components/ui/button";
-import { readCurrentHealthProfile } from "../lib/matching";
+import { readCurrentHealthProfile, computeStudyScore } from "../lib/matching";
 
 function splitParagraphs(text: string): string[] {
   const t = String(text || "").replace(/\r/g, "").trim();
@@ -74,8 +74,8 @@ function parseEligibility(raw: string): { inclusion: string[]; exclusion: string
 }
 
 function ScoreRing({ value }: { value: number }) {
-  const size = 56;
-  const stroke = 8;
+  const size = 84;
+  const stroke = 10;
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   const pct = Math.max(0, Math.min(100, Math.round(value)));
@@ -128,12 +128,13 @@ export default function CtgovStudyDetails(): JSX.Element {
   const nearest = study ? formatNearestSitePreview(study) : "";
 
   React.useEffect(() => {
-    // Compute AI match score for this study using current profile
+    // Compute baseline (dashboard) score immediately; then try AI rescoring
     let canceled = false;
     (async () => {
       try {
         if (!nctId || !study) { setAiScore(null); setAiWhy(""); return; }
         const profile = readCurrentHealthProfile();
+        try { setAiScore(computeStudyScore(study, profile)); } catch {}
         try {
           const { scoreStudyWithAI } = await import('../lib/aiScoring');
           const res = await scoreStudyWithAI(nctId, profile);
@@ -186,7 +187,7 @@ export default function CtgovStudyDetails(): JSX.Element {
                 <div className="flex items-center gap-3">
                   <div className="text-center">
                     <ScoreRing value={aiScore ?? 0} />
-                    <div className="mt-1 text-[11px] text-gray-600">Match score</div>
+                    <div className="mt-1 text-xs text-gray-700">Match score</div>
                   </div>
                 </div>
               </div>
