@@ -510,6 +510,7 @@ export default function HealthProfile(): JSX.Element {
   // Edit toggles
   const [editingPersonal, setEditingPersonal] = useState(false);
   const [editingHealth, setEditingHealth] = useState(false);
+  const [editingClinical, setEditingClinical] = useState(false);
   const [editingAdditional, setEditingAdditional] = useState(false);
 
   // Add forms state
@@ -517,6 +518,8 @@ export default function HealthProfile(): JSX.Element {
   const [newAllergy, setNewAllergy] = useState<Allergy>({ name: "", reaction: "", severity: undefined, note: "" });
   const [addingMedication, setAddingMedication] = useState(false);
   const [newMedication, setNewMedication] = useState<Medication>({ name: "", dose: "", amountDaily: "", schedule: "" });
+  const [addingTherapy, setAddingTherapy] = useState(false);
+  const [newTherapy, setNewTherapy] = useState<PriorTherapy>({ name: "", date: "" });
 
   // Travel preferences (stored in eligibility profile)
   const [travelLoc, setTravelLoc] = useState<string>(() => {
