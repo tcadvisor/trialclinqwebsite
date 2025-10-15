@@ -74,10 +74,11 @@ export function buildStudiesUrl({ q = '', status = '', type = '', loc = '', lat,
   }
   if (type) params.set('filter.studyType', type)
   if (q) params.set('query.cond', q)
-  if (loc) params.set('query.locn', loc)
   if (typeof lat === 'number' && typeof lng === 'number') {
     const r = radius || '50mi'
     params.set('filter.geo', `distance(${lat},${lng},${r})`)
+  } else if (loc) {
+    params.set('query.locn', loc)
   }
   if (typeof pageNumber === 'number' && pageNumber > 0) params.set('pageNumber', String(pageNumber))
   if (pageToken) params.set('pageToken', pageToken)
