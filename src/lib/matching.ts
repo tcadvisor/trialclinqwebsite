@@ -1,7 +1,7 @@
 import { trials as staticTrials, type Trial } from "./trials";
 import { computeProfileCompletion } from "./profile";
 import { fetchStudies, type CtgovStudy } from "./ctgov";
-import { geocodeLocPref } from "./geocode";
+import { geocodeLocPref, geocodeText } from "./geocode";
 
 export type MinimalProfile = {
   age?: number | null;
@@ -78,7 +78,25 @@ export function readCurrentHealthProfile(): MinimalProfile {
       primaryCondition = (p?.primaryCondition ? String(p.primaryCondition) : "").trim() || null;
       if (Array.isArray(p?.medications)) medications = p.medications.map((m: any) => String(m?.name || "").toLowerCase()).filter(Boolean);
       if (Array.isArray(p?.allergies)) allergies = p.allergies.map((m: any) => String(m?.name || "").toLowerCase()).filter(Boolean);
-      additionalInfo = (p?.additionalInfo ? String(p.additionalInfo) : "").trim() || null;
+      const baseInfo = (p?.additionalInfo ? String(p.additionalInfo) : "").trim();
+      const extras: string[] = [];
+      if (p?.ecog) extras.push(`ECOG: ${p.ecog}`);
+      if (p?.diseaseStage) extras.push(`Stage/Subtype: ${p.diseaseStage}`);
+      if (p?.biomarkers) extras.push(`Biomarkers: ${p.biomarkers}`);
+      if (Array.isArray(p?.priorTherapies) && p.priorTherapies.length) {
+        const list = p.priorTherapies.map((t: any) => [t?.name, t?.date].filter(Boolean).join(' ')).filter(Boolean).join('; ');
+        if (list) extras.push(`Prior tx: ${list}`);
+      }
+      if (p?.comorbidityCardiac || p?.comorbidityRenal || p?.comorbidityHepatic || p?.comorbidityAutoimmune) {
+        const c = [p.comorbidityCardiac&&'cardiac', p.comorbidityRenal&&'renal', p.comorbidityHepatic&&'hepatic', p.comorbidityAutoimmune&&'autoimmune'].filter(Boolean).join(', ');
+        if (c) extras.push(`Comorbidities: ${c}`);
+      }
+      if (p?.infectionHIV || p?.infectionHBV || p?.infectionHCV) {
+        const inf = [p.infectionHIV&&'HIV', p.infectionHBV&&'HBV', p.infectionHCV&&'HCV'].filter(Boolean).join(', ');
+        if (inf) extras.push(`Infections: ${inf}`);
+      }
+      const combined = [baseInfo, extras.join('\n')].filter(Boolean).join('\n');
+      additionalInfo = combined || null;
     }
   } catch {}
   if (age == null) {
@@ -230,9 +248,11 @@ function pickPhase(study: CtgovStudy): string {
 }
 
 function ctStatus(study: CtgovStudy): string {
-  const s = study.protocolSection?.statusModule?.overallStatus || "";
-  if (/recruit/i.test(s)) return "Recruiting";
-  return s || "";
+  const raw = (study.protocolSection?.statusModule?.overallStatus || "").toString();
+  const up = raw.toUpperCase();
+  if (up === 'RECRUITING') return 'Recruiting';
+  if (up === 'ENROLLING_BY_INVITATION') return 'Enrolling by invitation';
+  return raw || '';
 }
 
 function ctLocation(study: CtgovStudy): string {
@@ -353,33 +373,94 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
   const statuses = [
     'RECRUITING',
     'ENROLLING_BY_INVITATION',
-    'NOT_YET_RECRUITING',
-    'ACTIVE_NOT_RECRUITING',
   ];
 
   const { loc } = readLocationPref();
-  const geo = await geocodeLocPref();
-  const fetchSet = async (query: string) => {
-    const results = await Promise.all(statuses.map((s) => fetchStudies({ q: query, status: s, pageSize, loc, lat: geo.lat, lng: geo.lng, radius: geo.radius })));
-    return results.flatMap((r) => r.studies || []);
+  let geo: any = {};
+  try {
+    geo = (await geocodeLocPref()) || {};
+  } catch (e) {
+    geo = {};
+  }
+  const locText = (geo as any)?.label || loc;
+
+  const candidateRadii = (r?: string): string[] => {
+    const baseMi = parseRadiusMi(r);
+    if (typeof baseMi === 'number' && Number.isFinite(baseMi)) return [`${baseMi}mi`];
+    const seq = [50, 200, 300, 500, 1000];
+    return seq.map((v) => `${v}mi`);
   };
 
-  let studies = await fetchSet(q);
+  const fetchSet = async (query: string, opts: { withGeo?: boolean; withStatuses?: boolean } = { withGeo: true, withStatuses: true }) => {
+    const base = { q: query, pageSize } as any;
+    if (opts.withGeo && typeof geo.lat === 'number' && typeof geo.lng === 'number') {
+      base.loc = locText;
+      // Try with selected radius, then expand progressively if no results
+      const radii = candidateRadii(geo.radius);
+      for (const rStr of radii) {
+        const withGeo = { ...base, lat: geo.lat, lng: geo.lng, radius: rStr } as any;
+        if (opts.withStatuses) {
+          const results = await Promise.all(statuses.map((s) => fetchStudies({ ...withGeo, status: s })));
+          const flat = results.flatMap((r) => r.studies || []);
+          if (flat.length > 0) return flat;
+        } else {
+          const r = await fetchStudies(withGeo);
+          const studies = r.studies || [];
+          if (studies.length > 0) return studies;
+        }
+      }
+      // If nothing found even at max radius, fall back to no-geo handling below
+    }
+
+    // No geo available or nothing found with geo: use textual location only
+    base.loc = locText;
+    if (opts.withStatuses) {
+      const results = await Promise.all(statuses.map((s) => fetchStudies({ ...base, status: s })));
+      return results.flatMap((r) => r.studies || []);
+    } else {
+      const r = await fetchStudies(base);
+      return r.studies || [];
+    }
+  };
+
+  // 1) Primary or additional-info query with geo+statuses
+  let studies = await fetchSet(q, { withGeo: true, withStatuses: true });
+
+  const strictRadius = typeof (geo as any)?.lat === 'number' && typeof (geo as any)?.lng === 'number' && typeof parseRadiusMi(geo.radius) === 'number';
+
+  // 2) If empty, try single call with geo+no statuses (broader) unless strict radius is set
   if (!studies || studies.length === 0) {
-    const r = await fetchStudies({ q, pageSize, loc, lat: geo.lat, lng: geo.lng, radius: geo.radius });
-    studies = r.studies || [];
+    if (!strictRadius) studies = await fetchSet(q, { withGeo: true, withStatuses: false });
   }
+
+  // 3) If still empty, try loc-only (no geo) with statuses unless strict radius is set
+  if (!studies || studies.length === 0) {
+    if (!strictRadius) studies = await fetchSet(q, { withGeo: false, withStatuses: true });
+  }
+
+  // 4) If still empty and additional-info query was used, try the primary condition explicitly (respect strict radius)
   if ((!studies || studies.length === 0) && q && q !== qPrimary) {
-    const r2 = await fetchStudies({ q: qPrimary, pageSize, loc, lat: geo.lat, lng: geo.lng, radius: geo.radius });
-    studies = r2.studies || [];
+    studies = await fetchSet(qPrimary || '', { withGeo: !strictRadius ? true : true, withStatuses: true });
+  }
+
+  // 5) As last resort, try loc-only with no statuses unless strict radius is set
+  if (!studies || studies.length === 0) {
+    if (!strictRadius) studies = await fetchSet(q, { withGeo: false, withStatuses: false });
+  }
+
+  if (!studies || studies.length === 0) {
+    // Final fallback: show any recruiting trials near user regardless of condition
+    studies = await fetchSet('', { withGeo: true, withStatuses: true });
   }
   if (!studies) studies = [];
 
   const seen = new Set<string>();
-  const list: LiteTrial[] = [];
+  const list: (LiteTrial & { distanceMi?: number; inRadius?: boolean })[] = [];
   for (const s of studies) {
     const nct = s.protocolSection?.identificationModule?.nctId || "";
     if (!nct || seen.has(nct)) continue;
+    const overall = (s.protocolSection?.statusModule?.overallStatus || '').toString().toUpperCase();
+    if (overall !== 'RECRUITING' && overall !== 'ENROLLING_BY_INVITATION') continue; // recruiting-only
     seen.add(nct);
     const title = s.protocolSection?.identificationModule?.briefTitle || nct;
     const status = ctStatus(s);
@@ -403,7 +484,59 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
     });
   }
 
-  list.sort((a, b) => b.aiScore - a.aiScore);
+  // Compute distance for tie-breaks using location geocoding (cached) without altering AI score
+  let radMiComputed: number | undefined;
+  try {
+    const user = await geocodeLocPref();
+    const uLat = typeof user.lat === 'number' ? user.lat : undefined;
+    const uLng = typeof user.lng === 'number' ? user.lng : undefined;
+    const radMi = parseRadiusMi(user.radius);
+    radMiComputed = radMi;
+    if (uLat != null && uLng != null) {
+      const labels = Array.from(new Set(list.map((t) => (t.location || '').trim()).filter(Boolean)));
+      const locMap = new Map<string, { lat: number; lng: number }>();
+      const geos = await Promise.all(labels.map(async (lbl) => {
+        try {
+          const g = await geocodeText(lbl);
+          return [lbl, g] as const;
+        } catch (e) {
+          return [lbl, null] as const;
+        }
+      }));
+      for (const [lbl, g] of geos) {
+        const glat = g && typeof g.lat === 'number' ? (g.lat as number) : undefined;
+        const glng = g && typeof g.lng === 'number' ? (g.lng as number) : undefined;
+        if (glat != null && glng != null) locMap.set(lbl, { lat: glat, lng: glng });
+      }
+      for (const t of list) {
+        const key = (t.location || '').trim();
+        const g = key ? locMap.get(key) : undefined;
+        if (g) {
+          const d = haversineMi(uLat, uLng, g.lat, g.lng);
+          t.distanceMi = Math.round(d);
+          t.inRadius = typeof radMi === 'number' ? d <= radMi : undefined;
+        }
+      }
+    }
+  } catch {}
+
+  // If a travel radius is set, filter out trials beyond it when we could compute distance
+  if (typeof radMiComputed === 'number') {
+    const within = list.filter((t) => typeof t.distanceMi !== 'number' || (t.distanceMi as number) <= (radMiComputed as number));
+    if (within.length > 0) {
+      list.length = 0;
+      list.push(...within);
+    }
+  }
+
+  // Sort by AI score desc; on ties prefer closer distance
+  list.sort((a, b) => {
+    const s = (b.aiScore ?? 0) - (a.aiScore ?? 0);
+    if (s !== 0) return s;
+    const da = typeof a.distanceMi === 'number' ? a.distanceMi : Number.POSITIVE_INFINITY;
+    const db = typeof b.distanceMi === 'number' ? b.distanceMi : Number.POSITIVE_INFINITY;
+    return da - db;
+  });
 
   // Try AI rescoring for the top 15 when an AI backend is configured; fallback silently otherwise
   try {

@@ -48,8 +48,8 @@ export default function CtgovStudyDetails(): JSX.Element {
       <HomeHeader />
       <main className="w-full max-w-[1000px] px-4 py-8">
         <div className="flex items-center gap-2 mb-6 text-sm text-gray-600">
-          <Link to="/search-results" className="inline-flex items-center gap-1 text-blue-700 hover:underline">
-            <ArrowLeft className="w-4 h-4" /> Back to results
+          <Link to="/patients/dashboard" className="inline-flex items-center gap-1 text-blue-700 hover:underline">
+            <ArrowLeft className="w-4 h-4" /> Back to dashboard
           </Link>
         </div>
 
@@ -61,6 +61,10 @@ export default function CtgovStudyDetails(): JSX.Element {
 
         {!loading && error && (
           <div className="p-6 border border-red-200 bg-red-50 text-red-800 rounded-md">{error}</div>
+        )}
+
+        {!loading && !error && !study && (
+          <div className="p-6 border rounded-md text-gray-600">Study not found or unavailable right now.</div>
         )}
 
         {!loading && !error && study && (
@@ -85,8 +89,6 @@ export default function CtgovStudyDetails(): JSX.Element {
                 <h2 className="text-lg font-semibold">Overview</h2>
                 <Separator />
                 <div className="text-sm text-gray-700">
-                  {/* Brief summary if present */}
-                  {/* We requested descriptionModule.briefSummary in fields; render if available via optional chaining */}
                   {(study as any)?.protocolSection?.descriptionModule?.briefSummary || "No summary available."}
                 </div>
               </CardContent>
