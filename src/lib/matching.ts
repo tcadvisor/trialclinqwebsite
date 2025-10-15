@@ -490,7 +490,14 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
     if (uLat != null && uLng != null) {
       const labels = Array.from(new Set(list.map((t) => (t.location || '').trim()).filter(Boolean)));
       const locMap = new Map<string, { lat: number; lng: number }>();
-      const geos = await Promise.all(labels.map(async (lbl) => [lbl, await geocodeText(lbl)] as const));
+      const geos = await Promise.all(labels.map(async (lbl) => {
+        try {
+          const g = await geocodeText(lbl);
+          return [lbl, g] as const;
+        } catch (e) {
+          return [lbl, null] as const;
+        }
+      }));
       for (const [lbl, g] of geos) {
         const glat = g && typeof g.lat === 'number' ? (g.lat as number) : undefined;
         const glng = g && typeof g.lng === 'number' ? (g.lng as number) : undefined;
