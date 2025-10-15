@@ -133,6 +133,16 @@ export function ctgovStudyDetailUrl(study: CtgovStudy): string {
   return nct ? `https://clinicaltrials.gov/study/${nct}` : '#'
 }
 
+function normalizeStudyResponse(json: any): CtgovResponse {
+  try {
+    if (!json) return { studies: [] };
+    if (Array.isArray(json.studies)) return json as CtgovResponse;
+    if (json.study) return { studies: [json.study] } as CtgovResponse;
+    if (json.protocolSection) return { studies: [json] } as CtgovResponse;
+  } catch {}
+  return { studies: [] };
+}
+
 export async function fetchStudyByNctId(nctId: string, _signal?: AbortSignal): Promise<CtgovResponse> {
   try {
     const proxy = (import.meta as any).env?.VITE_CT_PROXY_URL as string | undefined || '/.netlify/functions/ctgov';
@@ -158,16 +168,20 @@ export async function fetchStudyByNctId(nctId: string, _signal?: AbortSignal): P
           ].join(',');
           const url = `https://clinicaltrials.gov/api/v2/studies/${encodeURIComponent(nctId)}?format=json&fields=${encodeURIComponent(fields)}`;
           const direct = await fetch(url, { method: 'GET', signal: _signal });
-          if (direct.ok) return (await direct.json()) as CtgovResponse;
+          if (direct.ok) {
+            const dj = await direct.json();
+            return normalizeStudyResponse(dj);
+          }
         } catch {}
       }
       try {
-        const body = await res.json().catch(() => null)
-        if (body && Array.isArray(body.studies)) return body as CtgovResponse
+        const body = await res.json().catch(() => null);
+        if (body) return normalizeStudyResponse(body);
       } catch {}
-      return { studies: [] }
+      return { studies: [] };
     }
-    return (await res.json()) as CtgovResponse
+    const j = await res.json();
+    return normalizeStudyResponse(j);
   } catch (e: any) {
     try {
       const fields = [
@@ -183,7 +197,10 @@ export async function fetchStudyByNctId(nctId: string, _signal?: AbortSignal): P
       ].join(',');
       const url = `https://clinicaltrials.gov/api/v2/studies/${encodeURIComponent(nctId)}?format=json&fields=${encodeURIComponent(fields)}`;
       const direct = await fetch(url, { method: 'GET', signal: _signal });
-      if (direct.ok) return (await direct.json()) as CtgovResponse;
+      if (direct.ok) {
+        const dj = await direct.json();
+        return normalizeStudyResponse(dj);
+      }
     } catch {}
     return { studies: [] }
   }
