@@ -442,6 +442,10 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
     studies = await fetchSet(q, { withGeo: false, withStatuses: false });
   }
 
+  if (!studies || studies.length === 0) {
+    // Final fallback: show any recruiting trials near user regardless of condition
+    studies = await fetchSet('', { withGeo: true, withStatuses: true });
+  }
   if (!studies) studies = [];
 
   const seen = new Set<string>();
