@@ -373,7 +373,6 @@ function ageLikeBoost(profile: MinimalProfile, study: CtgovStudy): number {
 
 function extractAgeRangeFromText(s: string): { min?: number; max?: number; maxExclusive?: boolean } | null {
   const text = (s || '').toLowerCase();
-  // Patterns like "2 to less than 12 years"
   let m = text.match(/(\d{1,3})\s*(?:to|–|-|—)\s*(?:less\s+than\s*)?(\d{1,3})\s*(?:years?|yrs?|yo)\b/);
   if (m) {
     const min = Number(m[1]);
@@ -381,17 +380,60 @@ function extractAgeRangeFromText(s: string): { min?: number; max?: number; maxEx
     const maxExclusive = /less\s+than\s*\d{1,3}\s*(?:years?|yrs?|yo)\b/.test(text.slice(m.index || 0, (m.index || 0) + m[0].length));
     return { min: Number.isFinite(min) ? min : undefined, max: Number.isFinite(max) ? max : undefined, maxExclusive };
   }
-  // "18 years and older"
   m = text.match(/(\d{1,3})\s*(?:years?|yrs?|yo)\s*(?:and\s*older|and\s*over|or\s*older)\b/);
   if (m) { const min = Number(m[1]); return { min: Number.isFinite(min) ? min : undefined }; }
-  // "under 18 years" or "less than 12 years"
   m = text.match(/(?:under|less\s*than)\s*(\d{1,3})\s*(?:years?|yrs?|yo)\b/);
   if (m) { const max = Number(m[1]); return { max: Number.isFinite(max) ? max : undefined, maxExclusive: true }; }
-  // Category keywords
   if (/\b(pediatric|child|children|infant|adolescent)s?\b/.test(text)) return { max: 17, maxExclusive: false };
   if (/\bolder\s+adult|elderly|senior\b/.test(text)) return { min: 65 };
   if (/\badult(s)?\b/.test(text) && !/\b(child|children|pediatric)\b/.test(text)) return { min: 18 };
   return null;
+}
+
+function hasAny(src: string, terms: string[]): boolean {
+  const t = (src || '').toLowerCase();
+  return terms.some((x) => t.includes(x.toLowerCase()));
+}
+
+function evaluateAdvancedEligibility(profile: MinimalProfile, study: CtgovStudy, eligText?: string): { ok: boolean; reason?: string } {
+  const info = (profile.additionalInfo || '').toLowerCase();
+  const meds = (profile.medications || []).map((m) => String(m).toLowerCase());
+  const combined = `${(study.protocolSection?.identificationModule?.briefTitle || '').toLowerCase()}\n${(eligText || '').toLowerCase()}`;
+
+  // Required planned elective HPB/colorectal surgery
+  const requiresElectiveSx = /(planned|schedule[rd])\s+(elective\s+)?(hepato|hepatobiliary|hepato[-\s]?pancreato[-\s]?biliary|pancreatic|colorectal)/.test(combined);
+  if (requiresElectiveSx) {
+    const hasSignal = hasAny(info, ['planned surgery', 'elective surgery', 'hepato', 'hepatobiliary', 'pancreat', 'colorectal', 'colectomy', 'whipple', 'hepatectomy']);
+    if (!hasSignal) return { ok: false, reason: 'No qualifying elective HPB/colorectal surgery planned' };
+  }
+
+  // Exclude daily PDE5 inhibitors
+  const pde5Terms = ['sildenafil', 'tadalafil', 'vardenafil', 'avanafil', 'pde5'];
+  if (hasAny(combined, ['pde5', 'phosphodiesterase'])) {
+    if (meds.some((m) => pde5Terms.some((k) => m.includes(k)))) return { ok: false, reason: 'Daily PDE5 inhibitor' };
+  }
+
+  // Exclude tamsulosin at baseline if mentioned
+  if (hasAny(combined, ['tamsulosin therapy as a home medication', 'on tamsulosin at baseline', 'tamsulosin at baseline'])) {
+    if (meds.some((m) => m.includes('tamsulosin') || m.includes('flomax'))) return { ok: false, reason: 'On tamsulosin at baseline' };
+  }
+
+  // GU procedure exclusions
+  if (hasAny(combined, ['genitourinary', 'gu procedure', 'urology procedure', 'prostate', 'bladder', 'ureter', 'kidney'])) {
+    if (hasAny(info, ['prostate surgery', 'cystectomy', 'bladder surgery', 'ureter', 'nephrectomy', 'urology procedure'])) return { ok: false, reason: 'GU procedure planned' };
+  }
+
+  // Same-day Foley removal exclusion
+  if (hasAny(combined, ['same day foley removal', 'remove foley on day of surgery', 'pod0'])) {
+    if (hasAny(info, ['same day foley', 'pod0 foley removal', 'immediate catheter removal'])) return { ok: false, reason: 'Same-day Foley removal planned' };
+  }
+
+  // NG tube retention POD1 exclusion
+  if (hasAny(combined, ['ng tube retention', 'nasogastric tube retention', 'pod1'])) {
+    if (hasAny(info, ['ng tube planned', 'nasogastric tube retention'])) return { ok: false, reason: 'NG tube retention planned' };
+  }
+
+  return { ok: true };
 }
 
 function extractGenderRestrictionFromText(s: string): 'male' | 'female' | null {
@@ -567,7 +609,7 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
     if (within.length > 0) { list.length = 0; list.push(...within); }
   }
 
-  // Strict eligibility enforcement for top results using detailed criteria (age + gender)
+  // Strict eligibility enforcement for top results using detailed criteria (age + gender + key clinical rules)
   async function applyEligibilityGate(items: typeof list, topN: number): Promise<typeof list> {
     const top = items.slice(0, Math.min(topN, items.length));
     const chunks: typeof top[] = [];
@@ -584,7 +626,8 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
         const elig = (s as any)?.protocolSection?.eligibilityModule?.eligibilityCriteria as string | undefined;
         const okAge = isAgeCompatible(profile.age, s || ({} as CtgovStudy), elig);
         const okGender = isGenderCompatible(profile.gender, s || ({} as CtgovStudy), elig);
-        if (!okAge || !okGender) toRemove.add(t.nctId);
+        const adv = evaluateAdvancedEligibility(profile, s || ({} as CtgovStudy), elig);
+        if (!okAge || !okGender || !adv.ok) toRemove.add(t.nctId);
       }
     }
     return items.filter((t) => !toRemove.has(t.nctId));
