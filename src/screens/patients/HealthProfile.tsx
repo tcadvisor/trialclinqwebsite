@@ -480,6 +480,23 @@ export default function HealthProfile(): JSX.Element {
           if (el["year"] && !next.diagnosed) next.diagnosed = el["year"] as string;
         }
       } catch {}
+
+      // Normalize new clinical fields to avoid undefined errors from older profiles
+      let changed = false;
+      if (!Array.isArray(next.allergies)) { next.allergies = []; changed = true; }
+      if (!Array.isArray(next.medications)) { next.medications = []; changed = true; }
+      if (!Array.isArray(next.priorTherapies)) { next.priorTherapies = []; changed = true; }
+      if (typeof next.ecog !== 'string') { next.ecog = ''; changed = true; }
+      if (typeof next.diseaseStage !== 'string') { next.diseaseStage = ''; changed = true; }
+      if (typeof next.biomarkers !== 'string') { next.biomarkers = ''; changed = true; }
+      next.comorbidityCardiac = !!next.comorbidityCardiac;
+      next.comorbidityRenal = !!next.comorbidityRenal;
+      next.comorbidityHepatic = !!next.comorbidityHepatic;
+      next.comorbidityAutoimmune = !!next.comorbidityAutoimmune;
+      next.infectionHIV = !!next.infectionHIV;
+      next.infectionHBV = !!next.infectionHBV;
+      next.infectionHCV = !!next.infectionHCV;
+
       return next;
     });
   }, [user]);
