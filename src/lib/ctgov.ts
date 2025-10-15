@@ -132,8 +132,12 @@ export async function fetchStudyByNctId(nctId: string, _signal?: AbortSignal): P
       signal: _signal,
     });
     if (!res.ok) {
-      const text = await res.text().catch(() => '')
-      throw new Error(`HTTP ${res.status}${text ? `: ${text}` : ''}`)
+      console.warn('fetchStudyByNctId proxy returned non-OK', res.status)
+      try {
+        const body = await res.json().catch(() => null)
+        if (body && Array.isArray(body.studies)) return body as CtgovResponse
+      } catch {}
+      return { studies: [] }
     }
     return (await res.json()) as CtgovResponse
   } catch (e: any) {
