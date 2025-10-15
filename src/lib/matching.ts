@@ -376,7 +376,12 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
   ];
 
   const { loc } = readLocationPref();
-  const geo = await geocodeLocPref();
+  let geo: any = {};
+  try {
+    geo = (await geocodeLocPref()) || {};
+  } catch (e) {
+    geo = {};
+  }
   const locText = (geo as any)?.label || loc;
 
   const candidateRadii = (r?: string): string[] => {
