@@ -215,47 +215,45 @@ export async function scoreTopKWithAI<T extends { nctId: string; aiScore: number
 ): Promise<Array<T & { aiRationale?: string }>> {
   const top = items.slice(0, Math.min(k, items.length));
 
-  // Concurrency limiter 3
-  const queue = [...top];
-  const results: Array<{ idx: number; score?: number; rationale?: string }> = new Array(queue.length);
+  // Run rescoring in background to avoid blocking UI and surfacing fetch errors.
+  (async () => {
+    try {
+      const queue = [...top];
+      const results: Array<{ idx: number; score?: number; rationale?: string }> = new Array(queue.length);
 
-  async function worker(startIdx: number) {
-    for (let i = startIdx; i < queue.length; i += 3) {
-      const t = queue[i];
-      try {
-        const r = await scoreStudyWithAI(t.nctId, profile);
-        if (r) results[i] = { idx: i, score: r.score, rationale: r.rationale };
-      } catch {}
-    }
-  }
-
-  await Promise.all([worker(0), worker(1), worker(2)]);
-
-  const forceAi = String((import.meta as any).env?.VITE_FORCE_AI_SCORING || '').toLowerCase() === 'true';
-  const merged = items.map((it, idx) => {
-    const r = idx < top.length ? results[idx] : undefined;
-    if (r && typeof r.score === 'number') {
-      return { ...it, aiScore: clamp(Math.round(r.score)), aiRationale: r.rationale } as any;
-    }
-    // Silent fallback: keep original score without error message
-    if (forceAi && idx < top.length) {
-      // Schedule background rescoring to update cache and refresh UI later
-      try {
-        setTimeout(async () => {
+      async function worker(startIdx: number) {
+        for (let i = startIdx; i < queue.length; i += 3) {
+          const t = queue[i];
           try {
-            const bg = await scoreStudyWithAI(items[idx].nctId, profile);
-            if (bg) {
-              // notify UI to refresh from cache
-              try { window.dispatchEvent(new Event('storage')); } catch {}
-            }
-          } catch {}
-        }, 100);
-      } catch {}
-      return { ...it } as any;
-    }
-    return it as any;
-  });
+            const r = await scoreStudyWithAI(t.nctId, profile);
+            if (r) results[i] = { idx: i, score: r.score, rationale: r.rationale };
+          } catch (e) {
+            // swallow per-item errors
+          }
+        }
+      }
 
+      await Promise.all([worker(0), worker(1), worker(2)]);
+
+      // If we got results, write to cache and notify UI
+      let updated = false;
+      for (let i = 0; i < results.length; i++) {
+        const r = results[i];
+        if (r && typeof r.score === 'number') {
+          // update localStorage cache via scoreStudyWithAI already wrote cache; just mark updated
+          updated = true;
+        }
+      }
+      if (updated) {
+        try { window.dispatchEvent(new Event('storage')); } catch {}
+      }
+    } catch (e) {
+      // silent
+    }
+  })();
+
+  // Immediately return original list; background task will update cache and UI later
+  const merged = items.map((it) => ({ ...it } as any));
   merged.sort((a, b) => (b.aiScore ?? 0) - (a.aiScore ?? 0));
   return merged as any;
 }
