@@ -796,7 +796,7 @@ export default function HealthProfile(): JSX.Element {
                     </label>
                     <label className="text-gray-700">Travel radius
                       <select value={travelRadius} onChange={(e)=>setTravelRadius(e.target.value)} className="mt-1 w-full rounded-md border px-3 py-2 bg-white">
-                        {["25mi","50mi","100mi","200mi"].map(r => <option key={r} value={r}>{r}</option>)}
+                        {["25mi","50mi","100mi","200mi","300mi","500mi","1000mi"].map(r => <option key={r} value={r}>{r}</option>)}
                       </select>
                     </label>
                     <div>
