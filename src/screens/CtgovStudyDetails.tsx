@@ -80,12 +80,18 @@ function ScoreRing({ value }: { value: number }) {
   const c = 2 * Math.PI * r;
   const pct = Math.max(0, Math.min(100, Math.round(value)));
   const off = c - (pct / 100) * c;
-  const color = pct >= 70 ? '#16a34a' : pct >= 40 ? '#f59e0b' : '#ef4444';
+  const gid = React.useId();
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-label={`Match score ${pct}%`}>
+      <defs>
+        <linearGradient id={gid} x1="0" y1="0" x2={String(size)} y2={String(size)} gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#bfdbfe" />
+          <stop offset="100%" stopColor="#1d4ed8" />
+        </linearGradient>
+      </defs>
       <circle cx={size/2} cy={size/2} r={r} stroke="#e5e7eb" strokeWidth={stroke} fill="none" />
-      <circle cx={size/2} cy={size/2} r={r} stroke={color} strokeWidth={stroke} fill="none" strokeLinecap="round" strokeDasharray={`${c} ${c}`} strokeDashoffset={off} transform={`rotate(-90 ${size/2} ${size/2})`} />
-      <text x="50%" y="50%" dominantBaseline="middle" textAnchor="middle" fontSize="12" fontWeight="600" fill="#111827">{pct}%</text>
+      <circle cx={size/2} cy={size/2} r={r} stroke={`url(#${gid})`} strokeWidth={stroke} fill="none" strokeLinecap="round" strokeDasharray={`${c} ${c}`} strokeDashoffset={off} transform={`rotate(-90 ${size/2} ${size/2})`} />
+      <text x="50%" y="50%" dominantBaseline="middle" textAnchor="middle" fontSize="14" fontWeight="700" fill="#0f172a">{pct}%</text>
     </svg>
   );
 }
