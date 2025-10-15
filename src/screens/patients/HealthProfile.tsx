@@ -510,10 +510,15 @@ export default function HealthProfile(): JSX.Element {
 
   // Refresh from storage when uploader saves
   useEffect(() => {
-    const refresh = () => {
+    const refresh = (e?: Event) => {
       try {
         const raw = localStorage.getItem(PROFILE_KEY);
-        if (raw) setProfile(JSON.parse(raw) as HealthProfileData);
+        if (raw) {
+          const parsed = JSON.parse(raw) as HealthProfileData;
+          // Prevent recursive updates from custom events
+          if (e instanceof CustomEvent && e.detail?.source === 'HealthProfile') return;
+          setProfile(parsed);
+        }
       } catch {}
     };
     window.addEventListener("tc_profile_updated", refresh as any);
