@@ -973,7 +973,7 @@ export default function HealthProfile(): JSX.Element {
                         </div>
                       </li>
                     ))}
-                    {profile.priorTherapies.length === 0 && (
+                    {(profile.priorTherapies || []).length === 0 && (
                       <li className="py-3 text-sm text-gray-600">No prior treatments listed</li>
                     )}
                   </ul>
