@@ -22,6 +22,8 @@ import { findAccountByEmail } from "../../lib/accountStore";
 type Allergy = { name: string; reaction?: string; severity?: "Mild" | "Moderate" | "Severe"; note?: string };
 type Medication = { name: string; dose?: string; amountDaily?: string; schedule?: string };
 
+type PriorTherapy = { name: string; date?: string };
+
 type HealthProfileData = {
   patientId: string;
   email: string;
