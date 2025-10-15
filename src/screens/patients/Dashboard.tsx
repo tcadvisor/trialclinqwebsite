@@ -134,7 +134,7 @@ export default function Dashboard(): JSX.Element {
 
           <div className="mt-4 overflow-hidden rounded-xl border bg-white">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-left text-gray-600">
+              <thead className="bg-gray-50/80 backdrop-blur text-left text-gray-600">
                 <tr>
                   <th className="px-4 py-3 font-medium">Trial Title</th>
                   <th className="px-4 py-3 font-medium">Trial ID</th>
@@ -147,31 +147,35 @@ export default function Dashboard(): JSX.Element {
               </thead>
               <tbody>
                 {items.slice(0, 4).map((t) => (
-                  <tr key={t.slug} className="border-t">
-                    <td className="px-4 py-3">
-                      <Link to={`/study/${t.nctId}`} className="text-gray-900 hover:underline">
+                  <tr key={t.slug} className="border-t hover:bg-gray-50/60 transition-colors">
+                    <td className="px-4 py-3 align-top">
+                      <Link to={`/study/${t.nctId}`} className="text-gray-900 hover:underline line-clamp-2">
                         {t.title}
                       </Link>
+                      <div className="mt-1 text-xs text-gray-500 flex flex-wrap gap-2">
+                        {t.location && <span>{t.location}</span>}
+                        {t.center && <span className="hidden sm:inline">• {t.center}</span>}
+                      </div>
                     </td>
-                    <td className="px-4 py-3 text-gray-600">{t.nctId}</td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 text-gray-500 align-top whitespace-nowrap">{t.nctId}</td>
+                    <td className="px-4 py-3 align-top">
                       <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${t.status === 'Now Recruiting' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
                         {t.status === 'Now Recruiting' ? 'Recruiting' : t.status}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 align-top">
                       <span className="inline-flex items-center rounded-full bg-violet-100 px-2 py-1 text-xs font-medium text-violet-700">
                         {t.phase}
                       </span>
                     </td>
-                    <td className="px-4 py-3 align-top">
+                    <td className="px-4 py-3 align-top min-w-[180px]">
                       <div className="flex items-center">
-                        <span>{t.aiScore}%</span>
+                        <span className="font-semibold text-gray-900">{t.aiScore}%</span>
                         {(t.aiRationale || t.reason) && (
                           <button
                             type="button"
                             onClick={() => { setWhyContent(`${t.title}\n\n${t.aiRationale || t.reason}`); setWhyOpen(true); }}
-                            className="ml-2 inline-flex items-center rounded-full border px-2 py-0.5 text-xs text-gray-600 hover:bg-gray-50"
+                            className="ml-2 inline-flex items-center rounded-full border px-2 py-0.5 text-xs text-gray-600 hover:bg-gray-100"
                             aria-label="Why this match"
                           >
                             Why
@@ -179,18 +183,20 @@ export default function Dashboard(): JSX.Element {
                         )}
                       </div>
                       {(t.aiRationale || t.reason) && (
-                        <div className="mt-1 text-xs text-gray-500 line-clamp-2">{t.aiRationale || t.reason}</div>
+                        <div className="mt-1 text-[11px] text-gray-500 line-clamp-2">{t.aiRationale || t.reason}</div>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-gray-600">{t.interventions.join(' / ')}</td>
-                    <td className="px-4 py-3 text-right">
-                      <a href={`https://clinicaltrials.gov/study/${encodeURIComponent(t.nctId)}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs hover:bg-gray-50">View on ClinicalTrials.gov</a>
+                    <td className="px-4 py-3 text-gray-600 align-top max-w-[220px]">
+                      <div className="line-clamp-2">{t.interventions.join(' / ')}</div>
+                    </td>
+                    <td className="px-4 py-3 text-right align-top">
+                      <a href={`https://clinicaltrials.gov/study/${encodeURIComponent(t.nctId)}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs hover:bg-gray-50 whitespace-nowrap">View on ClinicalTrials.gov</a>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            <Link to="/patients/eligible?page=1" className="border-t px-4 py-3 block text-sm text-gray-600 hover:bg-gray-50">See more</Link>
+            <Link to="/patients/eligible?page=1" className="border-t px-4 py-3 block text-sm text-gray-600 hover:bg-gray-50 text-center">See more</Link>
           </div>
         </section>
       </main>
