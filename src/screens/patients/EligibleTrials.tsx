@@ -100,7 +100,7 @@ export default function EligibleTrials(): JSX.Element {
               {pageItems.map((t) => (
                 <tr key={t.slug} className="border-t">
                   <td className="px-4 py-3">
-                    <Link to={`/study/${t.nctId}`} className="text-gray-900 hover:underline">
+                    <Link to={`/study/${t.nctId}`} state={{ score: t.aiScore, rationale: t.aiRationale || t.reason }} className="text-gray-900 hover:underline">
                       {t.title}
                     </Link>
                   </td>
