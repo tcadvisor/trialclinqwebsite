@@ -87,14 +87,20 @@ export function buildStudiesUrl({ q = '', status = '', type = '', loc = '', lat,
 
 export async function fetchStudies(query: CtgovQuery, _signal?: AbortSignal): Promise<CtgovResponse> {
   try {
-    const url = buildStudiesUrl(query)
-    const res = await fetch(url)
+    const proxy = (import.meta as any).env?.VITE_CT_PROXY_URL as string | undefined || '/.netlify/functions/ctgov';
+    const res = await fetch(proxy, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ action: 'studies', query }),
+      signal: _signal,
+    });
     if (!res.ok) {
       const text = await res.text().catch(() => '')
       throw new Error(`HTTP ${res.status}${text ? `: ${text}` : ''}`)
     }
     return (await res.json()) as CtgovResponse
   } catch (e: any) {
+    console.error('fetchStudies proxy error:', e)
     return { studies: [] }
   }
 }
@@ -112,26 +118,20 @@ export function ctgovStudyDetailUrl(study: CtgovStudy): string {
 
 export async function fetchStudyByNctId(nctId: string, _signal?: AbortSignal): Promise<CtgovResponse> {
   try {
-    const base = `https://clinicaltrials.gov/api/v2/studies/${encodeURIComponent(nctId)}`
-    const fields = [
-      'protocolSection.identificationModule.nctId',
-      'protocolSection.identificationModule.briefTitle',
-      'protocolSection.statusModule.overallStatus',
-      'protocolSection.conditionsModule.conditions',
-      'protocolSection.designModule.phases',
-      'protocolSection.contactsLocationsModule.locations',
-      'protocolSection.sponsorCollaboratorsModule.leadSponsor',
-      'protocolSection.descriptionModule.briefSummary',
-      'protocolSection.eligibilityModule.eligibilityCriteria',
-    ].join(',')
-    const url = `${base}?format=json&fields=${encodeURIComponent(fields)}`
-    const res = await fetch(url)
+    const proxy = (import.meta as any).env?.VITE_CT_PROXY_URL as string | undefined || '/.netlify/functions/ctgov';
+    const res = await fetch(proxy, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ action: 'study', nctId }),
+      signal: _signal,
+    });
     if (!res.ok) {
       const text = await res.text().catch(() => '')
       throw new Error(`HTTP ${res.status}${text ? `: ${text}` : ''}`)
     }
     return (await res.json()) as CtgovResponse
   } catch (e: any) {
+    console.error('fetchStudyByNctId proxy error:', e)
     return { studies: [] }
   }
 }
