@@ -570,6 +570,7 @@ export default function HealthProfile(): JSX.Element {
       const next = { ...base, loc: travelLoc.trim(), radius: travelRadius };
       localStorage.setItem("tc_eligibility_profile", JSON.stringify(next));
       window.dispatchEvent(new Event("storage"));
+      try { window.dispatchEvent(new CustomEvent("tc_profile_updated", { detail: { source: "HealthProfile", updated: ["loc","radius"] } })); } catch {}
     } catch {}
   }
 
