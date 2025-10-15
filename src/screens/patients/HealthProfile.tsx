@@ -43,6 +43,17 @@ type HealthProfileData = {
   allergies: Allergy[];
   medications: Medication[];
   additionalInfo: string;
+  ecog: string;
+  diseaseStage: string;
+  biomarkers: string;
+  priorTherapies: PriorTherapy[];
+  comorbidityCardiac?: boolean;
+  comorbidityRenal?: boolean;
+  comorbidityHepatic?: boolean;
+  comorbidityAutoimmune?: boolean;
+  infectionHIV?: boolean;
+  infectionHBV?: boolean;
+  infectionHCV?: boolean;
 };
 
 const PROFILE_KEY = "tc_health_profile_v1";
