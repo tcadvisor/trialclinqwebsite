@@ -202,7 +202,7 @@ export async function scoreStudyWithAI(nctId: string, profile: MinimalProfile, s
   const pText = profileToText(profile);
   const sText = studyToText(study);
 
-  const prompt = `Patient Profile\n${pText}\n\nTrial\n${sText}\n\nScoring guidance:\n- Base score from inclusion/exclusion likelihood and condition match\n- Strongly penalize if outside Travel radius; strongly reward if inside\n- Reward status Recruiting; weigh phase modestly\n- Return an integer 0-100 with meaningful variance across trials\n\nStrictly output JSON: {"score": 0-100 integer, "rationale": "<=160 chars"}.`;
+  const prompt = `Patient Profile\n${pText}\n\nTrial\n${sText}\n\nScoring guidance:\n- Base score from inclusion/exclusion likelihood and condition match\n- If patient's AGE is outside the trial's eligibility range (as stated in title/criteria), score 0-5 and mention age mismatch\n- If gender is restricted and does not match, score 0-10\n- Strongly penalize if outside Travel radius; strongly reward if inside\n- Reward status Recruiting; weigh phase modestly\n- Return an integer 0-100 with meaningful variance across trials\n\nStrictly output JSON: {"score": 0-100 integer, "rationale": "<=160 chars"}.`;
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 20000);
