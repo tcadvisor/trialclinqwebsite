@@ -478,7 +478,7 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
     });
   }
 
-  // Compute distance to user and boost score for proximity within radius
+  // Compute distance to user and fold proximity into AI score; then sort purely by AI score
   try {
     const user = await geocodeLocPref();
     const rMi = parseRadiusMi(user.radius) ?? 50;
@@ -492,7 +492,7 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
             const d = haversineMi(user.lat!, user.lng!, g.lat, g.lng);
             t.distanceMi = Math.round(d);
             t.inRadius = d <= rMi;
-            const proximityBoost = t.inRadius ? Math.max(0, Math.round(((rMi - d) / rMi) * 30)) : 0; // up to +30
+            const proximityBoost = t.inRadius ? Math.max(1, Math.round((1 - (d / rMi)) * 40)) : -20; // within radius: +1..+40 (closer=higher), outside: -20
             t.aiScore = clamp(t.aiScore + proximityBoost, 0, 100);
           } else {
             t.inRadius = true;
@@ -504,16 +504,8 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
     );
   } catch {}
 
-  // Sort: in-radius first, then distance ascending, then AI score
-  list.sort((a, b) => {
-    const ra = a.inRadius ? 1 : 0;
-    const rb = b.inRadius ? 1 : 0;
-    if (ra !== rb) return rb - ra;
-    const da = typeof a.distanceMi === 'number' ? a.distanceMi! : Number.POSITIVE_INFINITY;
-    const db = typeof b.distanceMi === 'number' ? b.distanceMi! : Number.POSITIVE_INFINITY;
-    if (da !== db) return da - db;
-    return b.aiScore - a.aiScore;
-  });
+  // Sort strictly by AI score (distance already reflected in score)
+  list.sort((a, b) => b.aiScore - a.aiScore);
 
   // Try AI rescoring for the top 15 when an AI backend is configured; fallback silently otherwise
   try {
