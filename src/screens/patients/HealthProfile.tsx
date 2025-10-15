@@ -798,7 +798,7 @@ export default function HealthProfile(): JSX.Element {
                   </div>
                 </Section>
 
-                <Section title="Medications" right={<div>{profile.medications.length === 0 && (<span className="text-red-600 text-xs">Required</span>)}</div>}>
+                <Section title="Medications" right={<div>{(profile.medications || []).length === 0 && (<span className="text-red-600 text-xs">Required</span>)}</div>}>
                   <ul className="divide-y">
                     {profile.medications.map((m, i) => (
                       <li key={i} className="py-3 flex items-start justify-between">
@@ -814,7 +814,7 @@ export default function HealthProfile(): JSX.Element {
                         </div>
                       </li>
                     ))}
-                    {profile.medications.length === 0 && (
+                    {(profile.medications || []).length === 0 && (
                       <li className="py-3 text-sm text-gray-600">No medications listed</li>
                     )}
                   </ul>
@@ -1018,7 +1018,7 @@ export default function HealthProfile(): JSX.Element {
             </div>
 
             {(() => {
-              const needs = !profile.weight || !profile.gender || !profile.phone || !profile.age || !profile.race || !profile.language || !profile.bloodGroup || !profile.genotype || !profile.primaryCondition || !profile.diagnosed || (profile.allergies || []).length === 0 || profile.medications.length === 0 || !profile.ecog || !profile.diseaseStage;
+              const needs = !profile.weight || !profile.gender || !profile.phone || !profile.age || !profile.race || !profile.language || !profile.bloodGroup || !profile.genotype || !profile.primaryCondition || !profile.diagnosed || (profile.allergies || []).length === 0 || (profile.medications || []).length === 0 || !profile.ecog || !profile.diseaseStage;
               return needs ? (
                 <div className="mt-6 text-sm text-red-600 flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4" />
