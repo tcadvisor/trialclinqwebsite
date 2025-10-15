@@ -154,8 +154,8 @@ export async function fetchStudyByNctId(nctId: string, _signal?: AbortSignal): P
       body: JSON.stringify({ action: 'study', nctId }),
       signal: _signal,
     });
-    if (!res.ok) {
-      if (res.status === 404) {
+    if (!res || !res.ok) {
+      if (res && res.status === 404) {
         try {
           const fields = [
             'protocolSection.identificationModule.nctId',
@@ -170,14 +170,14 @@ export async function fetchStudyByNctId(nctId: string, _signal?: AbortSignal): P
           ].join(',');
           const url = `https://clinicaltrials.gov/api/v2/studies/${encodeURIComponent(nctId)}?format=json&fields=${encodeURIComponent(fields)}`;
           const direct = await safeFetch(url, { method: 'GET', signal: _signal });
-          if (direct.ok) {
+          if (direct && direct.ok) {
             const dj = await direct.json();
             return normalizeStudyResponse(dj);
           }
         } catch {}
       }
       try {
-        const body = await res.json().catch(() => null);
+        const body = res ? await res.json().catch(() => null) : null;
         if (body) return normalizeStudyResponse(body);
       } catch {}
       return { studies: [] };
