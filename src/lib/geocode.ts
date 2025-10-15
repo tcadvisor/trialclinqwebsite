@@ -28,6 +28,28 @@ export async function geocodeText(q: string): Promise<{ lat?: number; lng?: numb
   const configured = (import.meta as any).env?.VITE_GEO_WEBHOOK_URL as string | undefined;
   const url = configured || '/.netlify/functions/geocode';
 
+  // In browser, only call the serverless endpoint to avoid CORS or external fetch failures.
+  if (typeof window !== 'undefined') {
+    try {
+      const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ q: key }) });
+      if (res.ok) {
+        const data = (await res.json()) as any;
+        const lat = Number(data.lat);
+        const lng = Number(data.lng);
+        const label = typeof data.label === 'string' ? data.label : undefined;
+        if (Number.isFinite(lat) && Number.isFinite(lng)) {
+          cache[key] = { lat, lng, label };
+          writeCache(cache);
+          return { lat, lng, label };
+        }
+      }
+    } catch {
+      // Silent fail — do not attempt further external fetches from browser to avoid noisy errors
+    }
+    return null;
+  }
+
+  // Server-side: fallbacks allowed
   try {
     const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ q: key }) });
     if (res.ok) {
