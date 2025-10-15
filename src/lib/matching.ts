@@ -378,13 +378,37 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
   const { loc } = readLocationPref();
   const geo = await geocodeLocPref();
 
+  const candidateRadii = (r?: string): string[] => {
+    const baseMi = parseRadiusMi(r);
+    const seq = [baseMi ?? 50, 200, 300, 500, 1000]
+      .filter((v, i, a) => typeof v === 'number' && Number.isFinite(v) && a.indexOf(v) === i)
+      .sort((a, b) => (a as number) - (b as number)) as number[];
+    return seq.map((v) => `${v}mi`);
+  };
+
   const fetchSet = async (query: string, opts: { withGeo?: boolean; withStatuses?: boolean } = { withGeo: true, withStatuses: true }) => {
     const base = { q: query, pageSize } as any;
-    if (opts.withGeo) {
-      base.loc = loc; base.lat = geo.lat; base.lng = geo.lng; base.radius = geo.radius;
-    } else {
-      base.loc = loc; // textual location only
+    if (opts.withGeo && typeof geo.lat === 'number' && typeof geo.lng === 'number') {
+      base.loc = loc;
+      // Try with selected radius, then expand progressively if no results
+      const radii = candidateRadii(geo.radius);
+      for (const rStr of radii) {
+        const withGeo = { ...base, lat: geo.lat, lng: geo.lng, radius: rStr } as any;
+        if (opts.withStatuses) {
+          const results = await Promise.all(statuses.map((s) => fetchStudies({ ...withGeo, status: s })));
+          const flat = results.flatMap((r) => r.studies || []);
+          if (flat.length > 0) return flat;
+        } else {
+          const r = await fetchStudies(withGeo);
+          const studies = r.studies || [];
+          if (studies.length > 0) return studies;
+        }
+      }
+      // If nothing found even at max radius, fall back to no-geo handling below
     }
+
+    // No geo available or nothing found with geo: use textual location only
+    base.loc = loc;
     if (opts.withStatuses) {
       const results = await Promise.all(statuses.map((s) => fetchStudies({ ...base, status: s })));
       return results.flatMap((r) => r.studies || []);
