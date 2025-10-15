@@ -101,6 +101,8 @@ function studyToText(study: CtgovStudy): string {
 function isAiConfigured() {
   const url = (import.meta as any).env?.VITE_AI_SCORER_URL as string | undefined;
   const key = (import.meta as any).env?.VITE_OPENAI_API_KEY as string | undefined;
+  // In browser, require a serverless webhook to avoid exposing the OpenAI key and avoid CORS issues.
+  if (typeof window !== 'undefined') return Boolean(url);
   return Boolean(url || key);
 }
 
@@ -126,6 +128,8 @@ async function callWebhook(url: string, payload: any, signal?: AbortSignal): Pro
 }
 
 async function callOpenAI(prompt: string, signal?: AbortSignal): Promise<AiScoreResult | null> {
+  // Direct OpenAI calls are only allowed from server-side. In browser, return null to avoid fetch failures/CORS and key leakage.
+  if (typeof window !== 'undefined') return null;
   const key = (import.meta as any).env?.VITE_OPENAI_API_KEY as string | undefined;
   if (!key) return null;
   try {
