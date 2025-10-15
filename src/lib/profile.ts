@@ -65,11 +65,14 @@ export function computeProfileCompletion(): { percent: number; breakdown: Profil
         weight?: string; gender?: string; phone?: string; age?: string; race?: string; language?: string;
         bloodGroup?: string; genotype?: string; primaryCondition?: string; diagnosed?: string;
         allergies?: unknown[]; medications?: unknown[];
+        ecog?: string; diseaseStage?: string; biomarkers?: string; priorTherapies?: unknown[];
       };
       const checks = [
         p.weight, p.gender, p.phone, p.age, p.race, p.language, p.bloodGroup, p.genotype, p.primaryCondition, p.diagnosed,
         (Array.isArray(p.allergies) && p.allergies.length > 0) ? "ok" : "",
         (Array.isArray(p.medications) && p.medications.length > 0) ? "ok" : "",
+        p.ecog, p.diseaseStage, p.biomarkers,
+        (Array.isArray(p.priorTherapies) && p.priorTherapies.length > 0) ? "ok" : "",
       ];
       const done = checks.reduce((acc, x) => acc + (x && String(x).trim() !== "" ? 1 : 0), 0);
       const ratio = done / checks.length;

@@ -74,10 +74,11 @@ export function buildStudiesUrl({ q = '', status = '', type = '', loc = '', lat,
   }
   if (type) params.set('filter.studyType', type)
   if (q) params.set('query.cond', q)
-  if (loc) params.set('query.locn', loc)
   if (typeof lat === 'number' && typeof lng === 'number') {
     const r = radius || '50mi'
     params.set('filter.geo', `distance(${lat},${lng},${r})`)
+  } else if (loc) {
+    params.set('query.locn', loc)
   }
   if (typeof pageNumber === 'number' && pageNumber > 0) params.set('pageNumber', String(pageNumber))
   if (pageToken) params.set('pageToken', pageToken)
@@ -87,15 +88,37 @@ export function buildStudiesUrl({ q = '', status = '', type = '', loc = '', lat,
 
 export async function fetchStudies(query: CtgovQuery, _signal?: AbortSignal): Promise<CtgovResponse> {
   try {
-    const url = buildStudiesUrl(query)
-    const res = await fetch(url)
+    const proxy = (import.meta as any).env?.VITE_CT_PROXY_URL as string | undefined || '/.netlify/functions/ctgov';
+    const res = await fetch(proxy, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ action: 'studies', query }),
+      signal: _signal,
+    });
     if (!res.ok) {
-      const text = await res.text().catch(() => '')
-      throw new Error(`HTTP ${res.status}${text ? `: ${text}` : ''}`)
+      // If proxy route is missing (404), fallback to direct API GET
+      if (res.status === 404) {
+        try {
+          const directUrl = buildStudiesUrl(query);
+          const direct = await fetch(directUrl, { method: 'GET', signal: _signal });
+          if (direct.ok) return (await direct.json()) as CtgovResponse;
+        } catch {}
+      }
+      try {
+        const body = await res.json().catch(() => null);
+        if (body && (Array.isArray(body.studies) || body.totalCount === 0)) return body as CtgovResponse;
+      } catch {}
+      return { studies: [] };
     }
-    return (await res.json()) as CtgovResponse
+    return (await res.json()) as CtgovResponse;
   } catch (e: any) {
-    return { studies: [] }
+    try {
+      // Network/proxy error: final attempt to call API directly
+      const directUrl = buildStudiesUrl(query);
+      const direct = await fetch(directUrl, { method: 'GET', signal: _signal });
+      if (direct.ok) return (await direct.json()) as CtgovResponse;
+    } catch {}
+    return { studies: [] };
   }
 }
 
@@ -110,28 +133,75 @@ export function ctgovStudyDetailUrl(study: CtgovStudy): string {
   return nct ? `https://clinicaltrials.gov/study/${nct}` : '#'
 }
 
+function normalizeStudyResponse(json: any): CtgovResponse {
+  try {
+    if (!json) return { studies: [] };
+    if (Array.isArray(json.studies)) return json as CtgovResponse;
+    if (json.study) return { studies: [json.study] } as CtgovResponse;
+    if (json.protocolSection) return { studies: [json] } as CtgovResponse;
+  } catch {}
+  return { studies: [] };
+}
+
 export async function fetchStudyByNctId(nctId: string, _signal?: AbortSignal): Promise<CtgovResponse> {
   try {
-    const base = `https://clinicaltrials.gov/api/v2/studies/${encodeURIComponent(nctId)}`
-    const fields = [
-      'protocolSection.identificationModule.nctId',
-      'protocolSection.identificationModule.briefTitle',
-      'protocolSection.statusModule.overallStatus',
-      'protocolSection.conditionsModule.conditions',
-      'protocolSection.designModule.phases',
-      'protocolSection.contactsLocationsModule.locations',
-      'protocolSection.sponsorCollaboratorsModule.leadSponsor',
-      'protocolSection.descriptionModule.briefSummary',
-      'protocolSection.eligibilityModule.eligibilityCriteria',
-    ].join(',')
-    const url = `${base}?format=json&fields=${encodeURIComponent(fields)}`
-    const res = await fetch(url)
+    const proxy = (import.meta as any).env?.VITE_CT_PROXY_URL as string | undefined || '/.netlify/functions/ctgov';
+    const res = await fetch(proxy, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ action: 'study', nctId }),
+      signal: _signal,
+    });
     if (!res.ok) {
-      const text = await res.text().catch(() => '')
-      throw new Error(`HTTP ${res.status}${text ? `: ${text}` : ''}`)
+      if (res.status === 404) {
+        try {
+          const fields = [
+            'protocolSection.identificationModule.nctId',
+            'protocolSection.identificationModule.briefTitle',
+            'protocolSection.statusModule.overallStatus',
+            'protocolSection.conditionsModule.conditions',
+            'protocolSection.designModule.phases',
+            'protocolSection.contactsLocationsModule.locations',
+            'protocolSection.sponsorCollaboratorsModule.leadSponsor',
+            'protocolSection.descriptionModule.briefSummary',
+            'protocolSection.eligibilityModule.eligibilityCriteria',
+          ].join(',');
+          const url = `https://clinicaltrials.gov/api/v2/studies/${encodeURIComponent(nctId)}?format=json&fields=${encodeURIComponent(fields)}`;
+          const direct = await fetch(url, { method: 'GET', signal: _signal });
+          if (direct.ok) {
+            const dj = await direct.json();
+            return normalizeStudyResponse(dj);
+          }
+        } catch {}
+      }
+      try {
+        const body = await res.json().catch(() => null);
+        if (body) return normalizeStudyResponse(body);
+      } catch {}
+      return { studies: [] };
     }
-    return (await res.json()) as CtgovResponse
+    const j = await res.json();
+    return normalizeStudyResponse(j);
   } catch (e: any) {
+    try {
+      const fields = [
+        'protocolSection.identificationModule.nctId',
+        'protocolSection.identificationModule.briefTitle',
+        'protocolSection.statusModule.overallStatus',
+        'protocolSection.conditionsModule.conditions',
+        'protocolSection.designModule.phases',
+        'protocolSection.contactsLocationsModule.locations',
+        'protocolSection.sponsorCollaboratorsModule.leadSponsor',
+        'protocolSection.descriptionModule.briefSummary',
+        'protocolSection.eligibilityModule.eligibilityCriteria',
+      ].join(',');
+      const url = `https://clinicaltrials.gov/api/v2/studies/${encodeURIComponent(nctId)}?format=json&fields=${encodeURIComponent(fields)}`;
+      const direct = await fetch(url, { method: 'GET', signal: _signal });
+      if (direct.ok) {
+        const dj = await direct.json();
+        return normalizeStudyResponse(dj);
+      }
+    } catch {}
     return { studies: [] }
   }
 }

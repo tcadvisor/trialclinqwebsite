@@ -101,24 +101,57 @@ function studyToText(study: CtgovStudy): string {
 function isAiConfigured() {
   const url = (import.meta as any).env?.VITE_AI_SCORER_URL as string | undefined;
   const key = (import.meta as any).env?.VITE_OPENAI_API_KEY as string | undefined;
+  // In browser, require a serverless webhook to avoid exposing the OpenAI key and avoid CORS issues.
+  if (typeof window !== 'undefined') return Boolean(url);
   return Boolean(url || key);
 }
 
 async function callWebhook(url: string, payload: any, signal?: AbortSignal): Promise<AiScoreResult | null> {
+  // Cache webhook health in localStorage to avoid repeated failing fetches that pollute logs.
+  const key = 'tc_ai_webhook_status_v1';
   try {
-    const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload), signal });
-    if (!res.ok) return null;
-    const data = await res.json().catch(() => null);
-    if (!data) return null;
-    const score = typeof data.score === 'number' ? clamp(Math.round(data.score)) : Number(data.score);
-    if (!Number.isFinite(score)) return null;
-    return { score: clamp(Math.round(score)), rationale: String(data.rationale || data.reason || '') };
-  } catch {
-    return null;
-  }
+    const raw = localStorage.getItem(key);
+    if (raw) {
+      try {
+        const obj = JSON.parse(raw) as { ok: boolean; ts: number };
+        const age = Date.now() - (obj.ts || 0);
+        // If webhook known-bad in last 10 minutes, skip attempts
+        if (!obj.ok && age < 1000 * 60 * 10) return null;
+      } catch {}
+    }
+  } catch {}
+
+  const attempt = async (): Promise<AiScoreResult | null> => {
+    try {
+      const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload), signal });
+      if (!res.ok) {
+        try { localStorage.setItem(key, JSON.stringify({ ok: false, ts: Date.now() })); } catch {}
+        return null;
+      }
+      const data = await res.json().catch(() => null);
+      if (!data) {
+        try { localStorage.setItem(key, JSON.stringify({ ok: false, ts: Date.now() })); } catch {}
+        return null;
+      }
+      try { localStorage.setItem(key, JSON.stringify({ ok: true, ts: Date.now() })); } catch {}
+      const score = typeof data.score === 'number' ? clamp(Math.round(data.score)) : Number(data.score);
+      if (!Number.isFinite(score)) return null;
+      return { score: clamp(Math.round(score)), rationale: String(data.rationale || data.reason || '') };
+    } catch {
+      try { localStorage.setItem(key, JSON.stringify({ ok: false, ts: Date.now() })); } catch {}
+      return null;
+    }
+  };
+
+  const r1 = await attempt();
+  if (r1) return r1;
+  await new Promise((r) => setTimeout(r, 500));
+  return attempt();
 }
 
 async function callOpenAI(prompt: string, signal?: AbortSignal): Promise<AiScoreResult | null> {
+  // Direct OpenAI calls are only allowed from server-side. In browser, return null to avoid fetch failures/CORS and key leakage.
+  if (typeof window !== 'undefined') return null;
   const key = (import.meta as any).env?.VITE_OPENAI_API_KEY as string | undefined;
   if (!key) return null;
   try {
@@ -129,7 +162,7 @@ async function callOpenAI(prompt: string, signal?: AbortSignal): Promise<AiScore
         'authorization': `Bearer ${key}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4o',
         temperature: 0.1,
         messages: [
           { role: 'system', content: 'You score clinical trial eligibility and fit. Output ONLY valid compact JSON with fields score (0-100 integer) and rationale (<=160 chars). Do not include any other text.' },
@@ -172,7 +205,7 @@ export async function scoreStudyWithAI(nctId: string, profile: MinimalProfile, s
   const prompt = `Patient Profile\n${pText}\n\nTrial\n${sText}\n\nScoring guidance:\n- Base score from inclusion/exclusion likelihood and condition match\n- Strongly penalize if outside Travel radius; strongly reward if inside\n- Reward status Recruiting; weigh phase modestly\n- Return an integer 0-100 with meaningful variance across trials\n\nStrictly output JSON: {"score": 0-100 integer, "rationale": "<=160 chars"}.`;
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30000);
+  const timeout = setTimeout(() => controller.abort(), 20000);
 
   let result: AiScoreResult | null = null;
   // Prefer serverless scorer first (secure, reliable); then direct OpenAI
@@ -197,41 +230,58 @@ export async function scoreStudyWithAI(nctId: string, profile: MinimalProfile, s
   return result;
 }
 
-export async function scoreTopKWithAI<T extends { nctId: string; aiScore: number }>(
+export async function scoreTopKWithAI<T extends { nctId: string; aiScore: number; distanceMi?: number }>(
   items: T[],
   k: number,
   profile: MinimalProfile,
 ): Promise<Array<T & { aiRationale?: string }>> {
   const top = items.slice(0, Math.min(k, items.length));
 
-  // Concurrency limiter 3
-  const queue = [...top];
-  const results: Array<{ idx: number; score?: number; rationale?: string }> = new Array(queue.length);
+  // Run rescoring in background to avoid blocking UI and surfacing fetch errors.
+  (async () => {
+    try {
+      const queue = [...top];
+      const results: Array<{ idx: number; score?: number; rationale?: string }> = new Array(queue.length);
 
-  async function worker(startIdx: number) {
-    for (let i = startIdx; i < queue.length; i += 3) {
-      const t = queue[i];
-      try {
-        const r = await scoreStudyWithAI(t.nctId, profile);
-        if (r) results[i] = { idx: i, score: r.score, rationale: r.rationale };
-      } catch {}
-    }
-  }
+      async function worker(startIdx: number) {
+        for (let i = startIdx; i < queue.length; i += 3) {
+          const t = queue[i];
+          try {
+            const r = await scoreStudyWithAI(t.nctId, profile);
+            if (r) results[i] = { idx: i, score: r.score, rationale: r.rationale };
+          } catch (e) {
+            // swallow per-item errors
+          }
+        }
+      }
 
-  await Promise.all([worker(0), worker(1), worker(2)]);
+      await Promise.all([worker(0), worker(1), worker(2)]);
 
-  const forceAi = String((import.meta as any).env?.VITE_FORCE_AI_SCORING || '').toLowerCase() === 'true';
-  const merged = items.map((it, idx) => {
-    const r = idx < top.length ? results[idx] : undefined;
-    if (r && typeof r.score === 'number') {
-      return { ...it, aiScore: clamp(Math.round(r.score)), aiRationale: r.rationale } as any;
+      // If we got results, write to cache and notify UI
+      let updated = false;
+      for (let i = 0; i < results.length; i++) {
+        const r = results[i];
+        if (r && typeof r.score === 'number') {
+          // update localStorage cache via scoreStudyWithAI already wrote cache; just mark updated
+          updated = true;
+        }
+      }
+      if (updated) {
+        try { window.dispatchEvent(new Event('storage')); } catch {}
+      }
+    } catch (e) {
+      // silent
     }
-    if (forceAi && idx < top.length) {
-      return { ...it, aiScore: 1, aiRationale: 'AI scorer unavailable; retry soon' } as any;
-    }
-    return it as any;
+  })();
+
+  // Immediately return original list; background task will update cache and UI later
+  const merged = items.map((it) => ({ ...it } as any));
+  merged.sort((a, b) => {
+    const s = (b.aiScore ?? 0) - (a.aiScore ?? 0);
+    if (s !== 0) return s;
+    const da = typeof (a as any).distanceMi === 'number' ? (a as any).distanceMi : Number.POSITIVE_INFINITY;
+    const db = typeof (b as any).distanceMi === 'number' ? (b as any).distanceMi : Number.POSITIVE_INFINITY;
+    return da - db;
   });
-
-  merged.sort((a, b) => (b.aiScore ?? 0) - (a.aiScore ?? 0));
   return merged as any;
 }

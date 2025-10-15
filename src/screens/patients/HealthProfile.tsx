@@ -22,6 +22,8 @@ import { findAccountByEmail } from "../../lib/accountStore";
 type Allergy = { name: string; reaction?: string; severity?: "Mild" | "Moderate" | "Severe"; note?: string };
 type Medication = { name: string; dose?: string; amountDaily?: string; schedule?: string };
 
+type PriorTherapy = { name: string; date?: string };
+
 type HealthProfileData = {
   patientId: string;
   email: string;
@@ -41,6 +43,17 @@ type HealthProfileData = {
   allergies: Allergy[];
   medications: Medication[];
   additionalInfo: string;
+  ecog: string;
+  diseaseStage: string;
+  biomarkers: string;
+  priorTherapies: PriorTherapy[];
+  comorbidityCardiac?: boolean;
+  comorbidityRenal?: boolean;
+  comorbidityHepatic?: boolean;
+  comorbidityAutoimmune?: boolean;
+  infectionHIV?: boolean;
+  infectionHBV?: boolean;
+  infectionHCV?: boolean;
 };
 
 const PROFILE_KEY = "tc_health_profile_v1";
@@ -173,7 +186,7 @@ function Documents({ onCountChange }: { onCountChange?: (count: number) => void 
         fetch(summarizeApiUrl, { method: "POST", headers: { [authHeaderName]: `Bearer ${token}` } as any, body: form, signal: ctrl1.signal }),
         new Promise<Response>((_, rej) => setTimeout(() => { try { ctrl1.abort(); } catch {} ; rej(new Error("timeout")); }, 120000)) as any,
       ]);
-      if (!res || !("ok" in res) || !(res as Response).ok) { setOverlay({ mode: "error", message: "Summarization failed" }); return; }
+      if (!res || !(res as Response).ok) { setOverlay({ mode: "error", message: "Summarization failed" }); return; }
       const data = await (res as Response).json();
       if (!data?.summaryMarkdown) { setOverlay({ mode: "error", message: "Summarization failed" }); return; }
 
@@ -420,6 +433,17 @@ export default function HealthProfile(): JSX.Element {
       allergies: [],
       medications: [],
       additionalInfo: "",
+      ecog: "",
+      diseaseStage: "",
+      biomarkers: "",
+      priorTherapies: [],
+      comorbidityCardiac: false,
+      comorbidityRenal: false,
+      comorbidityHepatic: false,
+      comorbidityAutoimmune: false,
+      infectionHIV: false,
+      infectionHBV: false,
+      infectionHCV: false,
     };
   });
 
@@ -456,6 +480,23 @@ export default function HealthProfile(): JSX.Element {
           if (el["year"] && !next.diagnosed) next.diagnosed = el["year"] as string;
         }
       } catch {}
+
+      // Normalize new clinical fields to avoid undefined errors from older profiles
+      let changed = false;
+      if (!Array.isArray(next.allergies)) { next.allergies = []; changed = true; }
+      if (!Array.isArray(next.medications)) { next.medications = []; changed = true; }
+      if (!Array.isArray(next.priorTherapies)) { next.priorTherapies = []; changed = true; }
+      if (typeof next.ecog !== 'string') { next.ecog = ''; changed = true; }
+      if (typeof next.diseaseStage !== 'string') { next.diseaseStage = ''; changed = true; }
+      if (typeof next.biomarkers !== 'string') { next.biomarkers = ''; changed = true; }
+      next.comorbidityCardiac = !!next.comorbidityCardiac;
+      next.comorbidityRenal = !!next.comorbidityRenal;
+      next.comorbidityHepatic = !!next.comorbidityHepatic;
+      next.comorbidityAutoimmune = !!next.comorbidityAutoimmune;
+      next.infectionHIV = !!next.infectionHIV;
+      next.infectionHBV = !!next.infectionHBV;
+      next.infectionHCV = !!next.infectionHCV;
+
       return next;
     });
   }, [user]);
@@ -463,14 +504,21 @@ export default function HealthProfile(): JSX.Element {
   // Persist changes
   useEffect(() => {
     try { localStorage.setItem(PROFILE_KEY, JSON.stringify(profile)); } catch {}
+    try { window.dispatchEvent(new Event('storage')); } catch {}
+    try { window.dispatchEvent(new CustomEvent('tc_profile_updated', { detail: { source: 'HealthProfile' } })); } catch {}
   }, [profile]);
 
   // Refresh from storage when uploader saves
   useEffect(() => {
-    const refresh = () => {
+    const refresh = (e?: Event) => {
       try {
         const raw = localStorage.getItem(PROFILE_KEY);
-        if (raw) setProfile(JSON.parse(raw) as HealthProfileData);
+        if (raw) {
+          const parsed = JSON.parse(raw) as HealthProfileData;
+          // Prevent recursive updates from custom events
+          if (e instanceof CustomEvent && e.detail?.source === 'HealthProfile') return;
+          setProfile(parsed);
+        }
       } catch {}
     };
     window.addEventListener("tc_profile_updated", refresh as any);
@@ -486,6 +534,7 @@ export default function HealthProfile(): JSX.Element {
   // Edit toggles
   const [editingPersonal, setEditingPersonal] = useState(false);
   const [editingHealth, setEditingHealth] = useState(false);
+  const [editingClinical, setEditingClinical] = useState(false);
   const [editingAdditional, setEditingAdditional] = useState(false);
 
   // Add forms state
@@ -493,6 +542,8 @@ export default function HealthProfile(): JSX.Element {
   const [newAllergy, setNewAllergy] = useState<Allergy>({ name: "", reaction: "", severity: undefined, note: "" });
   const [addingMedication, setAddingMedication] = useState(false);
   const [newMedication, setNewMedication] = useState<Medication>({ name: "", dose: "", amountDaily: "", schedule: "" });
+  const [addingTherapy, setAddingTherapy] = useState(false);
+  const [newTherapy, setNewTherapy] = useState<PriorTherapy>({ name: "", date: "" });
 
   // Travel preferences (stored in eligibility profile)
   const [travelLoc, setTravelLoc] = useState<string>(() => {
@@ -511,33 +562,36 @@ export default function HealthProfile(): JSX.Element {
       return String(el.radius || "50mi");
     } catch { return "50mi"; }
   });
+  const [travelSaveState, setTravelSaveState] = useState<"idle"|"saving"|"saved"|"error">("idle");
+  const [travelSaveMsg, setTravelSaveMsg] = useState<string>("");
 
   function saveTravelPrefs() {
+    setTravelSaveState("saving");
     try {
       const raw = localStorage.getItem("tc_eligibility_profile");
       const base = raw ? (JSON.parse(raw) as Record<string, any>) : {};
       const next = { ...base, loc: travelLoc.trim(), radius: travelRadius };
       localStorage.setItem("tc_eligibility_profile", JSON.stringify(next));
       window.dispatchEvent(new Event("storage"));
-    } catch {}
+      try { window.dispatchEvent(new CustomEvent("tc_profile_updated", { detail: { source: "HealthProfile", updated: ["loc","radius"] } })); } catch {}
+      setTravelSaveMsg("Preferences saved");
+      setTravelSaveState("saved");
+      setTimeout(() => setTravelSaveState("idle"), 2000);
+    } catch {
+      setTravelSaveMsg("Could not save. Please try again.");
+      setTravelSaveState("error");
+    }
   }
 
   // Allergy handlers
-  function addAllergy() {
-    setAddingAllergy(true);
-  }
+  function addAllergy() { setAddingAllergy(true); }
   function saveNewAllergy() {
     if (!newAllergy.name.trim()) return;
     setProfile((p) => ({
       ...p,
       allergies: [
         ...p.allergies,
-        {
-          name: newAllergy.name.trim(),
-          reaction: newAllergy.reaction?.trim() || undefined,
-          severity: newAllergy.severity,
-          note: newAllergy.note?.trim() || undefined,
-        },
+        { name: newAllergy.name.trim(), reaction: newAllergy.reaction?.trim() || undefined, severity: newAllergy.severity, note: newAllergy.note?.trim() || undefined },
       ],
     }));
     setNewAllergy({ name: "", reaction: "", severity: undefined, note: "" });
@@ -557,40 +611,26 @@ export default function HealthProfile(): JSX.Element {
     const note = prompt("Edit notes (optional)", current?.note || "") || undefined;
     setProfile((p) => ({
       ...p,
-      allergies: p.allergies.map((a, i) =>
-        i === index ? { name: name.trim(), reaction: reaction?.trim() || undefined, severity: sev, note: note?.trim() || undefined } : a
-      ),
+      allergies: p.allergies.map((a, i) => i === index ? { name: name.trim(), reaction: reaction?.trim() || undefined, severity: sev, note: note?.trim() || undefined } : a),
     }));
   }
-  function removeAllergy(index: number) {
-    setProfile((p) => ({ ...p, allergies: p.allergies.filter((_, i) => i !== index) }));
-  }
+  function removeAllergy(index: number) { setProfile((p) => ({ ...p, allergies: p.allergies.filter((_, i) => i !== index) })); }
 
   // Medication handlers
-  function addMedication() {
-    setAddingMedication(true);
-  }
+  function addMedication() { setAddingMedication(true); }
   function saveNewMedication() {
     if (!newMedication.name.trim()) return;
     setProfile((p) => ({
       ...p,
       medications: [
         ...p.medications,
-        {
-          name: newMedication.name.trim(),
-          dose: newMedication.dose?.trim() || undefined,
-          amountDaily: newMedication.amountDaily?.trim() || undefined,
-          schedule: newMedication.schedule?.trim() || undefined,
-        },
+        { name: newMedication.name.trim(), dose: newMedication.dose?.trim() || undefined, amountDaily: newMedication.amountDaily?.trim() || undefined, schedule: newMedication.schedule?.trim() || undefined },
       ],
     }));
     setNewMedication({ name: "", dose: "", amountDaily: "", schedule: "" });
     setAddingMedication(false);
   }
-  function cancelNewMedication() {
-    setNewMedication({ name: "", dose: "", amountDaily: "", schedule: "" });
-    setAddingMedication(false);
-  }
+  function cancelNewMedication() { setNewMedication({ name: "", dose: "", amountDaily: "", schedule: "" }); setAddingMedication(false); }
   function editMedication(index: number) {
     const current = profile.medications[index];
     const name = prompt("Edit medication name", current?.name);
@@ -600,14 +640,10 @@ export default function HealthProfile(): JSX.Element {
     const schedule = prompt("Edit schedule (optional)", current?.schedule || "") || undefined;
     setProfile((p) => ({
       ...p,
-      medications: p.medications.map((m, i) =>
-        i === index ? { name: name.trim(), dose: dose?.trim() || undefined, amountDaily: amountDaily?.trim() || undefined, schedule: schedule?.trim() || undefined } : m
-      ),
+      medications: p.medications.map((m, i) => i === index ? { name: name.trim(), dose: dose?.trim() || undefined, amountDaily: amountDaily?.trim() || undefined, schedule: schedule?.trim() || undefined } : m),
     }));
   }
-  function removeMedication(index: number) {
-    setProfile((p) => ({ ...p, medications: p.medications.filter((_, i) => i !== index) }));
-  }
+  function removeMedication(index: number) { setProfile((p) => ({ ...p, medications: p.medications.filter((_, i) => i !== index) })); }
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
@@ -621,46 +657,27 @@ export default function HealthProfile(): JSX.Element {
         </>); })()}
 
         <div className="mt-6 flex items-center gap-6 text-sm">
-          <button
-            onClick={() => setActiveTab("overview")}
-            className={`relative pb-2 ${activeTab === "overview" ? "border-b-2 border-[#1033e5] text-gray-900" : "text-gray-600"}`}
-          >
-            Overview
+          <button onClick={() => setActiveTab("overview")} className={`relative pb-2 ${activeTab === "overview" ? "border-b-2 border-[#1033e5] text-gray-900" : "text-gray-600"}`}>Overview</button>
+          <button onClick={() => setActiveTab("documents")} className={`relative pb-2 flex items-center gap-2 ${activeTab === "documents" ? "border-b-2 border-[#1033e5] text-gray-900" : "text-gray-600"}`}>
+            Documents <span className="ml-1 inline-flex items-center justify-center px-1.5 h-5 text-xs rounded-full bg-gray-100">{docCount}</span>
           </button>
-          <button
-            onClick={() => setActiveTab("documents")}
-            className={`relative pb-2 flex items-center gap-2 ${activeTab === "documents" ? "border-b-2 border-[#1033e5] text-gray-900" : "text-gray-600"}`}
-          >
-            Documents
-            <span className="ml-1 inline-flex items-center justify-center px-1.5 h-5 text-xs rounded-full bg-gray-100">{docCount}</span>
-          </button>
-          <button
-            onClick={() => setActiveTab("ehr")}
-            className={`relative pb-2 ${activeTab === "ehr" ? "border-b-2 border-[#1033e5] text-gray-900" : "text-gray-600"}`}
-          >
-            Connected EHR/EMR
-          </button>
+          <button onClick={() => setActiveTab("ehr")} className={`relative pb-2 ${activeTab === "ehr" ? "border-b-2 border-[#1033e5] text-gray-900" : "text-gray-600"}`}>Connected EHR/EMR</button>
         </div>
 
         {activeTab === "overview" && (
           <>
             <div className="mt-6 grid md:grid-cols-3 gap-4">
               <div className="md:col-span-2">
-                <Section
-                  title="Personal Details"
-                  right={
-                    editingPersonal ? (
-                      <div className="flex items-center gap-2">
-                        <button onClick={() => setEditingPersonal(false)} className="inline-flex items-center gap-1 text-sm rounded-full border px-3 py-1.5">Cancel</button>
-                        <button onClick={() => setEditingPersonal(false)} className="inline-flex items-center gap-1 text-sm rounded-full bg-gray-900 text-white px-3 py-1.5">Save</button>
-                      </div>
-                    ) : (
-                      <button onClick={() => setEditingPersonal(true)} className="inline-flex items-center gap-1 text-sm rounded-full border px-3 py-1.5">
-                        <PencilIcon className="w-4 h-4" /> Edit
-                      </button>
-                    )
-                  }
-                >
+                <Section title="Personal Details" right={
+                  editingPersonal ? (
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => setEditingPersonal(false)} className="inline-flex items-center gap-1 text-sm rounded-full border px-3 py-1.5">Cancel</button>
+                      <button onClick={() => setEditingPersonal(false)} className="inline-flex items-center gap-1 text-sm rounded-full bg-gray-900 text-white px-3 py-1.5">Save</button>
+                    </div>
+                  ) : (
+                    <button onClick={() => setEditingPersonal(true)} className="inline-flex items-center gap-1 text-sm rounded-full border px-3 py-1.5"><PencilIcon className="w-4 h-4" /> Edit</button>
+                  )
+                }>
                   {editingPersonal ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <label className="text-sm text-gray-700">Patient ID
@@ -725,7 +742,7 @@ export default function HealthProfile(): JSX.Element {
               </div>
 
               <div>
-                <Section title="Allergies" right={<div className="flex items-center gap-2">{profile.allergies.length === 0 && (<span className="text-red-600 text-xs">Required</span>)}</div>}>
+                <Section title="Allergies" right={<div className="flex items-center gap-2">{(profile.allergies || []).length === 0 && (<span className="text-red-600 text-xs">Required</span>)}</div>}>
                   <ul className="divide-y">
                     {profile.allergies.map((a, i) => (
                       <li key={i} className="py-3 flex items-start justify-between">
@@ -737,16 +754,12 @@ export default function HealthProfile(): JSX.Element {
                           {(a.reaction || a.note) && <div className="text-xs text-gray-600">{[a.reaction, a.note].filter(Boolean).join(" • ")}</div>}
                         </div>
                         <div className="flex items-center gap-2 text-gray-500">
-                          <button onClick={()=>editAllergy(i)} aria-label="edit">
-                            <PencilIcon className="w-4 h-4" />
-                          </button>
-                          <button onClick={()=>removeAllergy(i)} aria-label="delete">
-                            <Trash2Icon className="w-4 h-4" />
-                          </button>
+                          <button onClick={()=>editAllergy(i)} aria-label="edit"><PencilIcon className="w-4 h-4" /></button>
+                          <button onClick={()=>removeAllergy(i)} aria-label="delete"><Trash2Icon className="w-4 h-4" /></button>
                         </div>
                       </li>
                     ))}
-                    {profile.allergies.length === 0 && (
+                    {(profile.allergies || []).length === 0 && (
                       <li className="py-3 text-sm text-gray-600">No allergies added</li>
                     )}
                   </ul>
@@ -778,9 +791,7 @@ export default function HealthProfile(): JSX.Element {
                   )}
 
                   {!addingAllergy && (
-                    <button onClick={addAllergy} className="mt-3 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm">
-                      <PlusIcon className="w-4 h-4" /> Add another allergy
-                    </button>
+                    <button onClick={addAllergy} className="mt-3 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm"><PlusIcon className="w-4 h-4" /> Add another allergy</button>
                   )}
                 </Section>
               </div>
@@ -795,16 +806,22 @@ export default function HealthProfile(): JSX.Element {
                     </label>
                     <label className="text-gray-700">Travel radius
                       <select value={travelRadius} onChange={(e)=>setTravelRadius(e.target.value)} className="mt-1 w-full rounded-md border px-3 py-2 bg-white">
-                        {["25mi","50mi","100mi","200mi"].map(r => <option key={r} value={r}>{r}</option>)}
+                        {["25mi","50mi","100mi","200mi","300mi","500mi","1000mi"].map(r => <option key={r} value={r}>{r}</option>)}
                       </select>
                     </label>
-                    <div>
-                      <button onClick={saveTravelPrefs} className="inline-flex items-center gap-1 text-sm rounded-full bg-gray-900 text-white px-3 py-1.5">Save</button>
+                    <div className="flex items-center gap-2">
+                      <button onClick={saveTravelPrefs} disabled={travelSaveState==='saving'} className={`inline-flex items-center gap-1 text-sm rounded-full px-3 py-1.5 ${travelSaveState==='saving' ? 'bg-gray-400 text-white cursor-wait' : 'bg-gray-900 text-white'}`}>{travelSaveState==='saving' ? 'Saving…' : 'Save'}</button>
+                      {travelSaveState==='saved' && (
+                        <span className="inline-flex items-center gap-1 text-xs text-emerald-700"><CheckCircle2 className="w-4 h-4"/> {travelSaveMsg}</span>
+                      )}
+                      {travelSaveState==='error' && (
+                        <span className="inline-flex items-center gap-1 text-xs text-red-600"><AlertTriangle className="w-4 h-4"/> {travelSaveMsg}</span>
+                      )}
                     </div>
                   </div>
                 </Section>
 
-                <Section title="Medications" right={<div>{profile.medications.length === 0 && (<span className="text-red-600 text-xs">Required</span>)}</div>}>
+                <Section title="Medications" right={<div>{(profile.medications || []).length === 0 && (<span className="text-red-600 text-xs">Required</span>)}</div>}>
                   <ul className="divide-y">
                     {profile.medications.map((m, i) => (
                       <li key={i} className="py-3 flex items-start justify-between">
@@ -815,16 +832,12 @@ export default function HealthProfile(): JSX.Element {
                           )}
                         </div>
                         <div className="flex items-center gap-2 text-gray-500">
-                          <button onClick={()=>editMedication(i)} aria-label="edit">
-                            <PencilIcon className="w-4 h-4" />
-                          </button>
-                          <button onClick={()=>removeMedication(i)} aria-label="delete">
-                            <Trash2Icon className="w-4 h-4" />
-                          </button>
+                          <button onClick={()=>editMedication(i)} aria-label="edit"><PencilIcon className="w-4 h-4" /></button>
+                          <button onClick={()=>removeMedication(i)} aria-label="delete"><Trash2Icon className="w-4 h-4" /></button>
                         </div>
                       </li>
                     ))}
-                    {profile.medications.length === 0 && (
+                    {(profile.medications || []).length === 0 && (
                       <li className="py-3 text-sm text-gray-600">No medications listed</li>
                     )}
                   </ul>
@@ -851,29 +864,22 @@ export default function HealthProfile(): JSX.Element {
                   )}
 
                   {!addingMedication && (
-                    <button onClick={addMedication} className="mt-3 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm">
-                      <PlusIcon className="w-4 h-4" /> Add another medication
-                    </button>
+                    <button onClick={addMedication} className="mt-3 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm"><PlusIcon className="w-4 h-4" /> Add another medication</button>
                   )}
                 </Section>
               </div>
 
               <div className="md:col-span-2">
-                <Section
-                  title="Health Profile"
-                  right={
-                    editingHealth ? (
-                      <div className="flex items-center gap-2">
-                        <button onClick={() => setEditingHealth(false)} className="inline-flex items-center gap-1 text-sm rounded-full border px-3 py-1.5">Cancel</button>
-                        <button onClick={() => setEditingHealth(false)} className="inline-flex items-center gap-1 text-sm rounded-full bg-gray-900 text-white px-3 py-1.5">Save</button>
-                      </div>
-                    ) : (
-                      <button onClick={() => setEditingHealth(true)} className="inline-flex items-center gap-1 text-sm rounded-full border px-3 py-1.5">
-                        <PencilIcon className="w-4 h-4" /> Edit
-                      </button>
-                    )
-                  }
-                >
+                <Section title="Health Profile" right={
+                  editingHealth ? (
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => setEditingHealth(false)} className="inline-flex items-center gap-1 text-sm rounded-full border px-3 py-1.5">Cancel</button>
+                      <button onClick={() => setEditingHealth(false)} className="inline-flex items-center gap-1 text-sm rounded-full bg-gray-900 text-white px-3 py-1.5">Save</button>
+                    </div>
+                  ) : (
+                    <button onClick={() => setEditingHealth(true)} className="inline-flex items-center gap-1 text-sm rounded-full border px-3 py-1.5"><PencilIcon className="w-4 h-4" /> Edit</button>
+                  )
+                }>
                   {editingHealth ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <label className="text-sm text-gray-700">Blood Group
@@ -917,22 +923,115 @@ export default function HealthProfile(): JSX.Element {
               </div>
             </div>
 
-            <div className="mt-4">
-              <Section
-                title="Additional Information"
-                right={
-                  editingAdditional ? (
+            <div className="mt-4 grid md:grid-cols-3 gap-4">
+              <div className="md:col-span-2">
+                <Section title="Clinical Details" right={
+                  editingClinical ? (
                     <div className="flex items-center gap-2">
-                      <button onClick={() => setEditingAdditional(false)} className="inline-flex items-center gap-1 text-sm rounded-full border px-3 py-1.5">Cancel</button>
-                      <button onClick={() => setEditingAdditional(false)} className="inline-flex items-center gap-1 text-sm rounded-full bg-gray-900 text-white px-3 py-1.5">Save</button>
+                      <button onClick={() => setEditingClinical(false)} className="inline-flex items-center gap-1 text-sm rounded-full border px-3 py-1.5">Cancel</button>
+                      <button onClick={() => setEditingClinical(false)} className="inline-flex items-center gap-1 text-sm rounded-full bg-gray-900 text-white px-3 py-1.5">Save</button>
                     </div>
                   ) : (
-                    <button onClick={() => setEditingAdditional(true)} className="inline-flex items-center gap-1 text-sm rounded-full border px-3 py-1.5">
-                      <PencilIcon className="w-4 h-4" /> Edit
-                    </button>
+                    <button onClick={() => setEditingClinical(true)} className="inline-flex items-center gap-1 text-sm rounded-full border px-3 py-1.5"><PencilIcon className="w-4 h-4" /> Edit</button>
                   )
-                }
-              >
+                }>
+                  {editingClinical ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <label className="text-sm text-gray-700">ECOG Performance Status
+                        <select value={profile.ecog} onChange={(e)=>setProfile(p=>({...p, ecog:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2 bg-white">
+                          {['0','1','2','3','4'].map(v=> <option key={v} value={v}>{v}</option>)}
+                        </select>
+                      </label>
+                      <label className="text-sm text-gray-700">Disease Stage/Grade/Subtype
+                        <input value={profile.diseaseStage} onChange={(e)=>setProfile(p=>({...p, diseaseStage:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2" placeholder="e.g., Stage II; ER+/HER2-" />
+                      </label>
+                      <label className="text-sm text-gray-700">Key Biomarkers
+                        <input value={profile.biomarkers} onChange={(e)=>setProfile(p=>({...p, biomarkers:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2" placeholder="e.g., PD-L1 50%, EGFR exon 19" />
+                      </label>
+                      <div className="sm:col-span-2">
+                        <div className="text-sm font-medium text-gray-700 mb-1">Comorbidities</div>
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <label className="inline-flex items-center gap-2"><input type="checkbox" checked={!!profile.comorbidityCardiac} onChange={(e)=>setProfile(p=>({...p, comorbidityCardiac:e.target.checked}))}/> Cardiac</label>
+                          <label className="inline-flex items-center gap-2"><input type="checkbox" checked={!!profile.comorbidityRenal} onChange={(e)=>setProfile(p=>({...p, comorbidityRenal:e.target.checked}))}/> Renal</label>
+                          <label className="inline-flex items-center gap-2"><input type="checkbox" checked={!!profile.comorbidityHepatic} onChange={(e)=>setProfile(p=>({...p, comorbidityHepatic:e.target.checked}))}/> Hepatic</label>
+                          <label className="inline-flex items-center gap-2"><input type="checkbox" checked={!!profile.comorbidityAutoimmune} onChange={(e)=>setProfile(p=>({...p, comorbidityAutoimmune:e.target.checked}))}/> Autoimmune</label>
+                        </div>
+                      </div>
+                      <div className="sm:col-span-2">
+                        <div className="text-sm font-medium text-gray-700 mb-1">Infections</div>
+                        <div className="grid grid-cols-3 gap-2 text-sm">
+                          <label className="inline-flex items-center gap-2"><input type="checkbox" checked={!!profile.infectionHIV} onChange={(e)=>setProfile(p=>({...p, infectionHIV:e.target.checked}))}/> HIV</label>
+                          <label className="inline-flex items-center gap-2"><input type="checkbox" checked={!!profile.infectionHBV} onChange={(e)=>setProfile(p=>({...p, infectionHBV:e.target.checked}))}/> Hepatitis B</label>
+                          <label className="inline-flex items-center gap-2"><input type="checkbox" checked={!!profile.infectionHCV} onChange={(e)=>setProfile(p=>({...p, infectionHCV:e.target.checked}))}/> Hepatitis C</label>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
+                      <Row label="ECOG" value={profile.ecog} missing={!profile.ecog} />
+                      <Row label="Disease Stage/Subtype" value={profile.diseaseStage} missing={!profile.diseaseStage} />
+                      <Row label="Key Biomarkers" value={profile.biomarkers} missing={!profile.biomarkers} />
+                      <Row label="Comorbidities" value={[profile.comorbidityCardiac&&'Cardiac',profile.comorbidityRenal&&'Renal',profile.comorbidityHepatic&&'Hepatic',profile.comorbidityAutoimmune&&'Autoimmune'].filter(Boolean).join(', ')} />
+                      <Row label="Infections" value={[profile.infectionHIV&&'HIV',profile.infectionHBV&&'HBV',profile.infectionHCV&&'HCV'].filter(Boolean).join(', ')} />
+                    </div>
+                  )}
+                </Section>
+              </div>
+            </div>
+
+            <div className="mt-4 grid md:grid-cols-3 gap-4">
+              <div className="md:col-span-2">
+                <Section title="Prior Treatments">
+                  <ul className="divide-y">
+                    {(profile.priorTherapies || []).map((t, i) => (
+                      <li key={i} className="py-3 flex items-center justify-between text-sm">
+                        <div className="text-gray-900">{t.name}{t.date ? ` — ${t.date}` : ''}</div>
+                        <div className="flex items-center gap-2 text-gray-500">
+                          <button onClick={() => {
+                            const name = prompt('Edit therapy name', t.name) || t.name;
+                            const date = prompt('Edit date (optional)', t.date || '') || undefined;
+                            setProfile(p=>({...p, priorTherapies: p.priorTherapies.map((x,idx)=> idx===i? { name: name.trim(), date: date?.trim() }: x)}));
+                          }} aria-label="edit"><PencilIcon className="w-4 h-4"/></button>
+                          <button onClick={() => setProfile(p=>({...p, priorTherapies: p.priorTherapies.filter((_,idx)=>idx!==i)}))} aria-label="delete"><Trash2Icon className="w-4 h-4"/></button>
+                        </div>
+                      </li>
+                    ))}
+                    {(profile.priorTherapies || []).length === 0 && (
+                      <li className="py-3 text-sm text-gray-600">No prior treatments listed</li>
+                    )}
+                  </ul>
+                  {addingTherapy && (
+                    <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                      <label className="text-gray-700">Therapy Name
+                        <input value={newTherapy.name} onChange={(e)=>setNewTherapy(t=>({...t, name:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2" />
+                      </label>
+                      <label className="text-gray-700">Date (optional)
+                        <input value={newTherapy.date || ''} onChange={(e)=>setNewTherapy(t=>({...t, date:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2" />
+                      </label>
+                      <div className="sm:col-span-2 flex items-center gap-2">
+                        <button onClick={()=>{ setNewTherapy({ name: '', date: '' }); setAddingTherapy(false); }} className="inline-flex items-center gap-1 text-sm rounded-full border px-3 py-1.5">Cancel</button>
+                        <button onClick={()=>{ if(!newTherapy.name.trim()) return; setProfile(p=>({...p, priorTherapies:[...p.priorTherapies, { name:newTherapy.name.trim(), date:newTherapy.date?.trim()||undefined }]})); setNewTherapy({ name:'', date:''}); setAddingTherapy(false); }} disabled={!newTherapy.name.trim()} className={`inline-flex items-center gap-1 text-sm rounded-full px-3 py-1.5 ${newTherapy.name.trim()?"bg-gray-900 text-white":"bg-gray-200 text-gray-500 cursor-not-allowed"}`}>Save</button>
+                      </div>
+                    </div>
+                  )}
+                  {!addingTherapy && (
+                    <button onClick={()=>setAddingTherapy(true)} className="mt-3 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm"><PlusIcon className="w-4 h-4"/> Add prior treatment</button>
+                  )}
+                </Section>
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <Section title="Additional Information" right={
+                editingAdditional ? (
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => setEditingAdditional(false)} className="inline-flex items-center gap-1 text-sm rounded-full border px-3 py-1.5">Cancel</button>
+                    <button onClick={() => setEditingAdditional(false)} className="inline-flex items-center gap-1 text-sm rounded-full bg-gray-900 text-white px-3 py-1.5">Save</button>
+                  </div>
+                ) : (
+                  <button onClick={() => setEditingAdditional(true)} className="inline-flex items-center gap-1 text-sm rounded-full border px-3 py-1.5"><PencilIcon className="w-4 h-4" /> Edit</button>
+                )
+              }>
                 {editingAdditional ? (
                   <textarea value={profile.additionalInfo} onChange={(e)=>setProfile(p=>({...p, additionalInfo:e.target.value}))} rows={4} className="w-full rounded-md border px-3 py-2 text-sm" placeholder="Any important details you'd like us to know..."/>
                 ) : (
@@ -942,7 +1041,7 @@ export default function HealthProfile(): JSX.Element {
             </div>
 
             {(() => {
-              const needs = !profile.weight || !profile.gender || !profile.phone || !profile.age || !profile.race || !profile.language || !profile.bloodGroup || !profile.genotype || !profile.primaryCondition || !profile.diagnosed || profile.allergies.length === 0 || profile.medications.length === 0;
+              const needs = !profile.weight || !profile.gender || !profile.phone || !profile.age || !profile.race || !profile.language || !profile.bloodGroup || !profile.genotype || !profile.primaryCondition || !profile.diagnosed || (profile.allergies || []).length === 0 || (profile.medications || []).length === 0 || !profile.ecog || !profile.diseaseStage;
               return needs ? (
                 <div className="mt-6 text-sm text-red-600 flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4" />

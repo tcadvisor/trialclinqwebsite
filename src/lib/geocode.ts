@@ -1,4 +1,4 @@
-type GeoResult = { lat: number; lng: number };
+type GeoResult = { lat: number; lng: number; label?: string };
 
 const CACHE_KEY = 'tc_geocode_cache_v1';
 const ELIGIBILITY_KEY = 'tc_eligibility_profile';
@@ -19,29 +19,118 @@ export function readLocPref(): { loc: string; radius?: string } {
   } catch { return { loc: '' }; }
 }
 
-export async function geocodeLocPref(): Promise<{ lat?: number; lng?: number; radius?: string }> {
+export async function geocodeText(q: string): Promise<{ lat?: number; lng?: number; label?: string } | null> {
+  try {
+    const key = q.trim();
+    if (!key) return null;
+    const cache = readCache();
+    if (cache[key]) return { ...cache[key] };
+
+    const configured = (import.meta as any).env?.VITE_GEO_WEBHOOK_URL as string | undefined;
+    const url = configured || '/.netlify/functions/geocode';
+
+    // In browser, only call the serverless webhook to avoid noisy CORS/network errors
+    if (typeof window !== 'undefined') {
+      try {
+        const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ q: key }) });
+        if (res.ok) {
+          const data = (await res.json()) as any;
+          const lat = Number(data.lat);
+          const lng = Number(data.lng);
+          const label = typeof data.label === 'string' ? data.label : undefined;
+          if (Number.isFinite(lat) && Number.isFinite(lng)) {
+            cache[key] = { lat, lng, label };
+            writeCache(cache);
+            return { lat, lng, label };
+          }
+        }
+      } catch (e) {
+        // swallow; do not attempt external public fetches from browser to avoid console noise/CORS
+      }
+      return null;
+    }
+
+    // Server-side: try webhook first then public geocoders
+    try {
+      const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ q: key }) });
+      if (res.ok) {
+        const data = (await res.json()) as any;
+        const lat = Number(data.lat);
+        const lng = Number(data.lng);
+        const label = typeof data.label === 'string' ? data.label : undefined;
+        if (Number.isFinite(lat) && Number.isFinite(lng)) {
+          cache[key] = { lat, lng, label };
+          writeCache(cache);
+          return { lat, lng, label };
+        }
+      }
+    } catch (e) {
+      // swallow
+    }
+
+    try {
+      const zip = String(key).match(/^(\d{5})(?:-\d{4})?$/)?.[1];
+      if (zip) {
+        try {
+          const zres = await fetch(`https://api.zippopotam.us/us/${zip}`);
+          if (zres.ok) {
+            const z = await zres.json();
+            const place = z?.places?.[0];
+            const flat = Number(place?.latitude);
+            const flng = Number(place?.longitude);
+            const city = String(place?.["place name"] || place?.place || '').trim();
+            const state = String(place?.["state abbreviation"] || place?.state || '').trim();
+            const label = [city, state].filter(Boolean).join(', ');
+            if (Number.isFinite(flat) && Number.isFinite(flng)) {
+              cache[key] = { lat: flat, lng: flng, label };
+              writeCache(cache);
+              return { lat: flat, lng: flng, label };
+            }
+          }
+        } catch (e) {
+          // swallow individual external fetch errors
+        }
+      }
+    } catch (e) {
+      // swallow
+    }
+
+    try {
+      const params = new URLSearchParams({ format: 'jsonv2', limit: '1', q: key });
+      try {
+        const nres = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`);
+        if (nres.ok) {
+          const arr = (await nres.json()) as Array<any>;
+          const first = arr?.[0];
+          const flat = Number(first?.lat);
+          const flng = Number(first?.lon);
+          const label = (first?.display_name || '').toString();
+          if (Number.isFinite(flat) && Number.isFinite(flng)) {
+            cache[key] = { lat: flat, lng: flng, label };
+            writeCache(cache);
+            return { lat: flat, lng: flng, label };
+          }
+        }
+      } catch (e) {
+        // swallow
+      }
+    } catch (e) {
+      // swallow
+    }
+
+    return null;
+  } catch (e) {
+    return null;
+  }
+}
+
+export async function geocodeLocPref(): Promise<{ lat?: number; lng?: number; label?: string; radius?: string }> {
   const { loc, radius } = readLocPref();
   if (!loc) return { radius };
 
-  const cache = readCache();
-  if (cache[loc]) return { ...cache[loc], radius };
-
-  const url = (import.meta as any).env?.VITE_GEO_WEBHOOK_URL as string | undefined;
-  if (!url) return { radius };
-
-  try {
-    const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ q: loc }) });
-    if (!res.ok) return { radius };
-    const data = (await res.json()) as any;
-    const lat = Number(data.lat);
-    const lng = Number(data.lng);
-    if (Number.isFinite(lat) && Number.isFinite(lng)) {
-      cache[loc] = { lat, lng };
-      writeCache(cache);
-      return { lat, lng, radius };
-    }
-    return { radius };
-  } catch {
-    return { radius };
+  const g = await geocodeText(loc);
+  if (g && Number.isFinite(g.lat as any) && Number.isFinite(g.lng as any)) {
+    return { ...g, radius };
   }
+  return { radius };
 }
