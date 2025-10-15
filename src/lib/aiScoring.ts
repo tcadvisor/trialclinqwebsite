@@ -125,8 +125,8 @@ async function callWebhook(url: string, payload: any, signal?: AbortSignal): Pro
 
   const attempt = async (): Promise<AiScoreResult | null> => {
     try {
-      const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload), signal });
-      if (!res.ok) {
+      const res = await safeFetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload), signal });
+      if (!res || !res.ok) {
         try { localStorage.setItem(key, JSON.stringify({ ok: false, ts: Date.now() })); } catch {}
         return null;
       }
