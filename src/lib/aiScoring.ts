@@ -61,6 +61,27 @@ function profileFingerprint(p: MinimalProfile): string {
   return hash(canonical);
 }
 
+export function getCachedAiScore(nctId: string, profile: Partial<MinimalProfile>): { score: number; rationale?: string } | null {
+  try {
+    const canonical = JSON.stringify({
+      age: profile.age ?? null,
+      gender: (profile.gender || '').toLowerCase(),
+      primaryCondition: (profile.primaryCondition || '').toLowerCase(),
+      meds: (profile.medications || []).map((m) => String(m)).sort(),
+      allergies: (profile.allergies || []).map((a) => String(a)).sort(),
+      info: (profile.additionalInfo || '').toLowerCase(),
+    });
+    const fp = hash(canonical);
+    const key = `${fp}|${nctId}`;
+    const cache = readCache();
+    const hit = cache[key];
+    if (hit && Number.isFinite(hit.score)) return { score: clamp(Math.round(hit.score)), rationale: hit.rationale };
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 function profileToText(p: MinimalProfile): string {
   const lines: string[] = [];
   if (typeof p.age === 'number') lines.push(`Age: ${p.age}`);
