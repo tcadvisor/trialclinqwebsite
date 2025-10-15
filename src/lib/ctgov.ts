@@ -96,18 +96,29 @@ export async function fetchStudies(query: CtgovQuery, _signal?: AbortSignal): Pr
       signal: _signal,
     });
     if (!res.ok) {
-      console.warn('fetchStudies proxy returned non-OK', res.status)
+      // If proxy route is missing (404), fallback to direct API GET
+      if (res.status === 404) {
+        try {
+          const directUrl = buildStudiesUrl(query);
+          const direct = await fetch(directUrl, { method: 'GET', signal: _signal });
+          if (direct.ok) return (await direct.json()) as CtgovResponse;
+        } catch {}
+      }
       try {
-        const body = await res.json().catch(() => null)
-        // If server returned an empty result set, normalize to empty response
-        if (body && (Array.isArray(body.studies) || body.totalCount === 0)) return body as CtgovResponse
+        const body = await res.json().catch(() => null);
+        if (body && (Array.isArray(body.studies) || body.totalCount === 0)) return body as CtgovResponse;
       } catch {}
-      return { studies: [] }
+      return { studies: [] };
     }
-    return (await res.json()) as CtgovResponse
+    return (await res.json()) as CtgovResponse;
   } catch (e: any) {
-    console.error('fetchStudies proxy error:', e)
-    return { studies: [] }
+    try {
+      // Network/proxy error: final attempt to call API directly
+      const directUrl = buildStudiesUrl(query);
+      const direct = await fetch(directUrl, { method: 'GET', signal: _signal });
+      if (direct.ok) return (await direct.json()) as CtgovResponse;
+    } catch {}
+    return { studies: [] };
   }
 }
 
@@ -132,7 +143,24 @@ export async function fetchStudyByNctId(nctId: string, _signal?: AbortSignal): P
       signal: _signal,
     });
     if (!res.ok) {
-      console.warn('fetchStudyByNctId proxy returned non-OK', res.status)
+      if (res.status === 404) {
+        try {
+          const fields = [
+            'protocolSection.identificationModule.nctId',
+            'protocolSection.identificationModule.briefTitle',
+            'protocolSection.statusModule.overallStatus',
+            'protocolSection.conditionsModule.conditions',
+            'protocolSection.designModule.phases',
+            'protocolSection.contactsLocationsModule.locations',
+            'protocolSection.sponsorCollaboratorsModule.leadSponsor',
+            'protocolSection.descriptionModule.briefSummary',
+            'protocolSection.eligibilityModule.eligibilityCriteria',
+          ].join(',');
+          const url = `https://clinicaltrials.gov/api/v2/studies/${encodeURIComponent(nctId)}?format=json&fields=${encodeURIComponent(fields)}`;
+          const direct = await fetch(url, { method: 'GET', signal: _signal });
+          if (direct.ok) return (await direct.json()) as CtgovResponse;
+        } catch {}
+      }
       try {
         const body = await res.json().catch(() => null)
         if (body && Array.isArray(body.studies)) return body as CtgovResponse
@@ -141,7 +169,22 @@ export async function fetchStudyByNctId(nctId: string, _signal?: AbortSignal): P
     }
     return (await res.json()) as CtgovResponse
   } catch (e: any) {
-    console.error('fetchStudyByNctId proxy error:', e)
+    try {
+      const fields = [
+        'protocolSection.identificationModule.nctId',
+        'protocolSection.identificationModule.briefTitle',
+        'protocolSection.statusModule.overallStatus',
+        'protocolSection.conditionsModule.conditions',
+        'protocolSection.designModule.phases',
+        'protocolSection.contactsLocationsModule.locations',
+        'protocolSection.sponsorCollaboratorsModule.leadSponsor',
+        'protocolSection.descriptionModule.briefSummary',
+        'protocolSection.eligibilityModule.eligibilityCriteria',
+      ].join(',');
+      const url = `https://clinicaltrials.gov/api/v2/studies/${encodeURIComponent(nctId)}?format=json&fields=${encodeURIComponent(fields)}`;
+      const direct = await fetch(url, { method: 'GET', signal: _signal });
+      if (direct.ok) return (await direct.json()) as CtgovResponse;
+    } catch {}
     return { studies: [] }
   }
 }
