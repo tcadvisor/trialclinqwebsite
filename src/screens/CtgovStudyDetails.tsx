@@ -98,13 +98,16 @@ function ScoreRing({ value }: { value: number }) {
 
 export default function CtgovStudyDetails(): JSX.Element {
   const { nctId = "" } = useParams();
+  const location = useLocation() as any;
+  const initScore = (location?.state && typeof location.state.score === 'number') ? location.state.score : null;
+  const initWhy = (location?.state && typeof location.state.rationale === 'string') ? location.state.rationale : '';
   const [study, setStudy] = React.useState<CtgovStudy | null>(null);
   const [loading, setLoading] = React.useState<boolean>(true);
   const [error, setError] = React.useState<string>("");
   const [showAllInc, setShowAllInc] = React.useState(false);
   const [showAllExc, setShowAllExc] = React.useState(false);
-  const [aiScore, setAiScore] = React.useState<number | null>(null);
-  const [aiWhy, setAiWhy] = React.useState<string>("");
+  const [aiScore, setAiScore] = React.useState<number | null>(initScore);
+  const [aiWhy, setAiWhy] = React.useState<string>(initWhy);
 
   React.useEffect(() => {
     let mounted = true;
@@ -134,13 +137,15 @@ export default function CtgovStudyDetails(): JSX.Element {
   const nearest = study ? formatNearestSitePreview(study) : "";
 
   React.useEffect(() => {
-    // Compute baseline (dashboard) score immediately; then try AI rescoring
+    // Compute baseline if missing; then try AI rescoring to refresh
     let canceled = false;
     (async () => {
       try {
-        if (!nctId || !study) { setAiScore(null); setAiWhy(""); return; }
+        if (!nctId || !study) { return; }
         const profile = readCurrentHealthProfile();
-        try { setAiScore(computeStudyScore(study, profile)); } catch {}
+        if (aiScore == null) {
+          try { setAiScore(computeStudyScore(study, profile)); } catch {}
+        }
         try {
           const { scoreStudyWithAI } = await import('../lib/aiScoring');
           const res = await scoreStudyWithAI(nctId, profile);
