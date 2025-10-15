@@ -1,3 +1,5 @@
+import { safeFetch } from './fetchUtils';
+
 export type CtgovStudy = {
   protocolSection: {
     identificationModule: {
@@ -89,23 +91,23 @@ export function buildStudiesUrl({ q = '', status = '', type = '', loc = '', lat,
 export async function fetchStudies(query: CtgovQuery, _signal?: AbortSignal): Promise<CtgovResponse> {
   try {
     const proxy = (import.meta as any).env?.VITE_CT_PROXY_URL as string | undefined || '/.netlify/functions/ctgov';
-    const res = await fetch(proxy, {
+    const res = await safeFetch(proxy, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ action: 'studies', query }),
       signal: _signal,
     });
-    if (!res.ok) {
+    if (!res || !res.ok) {
       // If proxy route is missing (404), fallback to direct API GET
-      if (res.status === 404) {
+      if (res && res.status === 404) {
         try {
           const directUrl = buildStudiesUrl(query);
-          const direct = await fetch(directUrl, { method: 'GET', signal: _signal });
-          if (direct.ok) return (await direct.json()) as CtgovResponse;
+          const direct = await safeFetch(directUrl, { method: 'GET', signal: _signal });
+          if (direct && direct.ok) return (await direct.json()) as CtgovResponse;
         } catch {}
       }
       try {
-        const body = await res.json().catch(() => null);
+        const body = res ? await res.json().catch(() => null) : null;
         if (body && (Array.isArray(body.studies) || body.totalCount === 0)) return body as CtgovResponse;
       } catch {}
       return { studies: [] };
@@ -115,8 +117,8 @@ export async function fetchStudies(query: CtgovQuery, _signal?: AbortSignal): Pr
     try {
       // Network/proxy error: final attempt to call API directly
       const directUrl = buildStudiesUrl(query);
-      const direct = await fetch(directUrl, { method: 'GET', signal: _signal });
-      if (direct.ok) return (await direct.json()) as CtgovResponse;
+      const direct = await safeFetch(directUrl, { method: 'GET', signal: _signal });
+      if (direct && direct.ok) return (await direct.json()) as CtgovResponse;
     } catch {}
     return { studies: [] };
   }
@@ -146,14 +148,14 @@ function normalizeStudyResponse(json: any): CtgovResponse {
 export async function fetchStudyByNctId(nctId: string, _signal?: AbortSignal): Promise<CtgovResponse> {
   try {
     const proxy = (import.meta as any).env?.VITE_CT_PROXY_URL as string | undefined || '/.netlify/functions/ctgov';
-    const res = await fetch(proxy, {
+    const res = await safeFetch(proxy, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ action: 'study', nctId }),
       signal: _signal,
     });
-    if (!res.ok) {
-      if (res.status === 404) {
+    if (!res || !res.ok) {
+      if (res && res.status === 404) {
         try {
           const fields = [
             'protocolSection.identificationModule.nctId',
@@ -167,15 +169,15 @@ export async function fetchStudyByNctId(nctId: string, _signal?: AbortSignal): P
             'protocolSection.eligibilityModule.eligibilityCriteria',
           ].join(',');
           const url = `https://clinicaltrials.gov/api/v2/studies/${encodeURIComponent(nctId)}?format=json&fields=${encodeURIComponent(fields)}`;
-          const direct = await fetch(url, { method: 'GET', signal: _signal });
-          if (direct.ok) {
+          const direct = await safeFetch(url, { method: 'GET', signal: _signal });
+          if (direct && direct.ok) {
             const dj = await direct.json();
             return normalizeStudyResponse(dj);
           }
         } catch {}
       }
       try {
-        const body = await res.json().catch(() => null);
+        const body = res ? await res.json().catch(() => null) : null;
         if (body) return normalizeStudyResponse(body);
       } catch {}
       return { studies: [] };
@@ -196,8 +198,8 @@ export async function fetchStudyByNctId(nctId: string, _signal?: AbortSignal): P
         'protocolSection.eligibilityModule.eligibilityCriteria',
       ].join(',');
       const url = `https://clinicaltrials.gov/api/v2/studies/${encodeURIComponent(nctId)}?format=json&fields=${encodeURIComponent(fields)}`;
-      const direct = await fetch(url, { method: 'GET', signal: _signal });
-      if (direct.ok) {
+      const direct = await safeFetch(url, { method: 'GET', signal: _signal });
+      if (direct && direct.ok) {
         const dj = await direct.json();
         return normalizeStudyResponse(dj);
       }

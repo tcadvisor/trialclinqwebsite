@@ -61,6 +61,27 @@ function profileFingerprint(p: MinimalProfile): string {
   return hash(canonical);
 }
 
+export function getCachedAiScore(nctId: string, profile: Partial<MinimalProfile>): { score: number; rationale?: string } | null {
+  try {
+    const canonical = JSON.stringify({
+      age: profile.age ?? null,
+      gender: (profile.gender || '').toLowerCase(),
+      primaryCondition: (profile.primaryCondition || '').toLowerCase(),
+      meds: (profile.medications || []).map((m) => String(m)).sort(),
+      allergies: (profile.allergies || []).map((a) => String(a)).sort(),
+      info: (profile.additionalInfo || '').toLowerCase(),
+    });
+    const fp = hash(canonical);
+    const key = `${fp}|${nctId}`;
+    const cache = readCache();
+    const hit = cache[key];
+    if (hit && Number.isFinite(hit.score)) return { score: clamp(Math.round(hit.score)), rationale: hit.rationale };
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 function profileToText(p: MinimalProfile): string {
   const lines: string[] = [];
   if (typeof p.age === 'number') lines.push(`Age: ${p.age}`);
@@ -106,6 +127,8 @@ function isAiConfigured() {
   return Boolean(url || key);
 }
 
+import { safeFetch } from './fetchUtils';
+
 async function callWebhook(url: string, payload: any, signal?: AbortSignal): Promise<AiScoreResult | null> {
   // Cache webhook health in localStorage to avoid repeated failing fetches that pollute logs.
   const key = 'tc_ai_webhook_status_v1';
@@ -123,8 +146,8 @@ async function callWebhook(url: string, payload: any, signal?: AbortSignal): Pro
 
   const attempt = async (): Promise<AiScoreResult | null> => {
     try {
-      const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload), signal });
-      if (!res.ok) {
+      const res = await safeFetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload), signal });
+      if (!res || !res.ok) {
         try { localStorage.setItem(key, JSON.stringify({ ok: false, ts: Date.now() })); } catch {}
         return null;
       }
@@ -202,7 +225,7 @@ export async function scoreStudyWithAI(nctId: string, profile: MinimalProfile, s
   const pText = profileToText(profile);
   const sText = studyToText(study);
 
-  const prompt = `Patient Profile\n${pText}\n\nTrial\n${sText}\n\nScoring guidance:\n- Base score from inclusion/exclusion likelihood and condition match\n- Strongly penalize if outside Travel radius; strongly reward if inside\n- Reward status Recruiting; weigh phase modestly\n- Return an integer 0-100 with meaningful variance across trials\n\nStrictly output JSON: {"score": 0-100 integer, "rationale": "<=160 chars"}.`;
+  const prompt = `Patient Profile\n${pText}\n\nTrial\n${sText}\n\nScoring guidance:\n- Base score from inclusion/exclusion likelihood and condition match\n- If patient's AGE is outside the trial's eligibility range (as stated in title/criteria), score 0-5 and mention age mismatch\n- If gender is restricted and does not match, score 0-10\n- If criteria require a planned elective procedure (e.g., hepato-pancreato-biliary or colorectal surgery) and profile lacks that signal, score 0-15 with rationale mentioning missing planned surgery\n- Penalize exclusions like daily PDE5 inhibitors or baseline tamsulosin if present in profile meds\n- Strongly penalize if outside Travel radius; strongly reward if inside\n- Reward status Recruiting; weigh phase modestly\n- Return an integer 0-100 with meaningful variance across trials\n\nStrictly output JSON: {"score": 0-100 integer, "rationale": "<=160 chars"}.`;
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 20000);

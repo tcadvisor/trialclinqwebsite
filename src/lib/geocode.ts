@@ -1,5 +1,7 @@
 type GeoResult = { lat: number; lng: number; label?: string };
 
+import { safeFetch } from './fetchUtils';
+
 const CACHE_KEY = 'tc_geocode_cache_v1';
 const ELIGIBILITY_KEY = 'tc_eligibility_profile';
 
@@ -32,8 +34,8 @@ export async function geocodeText(q: string): Promise<{ lat?: number; lng?: numb
     // In browser, only call the serverless webhook to avoid noisy CORS/network errors
     if (typeof window !== 'undefined') {
       try {
-        const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ q: key }) });
-        if (res.ok) {
+        const res = await safeFetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ q: key }) });
+        if (res && res.ok) {
           const data = (await res.json()) as any;
           const lat = Number(data.lat);
           const lng = Number(data.lng);
@@ -52,8 +54,8 @@ export async function geocodeText(q: string): Promise<{ lat?: number; lng?: numb
 
     // Server-side: try webhook first then public geocoders
     try {
-      const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ q: key }) });
-      if (res.ok) {
+      const res = await safeFetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ q: key }) });
+      if (res && res.ok) {
         const data = (await res.json()) as any;
         const lat = Number(data.lat);
         const lng = Number(data.lng);
@@ -72,8 +74,8 @@ export async function geocodeText(q: string): Promise<{ lat?: number; lng?: numb
       const zip = String(key).match(/^(\d{5})(?:-\d{4})?$/)?.[1];
       if (zip) {
         try {
-          const zres = await fetch(`https://api.zippopotam.us/us/${zip}`);
-          if (zres.ok) {
+          const zres = await safeFetch(`https://api.zippopotam.us/us/${zip}`);
+          if (zres && zres.ok) {
             const z = await zres.json();
             const place = z?.places?.[0];
             const flat = Number(place?.latitude);
@@ -98,8 +100,8 @@ export async function geocodeText(q: string): Promise<{ lat?: number; lng?: numb
     try {
       const params = new URLSearchParams({ format: 'jsonv2', limit: '1', q: key });
       try {
-        const nres = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`);
-        if (nres.ok) {
+        const nres = await safeFetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`);
+        if (nres && nres.ok) {
           const arr = (await nres.json()) as Array<any>;
           const first = arr?.[0];
           const flat = Number(first?.lat);

@@ -56,7 +56,7 @@ export default function EligibleTrials(): JSX.Element {
 
   const pill = (text: string, color: 'green' | 'violet') => (
     <span
-      className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+      className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium whitespace-nowrap ${
         color === 'green'
           ? 'bg-green-100 text-green-700'
           : 'bg-violet-100 text-violet-700'
@@ -100,7 +100,7 @@ export default function EligibleTrials(): JSX.Element {
               {pageItems.map((t) => (
                 <tr key={t.slug} className="border-t">
                   <td className="px-4 py-3">
-                    <Link to={`/study/${t.nctId}`} className="text-gray-900 hover:underline">
+                    <Link to={`/study/${t.nctId}`} state={{ score: t.aiScore, rationale: t.aiRationale || t.reason }} className="text-gray-900 hover:underline">
                       {t.title}
                     </Link>
                   </td>
@@ -109,7 +109,6 @@ export default function EligibleTrials(): JSX.Element {
                     {pill(t.status === 'Now Recruiting' ? 'Recruiting' : t.status, 'green')}
                   </td>
                   <td className="px-4 py-3">{pill(t.phase, 'violet')}</td>
-                  <td className="px-4 py-3 text-gray-600">{t.interventions.join(' / ')}</td>
                   <td className="px-4 py-3 align-top">
                     <div className="flex items-center">
                       <span>{t.aiScore}%</span>
@@ -128,6 +127,7 @@ export default function EligibleTrials(): JSX.Element {
                       <div className="mt-1 text-xs text-gray-500 line-clamp-2">{t.aiRationale || t.reason}</div>
                     )}
                   </td>
+                  <td className="px-4 py-3 text-gray-600">{t.interventions.join(' / ')}</td>
                   <td className="px-4 py-3 text-right">
                     <a
                       href={`https://clinicaltrials.gov/study/${encodeURIComponent(t.nctId)}`}
