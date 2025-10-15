@@ -7,6 +7,7 @@ import { Separator } from "../components/ui/separator";
 import { Loader2, MapPinIcon, ArrowLeft } from "lucide-react";
 import { fetchStudyByNctId, CtgovStudy, formatNearestSitePreview } from "../lib/ctgov";
 import { Button } from "../components/ui/button";
+import { readCurrentHealthProfile } from "../lib/matching";
 
 function splitParagraphs(text: string): string[] {
   const t = String(text || "").replace(/\r/g, "").trim();
