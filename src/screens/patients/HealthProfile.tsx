@@ -943,7 +943,7 @@ export default function HealthProfile(): JSX.Element {
               <div className="md:col-span-2">
                 <Section title="Prior Treatments">
                   <ul className="divide-y">
-                    {profile.priorTherapies.map((t, i) => (
+                    {(profile.priorTherapies || []).map((t, i) => (
                       <li key={i} className="py-3 flex items-center justify-between text-sm">
                         <div className="text-gray-900">{t.name}{t.date ? ` — ${t.date}` : ''}</div>
                         <div className="flex items-center gap-2 text-gray-500">
