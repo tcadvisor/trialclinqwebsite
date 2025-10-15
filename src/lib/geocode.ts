@@ -29,7 +29,7 @@ export async function geocodeText(q: string): Promise<{ lat?: number; lng?: numb
     const configured = (import.meta as any).env?.VITE_GEO_WEBHOOK_URL as string | undefined;
     const url = configured || '/.netlify/functions/geocode';
 
-    // In browser, prefer serverless endpoint; if unavailable, fall back to public geocoders
+    // In browser, only call the serverless webhook to avoid noisy CORS/network errors
     if (typeof window !== 'undefined') {
       try {
         const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ q: key }) });
@@ -45,12 +45,12 @@ export async function geocodeText(q: string): Promise<{ lat?: number; lng?: numb
           }
         }
       } catch (e) {
-        // swallow errors from webhook fetches
+        // swallow; do not attempt external public fetches from browser to avoid console noise/CORS
       }
-      // Do not return; fall through to ZIP and OSM fallbacks below
+      return null;
     }
 
-    // Server-side or fallback: try webhook again (no-op if fails), then public geocoders
+    // Server-side: try webhook first then public geocoders
     try {
       const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ q: key }) });
       if (res.ok) {
