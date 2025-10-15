@@ -105,17 +105,24 @@ function isAiConfigured() {
 }
 
 async function callWebhook(url: string, payload: any, signal?: AbortSignal): Promise<AiScoreResult | null> {
-  try {
-    const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload), signal });
-    if (!res.ok) return null;
-    const data = await res.json().catch(() => null);
-    if (!data) return null;
-    const score = typeof data.score === 'number' ? clamp(Math.round(data.score)) : Number(data.score);
-    if (!Number.isFinite(score)) return null;
-    return { score: clamp(Math.round(score)), rationale: String(data.rationale || data.reason || '') };
-  } catch {
-    return null;
-  }
+  const attempt = async (): Promise<AiScoreResult | null> => {
+    try {
+      const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload), signal });
+      if (!res.ok) return null;
+      const data = await res.json().catch(() => null);
+      if (!data) return null;
+      const score = typeof data.score === 'number' ? clamp(Math.round(data.score)) : Number(data.score);
+      if (!Number.isFinite(score)) return null;
+      return { score: clamp(Math.round(score)), rationale: String(data.rationale || data.reason || '') };
+    } catch {
+      return null;
+    }
+  };
+  // Up to 2 tries with small delay
+  const r1 = await attempt();
+  if (r1) return r1;
+  await new Promise((r) => setTimeout(r, 500));
+  return attempt();
 }
 
 async function callOpenAI(prompt: string, signal?: AbortSignal): Promise<AiScoreResult | null> {
@@ -172,7 +179,7 @@ export async function scoreStudyWithAI(nctId: string, profile: MinimalProfile, s
   const prompt = `Patient Profile\n${pText}\n\nTrial\n${sText}\n\nScoring guidance:\n- Base score from inclusion/exclusion likelihood and condition match\n- Strongly penalize if outside Travel radius; strongly reward if inside\n- Reward status Recruiting; weigh phase modestly\n- Return an integer 0-100 with meaningful variance across trials\n\nStrictly output JSON: {"score": 0-100 integer, "rationale": "<=160 chars"}.`;
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30000);
+  const timeout = setTimeout(() => controller.abort(), 20000);
 
   let result: AiScoreResult | null = null;
   // Prefer serverless scorer first (secure, reliable); then direct OpenAI
@@ -226,8 +233,21 @@ export async function scoreTopKWithAI<T extends { nctId: string; aiScore: number
     if (r && typeof r.score === 'number') {
       return { ...it, aiScore: clamp(Math.round(r.score)), aiRationale: r.rationale } as any;
     }
+    // Silent fallback: keep original score without error message
     if (forceAi && idx < top.length) {
-      return { ...it, aiScore: 1, aiRationale: 'AI scorer unavailable; retry soon' } as any;
+      // Schedule background rescoring to update cache and refresh UI later
+      try {
+        setTimeout(async () => {
+          try {
+            const bg = await scoreStudyWithAI(items[idx].nctId, profile);
+            if (bg) {
+              // notify UI to refresh from cache
+              try { window.dispatchEvent(new Event('storage')); } catch {}
+            }
+          } catch {}
+        }, 100);
+      } catch {}
+      return { ...it } as any;
     }
     return it as any;
   });
