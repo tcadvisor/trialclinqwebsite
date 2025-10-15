@@ -557,9 +557,16 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
     const phase = pickPhase(s);
     const center = s.protocolSection?.sponsorCollaboratorsModule?.leadSponsor?.name || '';
     const location = ctLocation(s);
-    const aiScore = computeStudyScore(s, profile);
+    let aiScore = computeStudyScore(s, profile);
     const conds = s.protocolSection?.conditionsModule?.conditions || [];
     const reason = summarizeReason(s, profile);
+    try {
+      const { getCachedAiScore } = await import('./aiScoring');
+      const cached = getCachedAiScore(nct, profile);
+      if (cached && typeof cached.score === 'number') {
+        aiScore = cached.score;
+      }
+    } catch {}
     list.push({
       slug: nct.toLowerCase(),
       nctId: nct,
