@@ -1,6 +1,6 @@
 import { trials as staticTrials, type Trial } from "./trials";
 import { computeProfileCompletion } from "./profile";
-import { fetchStudies, type CtgovStudy } from "./ctgov";
+import { fetchStudies, fetchStudyByNctId, type CtgovStudy } from "./ctgov";
 import { geocodeLocPref, geocodeText } from "./geocode";
 
 export type MinimalProfile = {
@@ -328,7 +328,7 @@ function summarizeReason(study: CtgovStudy, profile: MinimalProfile): string {
   return s.length > 160 ? s.slice(0, 157) + "..." : s;
 }
 
-function computeStudyScore(study: CtgovStudy, profile: MinimalProfile): number {
+export function computeStudyScore(study: CtgovStudy, profile: MinimalProfile): number {
   const title = study.protocolSection?.identificationModule?.briefTitle || "";
   const titleToks = tokenize(title);
   const studyConds = study.protocolSection?.conditionsModule?.conditions || [];
@@ -357,31 +357,130 @@ function computeStudyScore(study: CtgovStudy, profile: MinimalProfile): number {
 }
 
 function ageLikeBoost(profile: MinimalProfile, study: CtgovStudy): number {
-  // Optional minor boost when age range seems compatible based on min/max present in study title/conditions
-  // This is a placeholder-neutral helper that returns 0 for now since CtGov light data here lacks min/max fields.
-  return 0;
+  // Optional minor boost when age range seems compatible based on min/max present in title text
+  const a = typeof profile.age === 'number' ? profile.age : null;
+  if (a == null) return 0;
+  const title = (study.protocolSection?.identificationModule?.briefTitle || '').toString();
+  const rng = extractAgeRangeFromText(title);
+  if (!rng) return 0;
+  if (rng.min != null && a < rng.min) return 0;
+  if (rng.max != null) {
+    if (rng.maxExclusive ? a >= rng.max : a > rng.max) return 0;
+  }
+  // inside range: small positive boost
+  return 5;
+}
+
+function extractAgeRangeFromText(s: string): { min?: number; max?: number; maxExclusive?: boolean } | null {
+  const text = (s || '').toLowerCase();
+  let m = text.match(/(\d{1,3})\s*(?:to|–|-|—)\s*(?:less\s+than\s*)?(\d{1,3})\s*(?:years?|yrs?|yo)\b/);
+  if (m) {
+    const min = Number(m[1]);
+    const max = Number(m[2]);
+    const maxExclusive = /less\s+than\s*\d{1,3}\s*(?:years?|yrs?|yo)\b/.test(text.slice(m.index || 0, (m.index || 0) + m[0].length));
+    return { min: Number.isFinite(min) ? min : undefined, max: Number.isFinite(max) ? max : undefined, maxExclusive };
+  }
+  m = text.match(/(\d{1,3})\s*(?:years?|yrs?|yo)\s*(?:and\s*older|and\s*over|or\s*older)\b/);
+  if (m) { const min = Number(m[1]); return { min: Number.isFinite(min) ? min : undefined }; }
+  m = text.match(/(?:under|less\s*than)\s*(\d{1,3})\s*(?:years?|yrs?|yo)\b/);
+  if (m) { const max = Number(m[1]); return { max: Number.isFinite(max) ? max : undefined, maxExclusive: true }; }
+  if (/\b(pediatric|child|children|infant|adolescent)s?\b/.test(text)) return { max: 17, maxExclusive: false };
+  if (/\bolder\s+adult|elderly|senior\b/.test(text)) return { min: 65 };
+  if (/\badult(s)?\b/.test(text) && !/\b(child|children|pediatric)\b/.test(text)) return { min: 18 };
+  return null;
+}
+
+function hasAny(src: string, terms: string[]): boolean {
+  const t = (src || '').toLowerCase();
+  return terms.some((x) => t.includes(x.toLowerCase()));
+}
+
+function evaluateAdvancedEligibility(profile: MinimalProfile, study: CtgovStudy, eligText?: string): { ok: boolean; reason?: string } {
+  const info = (profile.additionalInfo || '').toLowerCase();
+  const meds = (profile.medications || []).map((m) => String(m).toLowerCase());
+  const combined = `${(study.protocolSection?.identificationModule?.briefTitle || '').toLowerCase()}\n${(eligText || '').toLowerCase()}`;
+
+  // Required planned elective HPB/colorectal surgery
+  const requiresElectiveSx = /(planned|schedule[rd])\s+(elective\s+)?(hepato|hepatobiliary|hepato[-\s]?pancreato[-\s]?biliary|pancreatic|colorectal)/.test(combined);
+  if (requiresElectiveSx) {
+    const hasSignal = hasAny(info, ['planned surgery', 'elective surgery', 'hepato', 'hepatobiliary', 'pancreat', 'colorectal', 'colectomy', 'whipple', 'hepatectomy']);
+    if (!hasSignal) return { ok: false, reason: 'No qualifying elective HPB/colorectal surgery planned' };
+  }
+
+  // Exclude daily PDE5 inhibitors
+  const pde5Terms = ['sildenafil', 'tadalafil', 'vardenafil', 'avanafil', 'pde5'];
+  if (hasAny(combined, ['pde5', 'phosphodiesterase'])) {
+    if (meds.some((m) => pde5Terms.some((k) => m.includes(k)))) return { ok: false, reason: 'Daily PDE5 inhibitor' };
+  }
+
+  // Exclude tamsulosin at baseline if mentioned
+  if (hasAny(combined, ['tamsulosin therapy as a home medication', 'on tamsulosin at baseline', 'tamsulosin at baseline'])) {
+    if (meds.some((m) => m.includes('tamsulosin') || m.includes('flomax'))) return { ok: false, reason: 'On tamsulosin at baseline' };
+  }
+
+  // GU procedure exclusions
+  if (hasAny(combined, ['genitourinary', 'gu procedure', 'urology procedure', 'prostate', 'bladder', 'ureter', 'kidney'])) {
+    if (hasAny(info, ['prostate surgery', 'cystectomy', 'bladder surgery', 'ureter', 'nephrectomy', 'urology procedure'])) return { ok: false, reason: 'GU procedure planned' };
+  }
+
+  // Same-day Foley removal exclusion
+  if (hasAny(combined, ['same day foley removal', 'remove foley on day of surgery', 'pod0'])) {
+    if (hasAny(info, ['same day foley', 'pod0 foley removal', 'immediate catheter removal'])) return { ok: false, reason: 'Same-day Foley removal planned' };
+  }
+
+  // NG tube retention POD1 exclusion
+  if (hasAny(combined, ['ng tube retention', 'nasogastric tube retention', 'pod1'])) {
+    if (hasAny(info, ['ng tube planned', 'nasogastric tube retention'])) return { ok: false, reason: 'NG tube retention planned' };
+  }
+
+  return { ok: true };
+}
+
+function extractGenderRestrictionFromText(s: string): 'male' | 'female' | null {
+  const t = (s || '').toLowerCase();
+  if (/(female|women|woman)\s*-?\s*only\b/.test(t) || /\bfemales?\s+only\b/.test(t)) return 'female';
+  if (/(male|men|man)\s*-?\s*only\b/.test(t) || /\bmales?\s+only\b/.test(t)) return 'male';
+  if (/women\sof\schild-bearing\s*potential|pregnan/i.test(t)) return 'female';
+  return null;
+}
+
+function isAgeCompatible(userAge: number | null | undefined, s: CtgovStudy, eligText?: string): boolean {
+  if (userAge == null || !Number.isFinite(userAge as number)) return true;
+  const title = (s.protocolSection?.identificationModule?.briefTitle || '').toString();
+  const combined = `${title}\n${eligText || ''}`;
+  const rng = extractAgeRangeFromText(combined);
+  if (!rng) return true;
+  const a = userAge as number;
+  if (rng.min != null && a < rng.min) return false;
+  if (rng.max != null) { if (rng.maxExclusive ? a >= rng.max : a > rng.max) return false; }
+  return true;
+}
+
+function isGenderCompatible(userGender: string | null | undefined, s: CtgovStudy, eligText?: string): boolean {
+  const g = (userGender || '').toLowerCase();
+  if (!g) return true;
+  const title = (s.protocolSection?.identificationModule?.briefTitle || '').toString();
+  const combined = `${title}\n${eligText || ''}`;
+  const restr = extractGenderRestrictionFromText(combined);
+  if (!restr) return true;
+  if (restr === 'female' && !g.startsWith('fem')) return false;
+  if (restr === 'male' && !g.startsWith('male')) return false;
+  return true;
 }
 
 export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<LiteTrial[]> {
   const profile = readCurrentHealthProfile();
-  const qPrimary = (profile.primaryCondition || "").trim();
-  const qAltTokens = tokenize(profile.additionalInfo || "");
-  const qAlt = qAltTokens.slice(0, 3).join(" ");
-  const q = qPrimary || qAlt || "";
+  const qPrimary = (profile.primaryCondition || '').trim();
+  const qAltTokens = tokenize(profile.additionalInfo || '');
+  const qAlt = qAltTokens.slice(0, 3).join(' ');
+  const q = qPrimary || qAlt || '';
 
   const pageSize = Math.max(10, Math.min(100, limit));
-  const statuses = [
-    'RECRUITING',
-    'ENROLLING_BY_INVITATION',
-  ];
+  const statuses = ['RECRUITING', 'ENROLLING_BY_INVITATION'];
 
   const { loc } = readLocationPref();
   let geo: any = {};
-  try {
-    geo = (await geocodeLocPref()) || {};
-  } catch (e) {
-    geo = {};
-  }
+  try { geo = (await geocodeLocPref()) || {}; } catch { geo = {}; }
   const locText = (geo as any)?.label || loc;
 
   const candidateRadii = (r?: string): string[] => {
@@ -395,7 +494,6 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
     const base = { q: query, pageSize } as any;
     if (opts.withGeo && typeof geo.lat === 'number' && typeof geo.lng === 'number') {
       base.loc = locText;
-      // Try with selected radius, then expand progressively if no results
       const radii = candidateRadii(geo.radius);
       for (const rStr of radii) {
         const withGeo = { ...base, lat: geo.lat, lng: geo.lng, radius: rStr } as any;
@@ -409,10 +507,8 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
           if (studies.length > 0) return studies;
         }
       }
-      // If nothing found even at max radius, fall back to no-geo handling below
     }
 
-    // No geo available or nothing found with geo: use textual location only
     base.loc = locText;
     if (opts.withStatuses) {
       const results = await Promise.all(statuses.map((s) => fetchStudies({ ...base, status: s })));
@@ -423,33 +519,23 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
     }
   };
 
-  // 1) Primary or additional-info query with geo+statuses
   let studies = await fetchSet(q, { withGeo: true, withStatuses: true });
 
   const strictRadius = typeof (geo as any)?.lat === 'number' && typeof (geo as any)?.lng === 'number' && typeof parseRadiusMi(geo.radius) === 'number';
 
-  // 2) If empty, try single call with geo+no statuses (broader) unless strict radius is set
   if (!studies || studies.length === 0) {
     if (!strictRadius) studies = await fetchSet(q, { withGeo: true, withStatuses: false });
   }
-
-  // 3) If still empty, try loc-only (no geo) with statuses unless strict radius is set
   if (!studies || studies.length === 0) {
     if (!strictRadius) studies = await fetchSet(q, { withGeo: false, withStatuses: true });
   }
-
-  // 4) If still empty and additional-info query was used, try the primary condition explicitly (respect strict radius)
   if ((!studies || studies.length === 0) && q && q !== qPrimary) {
     studies = await fetchSet(qPrimary || '', { withGeo: !strictRadius ? true : true, withStatuses: true });
   }
-
-  // 5) As last resort, try loc-only with no statuses unless strict radius is set
   if (!studies || studies.length === 0) {
     if (!strictRadius) studies = await fetchSet(q, { withGeo: false, withStatuses: false });
   }
-
   if (!studies || studies.length === 0) {
-    // Final fallback: show any recruiting trials near user regardless of condition
     studies = await fetchSet('', { withGeo: true, withStatuses: true });
   }
   if (!studies) studies = [];
@@ -457,19 +543,30 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
   const seen = new Set<string>();
   const list: (LiteTrial & { distanceMi?: number; inRadius?: boolean })[] = [];
   for (const s of studies) {
-    const nct = s.protocolSection?.identificationModule?.nctId || "";
+    const nct = s.protocolSection?.identificationModule?.nctId || '';
     if (!nct || seen.has(nct)) continue;
     const overall = (s.protocolSection?.statusModule?.overallStatus || '').toString().toUpperCase();
-    if (overall !== 'RECRUITING' && overall !== 'ENROLLING_BY_INVITATION') continue; // recruiting-only
+    if (overall !== 'RECRUITING' && overall !== 'ENROLLING_BY_INVITATION') continue;
+
+    // Age compatibility gate: if user's age known and title indicates a range, enforce it strictly
+    if (!isAgeCompatible(profile.age, s)) continue;
+
     seen.add(nct);
     const title = s.protocolSection?.identificationModule?.briefTitle || nct;
     const status = ctStatus(s);
     const phase = pickPhase(s);
-    const center = s.protocolSection?.sponsorCollaboratorsModule?.leadSponsor?.name || "";
+    const center = s.protocolSection?.sponsorCollaboratorsModule?.leadSponsor?.name || '';
     const location = ctLocation(s);
-    const aiScore = computeStudyScore(s, profile);
+    let aiScore = computeStudyScore(s, profile);
     const conds = s.protocolSection?.conditionsModule?.conditions || [];
     const reason = summarizeReason(s, profile);
+    try {
+      const { getCachedAiScore } = await import('./aiScoring');
+      const cached = getCachedAiScore(nct, profile);
+      if (cached && typeof cached.score === 'number') {
+        aiScore = cached.score;
+      }
+    } catch {}
     list.push({
       slug: nct.toLowerCase(),
       nctId: nct,
@@ -484,7 +581,6 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
     });
   }
 
-  // Compute distance for tie-breaks using location geocoding (cached) without altering AI score
   let radMiComputed: number | undefined;
   try {
     const user = await geocodeLocPref();
@@ -496,12 +592,7 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
       const labels = Array.from(new Set(list.map((t) => (t.location || '').trim()).filter(Boolean)));
       const locMap = new Map<string, { lat: number; lng: number }>();
       const geos = await Promise.all(labels.map(async (lbl) => {
-        try {
-          const g = await geocodeText(lbl);
-          return [lbl, g] as const;
-        } catch (e) {
-          return [lbl, null] as const;
-        }
+        try { const g = await geocodeText(lbl); return [lbl, g] as const; } catch { return [lbl, null] as const; }
       }));
       for (const [lbl, g] of geos) {
         const glat = g && typeof g.lat === 'number' ? (g.lat as number) : undefined;
@@ -520,17 +611,55 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
     }
   } catch {}
 
-  // If a travel radius is set, filter out trials beyond it when we could compute distance
   if (typeof radMiComputed === 'number') {
     const within = list.filter((t) => typeof t.distanceMi !== 'number' || (t.distanceMi as number) <= (radMiComputed as number));
-    if (within.length > 0) {
-      list.length = 0;
-      list.push(...within);
+    if (within.length > 0) { list.length = 0; list.push(...within); }
+  }
+
+  // Strict eligibility enforcement for top results using detailed criteria (age + gender + key clinical rules)
+  async function applyEligibilityGate(items: typeof list, topN: number): Promise<typeof list> {
+    const top = items.slice(0, Math.min(topN, items.length));
+    const chunks: typeof top[] = [];
+    for (let i = 0; i < top.length; i += 10) chunks.push(top.slice(i, i + 10));
+    const toRemove = new Set<string>();
+    for (const chunk of chunks) {
+      const details = await Promise.all(chunk.map(async (t) => {
+        try { return await fetchStudyByNctId(t.nctId); } catch { return { studies: [] as CtgovStudy[] }; }
+      }));
+      for (let i = 0; i < chunk.length; i++) {
+        const t = chunk[i];
+        const d = details[i];
+        const s = (d.studies && d.studies[0]) as CtgovStudy | undefined;
+        const elig = (s as any)?.protocolSection?.eligibilityModule?.eligibilityCriteria as string | undefined;
+        const okAge = isAgeCompatible(profile.age, s || ({} as CtgovStudy), elig);
+        const okGender = isGenderCompatible(profile.gender, s || ({} as CtgovStudy), elig);
+        const adv = evaluateAdvancedEligibility(profile, s || ({} as CtgovStudy), elig);
+        if (!okAge || !okGender || !adv.ok) toRemove.add(t.nctId);
+      }
+    }
+    return items.filter((t) => !toRemove.has(t.nctId));
+  }
+
+  const gated = await applyEligibilityGate(list, 40);
+
+  // Location influence: boost nearby trials significantly; mildly penalize far ones
+  for (const t of gated) {
+    if (typeof (t as any).distanceMi === 'number') {
+      const d = (t as any).distanceMi as number;
+      let boost = 0;
+      if (typeof radMiComputed === 'number' && Number.isFinite(radMiComputed)) {
+        const r = radMiComputed as number;
+        if (d <= r) boost = 25 * (1 - d / r);
+        else boost = -15 * Math.min(2, (d - r) / r);
+      } else {
+        const dd = Math.min(500, d);
+        boost = 20 * (1 - dd / 500);
+      }
+      (t as any).aiScore = clamp(Math.round(((t as any).aiScore ?? 0) + boost), 0, 100);
     }
   }
 
-  // Sort by AI score desc; on ties prefer closer distance
-  list.sort((a, b) => {
+  gated.sort((a, b) => {
     const s = (b.aiScore ?? 0) - (a.aiScore ?? 0);
     if (s !== 0) return s;
     const da = typeof a.distanceMi === 'number' ? a.distanceMi : Number.POSITIVE_INFINITY;
@@ -538,12 +667,11 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
     return da - db;
   });
 
-  // Try AI rescoring for the top 15 when an AI backend is configured; fallback silently otherwise
   try {
     const { scoreTopKWithAI } = await import('./aiScoring');
-    const rescored = await scoreTopKWithAI(list, 15, profile);
+    const rescored = await scoreTopKWithAI(gated, 15, profile);
     return rescored;
   } catch {
-    return list;
+    return gated;
   }
 }
