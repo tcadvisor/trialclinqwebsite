@@ -504,6 +504,8 @@ export default function HealthProfile(): JSX.Element {
   // Persist changes
   useEffect(() => {
     try { localStorage.setItem(PROFILE_KEY, JSON.stringify(profile)); } catch {}
+    try { window.dispatchEvent(new Event('storage')); } catch {}
+    try { window.dispatchEvent(new CustomEvent('tc_profile_updated', { detail: { source: 'HealthProfile' } })); } catch {}
   }, [profile]);
 
   // Refresh from storage when uploader saves
