@@ -377,20 +377,46 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
 
   const { loc } = readLocationPref();
   const geo = await geocodeLocPref();
-  const fetchSet = async (query: string) => {
-    const results = await Promise.all(statuses.map((s) => fetchStudies({ q: query, status: s, pageSize, loc, lat: geo.lat, lng: geo.lng, radius: geo.radius })));
-    return results.flatMap((r) => r.studies || []);
+
+  const fetchSet = async (query: string, opts: { withGeo?: boolean; withStatuses?: boolean } = { withGeo: true, withStatuses: true }) => {
+    const base = { q: query, pageSize } as any;
+    if (opts.withGeo) {
+      base.loc = loc; base.lat = geo.lat; base.lng = geo.lng; base.radius = geo.radius;
+    } else {
+      base.loc = loc; // textual location only
+    }
+    if (opts.withStatuses) {
+      const results = await Promise.all(statuses.map((s) => fetchStudies({ ...base, status: s })));
+      return results.flatMap((r) => r.studies || []);
+    } else {
+      const r = await fetchStudies(base);
+      return r.studies || [];
+    }
   };
 
-  let studies = await fetchSet(q);
+  // 1) Primary or additional-info query with geo+statuses
+  let studies = await fetchSet(q, { withGeo: true, withStatuses: true });
+
+  // 2) If empty, try single call with geo+no statuses (broader)
   if (!studies || studies.length === 0) {
-    const r = await fetchStudies({ q, pageSize, loc, lat: geo.lat, lng: geo.lng, radius: geo.radius });
-    studies = r.studies || [];
+    studies = await fetchSet(q, { withGeo: true, withStatuses: false });
   }
+
+  // 3) If still empty, try loc-only (no geo) with statuses
+  if (!studies || studies.length === 0) {
+    studies = await fetchSet(q, { withGeo: false, withStatuses: true });
+  }
+
+  // 4) If still empty and additional-info query was used, try the primary condition explicitly
   if ((!studies || studies.length === 0) && q && q !== qPrimary) {
-    const r2 = await fetchStudies({ q: qPrimary, pageSize, loc, lat: geo.lat, lng: geo.lng, radius: geo.radius });
-    studies = r2.studies || [];
+    studies = await fetchSet(qPrimary || '', { withGeo: true, withStatuses: true });
   }
+
+  // 5) As last resort, try loc-only with no statuses
+  if (!studies || studies.length === 0) {
+    studies = await fetchSet(q, { withGeo: false, withStatuses: false });
+  }
+
   if (!studies) studies = [];
 
   const seen = new Set<string>();
