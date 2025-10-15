@@ -118,7 +118,7 @@ export async function fetchStudies(query: CtgovQuery, _signal?: AbortSignal): Pr
       // Network/proxy error: final attempt to call API directly
       const directUrl = buildStudiesUrl(query);
       const direct = await safeFetch(directUrl, { method: 'GET', signal: _signal });
-      if (direct.ok) return (await direct.json()) as CtgovResponse;
+      if (direct && direct.ok) return (await direct.json()) as CtgovResponse;
     } catch {}
     return { studies: [] };
   }
