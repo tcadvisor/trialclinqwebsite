@@ -562,8 +562,11 @@ export default function HealthProfile(): JSX.Element {
       return String(el.radius || "50mi");
     } catch { return "50mi"; }
   });
+  const [travelSaveState, setTravelSaveState] = useState<"idle"|"saving"|"saved"|"error">("idle");
+  const [travelSaveMsg, setTravelSaveMsg] = useState<string>("");
 
   function saveTravelPrefs() {
+    setTravelSaveState("saving");
     try {
       const raw = localStorage.getItem("tc_eligibility_profile");
       const base = raw ? (JSON.parse(raw) as Record<string, any>) : {};
@@ -571,7 +574,13 @@ export default function HealthProfile(): JSX.Element {
       localStorage.setItem("tc_eligibility_profile", JSON.stringify(next));
       window.dispatchEvent(new Event("storage"));
       try { window.dispatchEvent(new CustomEvent("tc_profile_updated", { detail: { source: "HealthProfile", updated: ["loc","radius"] } })); } catch {}
-    } catch {}
+      setTravelSaveMsg("Preferences saved");
+      setTravelSaveState("saved");
+      setTimeout(() => setTravelSaveState("idle"), 2000);
+    } catch {
+      setTravelSaveMsg("Could not save. Please try again.");
+      setTravelSaveState("error");
+    }
   }
 
   // Allergy handlers
@@ -800,8 +809,14 @@ export default function HealthProfile(): JSX.Element {
                         {["25mi","50mi","100mi","200mi","300mi","500mi","1000mi"].map(r => <option key={r} value={r}>{r}</option>)}
                       </select>
                     </label>
-                    <div>
-                      <button onClick={saveTravelPrefs} className="inline-flex items-center gap-1 text-sm rounded-full bg-gray-900 text-white px-3 py-1.5">Save</button>
+                    <div className="flex items-center gap-2">
+                      <button onClick={saveTravelPrefs} disabled={travelSaveState==='saving'} className={`inline-flex items-center gap-1 text-sm rounded-full px-3 py-1.5 ${travelSaveState==='saving' ? 'bg-gray-400 text-white cursor-wait' : 'bg-gray-900 text-white'}`}>{travelSaveState==='saving' ? 'Saving…' : 'Save'}</button>
+                      {travelSaveState==='saved' && (
+                        <span className="inline-flex items-center gap-1 text-xs text-emerald-700"><CheckCircle2 className="w-4 h-4"/> {travelSaveMsg}</span>
+                      )}
+                      {travelSaveState==='error' && (
+                        <span className="inline-flex items-center gap-1 text-xs text-red-600"><AlertTriangle className="w-4 h-4"/> {travelSaveMsg}</span>
+                      )}
                     </div>
                   </div>
                 </Section>
