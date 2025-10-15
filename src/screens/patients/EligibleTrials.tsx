@@ -56,7 +56,7 @@ export default function EligibleTrials(): JSX.Element {
 
   const pill = (text: string, color: 'green' | 'violet') => (
     <span
-      className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+      className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium whitespace-nowrap ${
         color === 'green'
           ? 'bg-green-100 text-green-700'
           : 'bg-violet-100 text-violet-700'
