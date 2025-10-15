@@ -230,7 +230,7 @@ export async function scoreStudyWithAI(nctId: string, profile: MinimalProfile, s
   return result;
 }
 
-export async function scoreTopKWithAI<T extends { nctId: string; aiScore: number }>(
+export async function scoreTopKWithAI<T extends { nctId: string; aiScore: number; distanceMi?: number }>(
   items: T[],
   k: number,
   profile: MinimalProfile,
@@ -276,6 +276,12 @@ export async function scoreTopKWithAI<T extends { nctId: string; aiScore: number
 
   // Immediately return original list; background task will update cache and UI later
   const merged = items.map((it) => ({ ...it } as any));
-  merged.sort((a, b) => (b.aiScore ?? 0) - (a.aiScore ?? 0));
+  merged.sort((a, b) => {
+    const s = (b.aiScore ?? 0) - (a.aiScore ?? 0);
+    if (s !== 0) return s;
+    const da = typeof (a as any).distanceMi === 'number' ? (a as any).distanceMi : Number.POSITIVE_INFINITY;
+    const db = typeof (b as any).distanceMi === 'number' ? (b as any).distanceMi : Number.POSITIVE_INFINITY;
+    return da - db;
+  });
   return merged as any;
 }
