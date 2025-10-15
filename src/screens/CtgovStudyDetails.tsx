@@ -63,6 +63,10 @@ export default function CtgovStudyDetails(): JSX.Element {
           <div className="p-6 border border-red-200 bg-red-50 text-red-800 rounded-md">{error}</div>
         )}
 
+        {!loading && !error && !study && (
+          <div className="p-6 border rounded-md text-gray-600">Study not found or unavailable right now.</div>
+        )}
+
         {!loading && !error && study && (
           <div className="space-y-6">
             <div>
@@ -85,8 +89,6 @@ export default function CtgovStudyDetails(): JSX.Element {
                 <h2 className="text-lg font-semibold">Overview</h2>
                 <Separator />
                 <div className="text-sm text-gray-700">
-                  {/* Brief summary if present */}
-                  {/* We requested descriptionModule.briefSummary in fields; render if available via optional chaining */}
                   {(study as any)?.protocolSection?.descriptionModule?.briefSummary || "No summary available."}
                 </div>
               </CardContent>
