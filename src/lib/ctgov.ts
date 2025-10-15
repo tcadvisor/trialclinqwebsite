@@ -97,17 +97,17 @@ export async function fetchStudies(query: CtgovQuery, _signal?: AbortSignal): Pr
       body: JSON.stringify({ action: 'studies', query }),
       signal: _signal,
     });
-    if (!res.ok) {
+    if (!res || !res.ok) {
       // If proxy route is missing (404), fallback to direct API GET
-      if (res.status === 404) {
+      if (res && res.status === 404) {
         try {
           const directUrl = buildStudiesUrl(query);
           const direct = await safeFetch(directUrl, { method: 'GET', signal: _signal });
-          if (direct.ok) return (await direct.json()) as CtgovResponse;
+          if (direct && direct.ok) return (await direct.json()) as CtgovResponse;
         } catch {}
       }
       try {
-        const body = await res.json().catch(() => null);
+        const body = res ? await res.json().catch(() => null) : null;
         if (body && (Array.isArray(body.studies) || body.totalCount === 0)) return body as CtgovResponse;
       } catch {}
       return { studies: [] };
