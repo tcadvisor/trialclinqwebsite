@@ -73,6 +73,23 @@ function parseEligibility(raw: string): { inclusion: string[]; exclusion: string
   return { inclusion: bullets(t), exclusion: [], notes: [] };
 }
 
+function ScoreRing({ value }: { value: number }) {
+  const size = 56;
+  const stroke = 8;
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const pct = Math.max(0, Math.min(100, Math.round(value)));
+  const off = c - (pct / 100) * c;
+  const color = pct >= 70 ? '#16a34a' : pct >= 40 ? '#f59e0b' : '#ef4444';
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-label={`Match score ${pct}%`}>
+      <circle cx={size/2} cy={size/2} r={r} stroke="#e5e7eb" strokeWidth={stroke} fill="none" />
+      <circle cx={size/2} cy={size/2} r={r} stroke={color} strokeWidth={stroke} fill="none" strokeLinecap="round" strokeDasharray={`${c} ${c}`} strokeDashoffset={off} transform={`rotate(-90 ${size/2} ${size/2})`} />
+      <text x="50%" y="50%" dominantBaseline="middle" textAnchor="middle" fontSize="12" fontWeight="600" fill="#111827">{pct}%</text>
+    </svg>
+  );
+}
+
 export default function CtgovStudyDetails(): JSX.Element {
   const { nctId = "" } = useParams();
   const [study, setStudy] = React.useState<CtgovStudy | null>(null);
@@ -80,6 +97,8 @@ export default function CtgovStudyDetails(): JSX.Element {
   const [error, setError] = React.useState<string>("");
   const [showAllInc, setShowAllInc] = React.useState(false);
   const [showAllExc, setShowAllExc] = React.useState(false);
+  const [aiScore, setAiScore] = React.useState<number | null>(null);
+  const [aiWhy, setAiWhy] = React.useState<string>("");
 
   React.useEffect(() => {
     let mounted = true;
@@ -107,6 +126,25 @@ export default function CtgovStudyDetails(): JSX.Element {
   const phases = study?.protocolSection?.designModule?.phases || [];
   const sponsor = study?.protocolSection?.sponsorCollaboratorsModule?.leadSponsor?.name || "";
   const nearest = study ? formatNearestSitePreview(study) : "";
+
+  React.useEffect(() => {
+    // Compute AI match score for this study using current profile
+    let canceled = false;
+    (async () => {
+      try {
+        if (!nctId || !study) { setAiScore(null); setAiWhy(""); return; }
+        const profile = readCurrentHealthProfile();
+        try {
+          const { scoreStudyWithAI } = await import('../lib/aiScoring');
+          const res = await scoreStudyWithAI(nctId, profile);
+          if (!canceled && res) { setAiScore(res.score); setAiWhy(res.rationale || ""); }
+        } catch {
+          // ignore if AI not configured
+        }
+      } catch {}
+    })();
+    return () => { canceled = true; };
+  }, [nctId, study?.protocolSection?.identificationModule?.nctId]);
 
   const briefSummary = (study as any)?.protocolSection?.descriptionModule?.briefSummary || "";
   const eligibilityRaw = (study as any)?.protocolSection?.eligibilityModule?.eligibilityCriteria || "";
@@ -143,7 +181,15 @@ export default function CtgovStudyDetails(): JSX.Element {
         {!loading && !error && study && (
           <div className="space-y-6">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-semibold mb-3 leading-snug">{title}</h1>
+              <div className="flex items-start justify-between gap-4">
+                <h1 className="text-2xl sm:text-3xl font-semibold mb-3 leading-snug flex-1">{title}</h1>
+                <div className="flex items-center gap-3">
+                  <div className="text-center">
+                    <ScoreRing value={aiScore ?? 0} />
+                    <div className="mt-1 text-[11px] text-gray-600">Match score</div>
+                  </div>
+                </div>
+              </div>
               <div className="flex flex-wrap items-center gap-2">
                 {overallStatus && <Badge variant="secondary">{overallStatus}</Badge>}
                 {phases.length > 0 && <Badge variant="secondary">{phases.join(", ")}</Badge>}
@@ -166,6 +212,9 @@ export default function CtgovStudyDetails(): JSX.Element {
                   <MapPinIcon className="w-4 h-4 text-gray-500" />
                   <span className="text-sm">{nearest}</span>
                 </div>
+              )}
+              {aiWhy && (
+                <div className="mt-2 text-xs text-gray-500">Why: {aiWhy}</div>
               )}
               {conditions && conditions.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-2">
