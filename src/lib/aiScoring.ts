@@ -107,20 +107,42 @@ function isAiConfigured() {
 }
 
 async function callWebhook(url: string, payload: any, signal?: AbortSignal): Promise<AiScoreResult | null> {
+  // Cache webhook health in localStorage to avoid repeated failing fetches that pollute logs.
+  const key = 'tc_ai_webhook_status_v1';
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw) {
+      try {
+        const obj = JSON.parse(raw) as { ok: boolean; ts: number };
+        const age = Date.now() - (obj.ts || 0);
+        // If webhook known-bad in last 10 minutes, skip attempts
+        if (!obj.ok && age < 1000 * 60 * 10) return null;
+      } catch {}
+    }
+  } catch {}
+
   const attempt = async (): Promise<AiScoreResult | null> => {
     try {
       const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload), signal });
-      if (!res.ok) return null;
+      if (!res.ok) {
+        try { localStorage.setItem(key, JSON.stringify({ ok: false, ts: Date.now() })); } catch {}
+        return null;
+      }
       const data = await res.json().catch(() => null);
-      if (!data) return null;
+      if (!data) {
+        try { localStorage.setItem(key, JSON.stringify({ ok: false, ts: Date.now() })); } catch {}
+        return null;
+      }
+      try { localStorage.setItem(key, JSON.stringify({ ok: true, ts: Date.now() })); } catch {}
       const score = typeof data.score === 'number' ? clamp(Math.round(data.score)) : Number(data.score);
       if (!Number.isFinite(score)) return null;
       return { score: clamp(Math.round(score)), rationale: String(data.rationale || data.reason || '') };
     } catch {
+      try { localStorage.setItem(key, JSON.stringify({ ok: false, ts: Date.now() })); } catch {}
       return null;
     }
   };
-  // Up to 2 tries with small delay
+
   const r1 = await attempt();
   if (r1) return r1;
   await new Promise((r) => setTimeout(r, 500));
