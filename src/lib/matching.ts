@@ -449,7 +449,7 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
   if (!studies) studies = [];
 
   const seen = new Set<string>();
-  const list: LiteTrial[] = [];
+  const list: (LiteTrial & { distanceMi?: number; inRadius?: boolean })[] = [];
   for (const s of studies) {
     const nct = s.protocolSection?.identificationModule?.nctId || "";
     if (!nct || seen.has(nct)) continue;
@@ -478,14 +478,40 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
     });
   }
 
-  // Location-first sorting: prioritize overlap between user location and trial site, then AI score
-  const pref = readLocationPref();
-  const userLocTokens = tokenize(((await geocodeLocPref()) as any)?.label || pref.loc || '');
-  const locPriority = (t: LiteTrial) => intersectCount(tokenize(t.location), userLocTokens);
+  // Compute distance to user and boost score for proximity within radius
+  try {
+    const user = await geocodeLocPref();
+    const rMi = parseRadiusMi(user.radius) ?? 50;
+    await Promise.all(
+      list.map(async (t) => {
+        if (!t.location || typeof user.lat !== 'number' || typeof user.lng !== 'number') { t.inRadius = true; return; }
+        try {
+          const { geocodeText } = await import('./geocode');
+          const g = await geocodeText(t.location);
+          if (g && typeof g.lat === 'number' && typeof g.lng === 'number') {
+            const d = haversineMi(user.lat!, user.lng!, g.lat, g.lng);
+            t.distanceMi = Math.round(d);
+            t.inRadius = d <= rMi;
+            const proximityBoost = t.inRadius ? Math.max(0, Math.round(((rMi - d) / rMi) * 30)) : 0; // up to +30
+            t.aiScore = clamp(t.aiScore + proximityBoost, 0, 100);
+          } else {
+            t.inRadius = true;
+          }
+        } catch {
+          t.inRadius = true;
+        }
+      })
+    );
+  } catch {}
+
+  // Sort: in-radius first, then distance ascending, then AI score
   list.sort((a, b) => {
-    const la = locPriority(a);
-    const lb = locPriority(b);
-    if (la !== lb) return lb - la;
+    const ra = a.inRadius ? 1 : 0;
+    const rb = b.inRadius ? 1 : 0;
+    if (ra !== rb) return rb - ra;
+    const da = typeof a.distanceMi === 'number' ? a.distanceMi! : Number.POSITIVE_INFINITY;
+    const db = typeof b.distanceMi === 'number' ? b.distanceMi! : Number.POSITIVE_INFINITY;
+    if (da !== db) return da - db;
     return b.aiScore - a.aiScore;
   });
 
