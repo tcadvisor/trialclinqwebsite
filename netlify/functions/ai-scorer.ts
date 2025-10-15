@@ -6,32 +6,37 @@ function clamp(n: number, min = 0, max = 100) {
   return Math.max(min, Math.min(max, n));
 }
 
+function cors(statusCode: number, body: any) {
+  return {
+    statusCode,
+    headers: {
+      "access-control-allow-origin": "*",
+      "access-control-allow-methods": "POST,OPTIONS",
+      "access-control-allow-headers": "content-type,authorization",
+      "content-type": "application/json",
+    },
+    body: typeof body === 'string' ? body : JSON.stringify(body),
+  };
+}
+
 export const handler: Handler = async (event) => {
   if (event.httpMethod === "OPTIONS") {
-    return {
-      statusCode: 204,
-      headers: {
-        "access-control-allow-origin": "*",
-        "access-control-allow-methods": "POST,OPTIONS",
-        "access-control-allow-headers": "content-type,authorization",
-      },
-      body: "",
-    };
+    return cors(204, "");
   }
 
   if (event.httpMethod !== "POST") {
-    return { statusCode: 405, body: "Method not allowed" };
+    return cors(405, { error: "Method not allowed" });
   }
 
   const key = process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY || "";
   if (!key) {
-    return { statusCode: 500, body: JSON.stringify({ error: "OPENAI_API_KEY not set" }) };
+    return cors(500, { error: "OPENAI_API_KEY not set" });
   }
 
   try {
     const payload = event.body ? JSON.parse(event.body) : {};
     const prompt: string = payload.prompt || "";
-    if (!prompt) return { statusCode: 400, body: JSON.stringify({ error: "Missing prompt" }) };
+    if (!prompt) return cors(400, { error: "Missing prompt" });
 
     const res = await fetch(OPENAI_URL, {
       method: "POST",
@@ -52,7 +57,7 @@ export const handler: Handler = async (event) => {
 
     if (!res.ok) {
       const text = await res.text().catch(() => "");
-      return { statusCode: res.status, body: JSON.stringify({ error: text || `HTTP ${res.status}` }) };
+      return cors(res.status, { error: text || `HTTP ${res.status}` });
     }
 
     const data = await res.json();
@@ -62,12 +67,8 @@ export const handler: Handler = async (event) => {
     const scoreNum = clamp(Math.round(Number(out.score)), 0, 100);
     const rationale = String(out.rationale || "");
 
-    return {
-      statusCode: 200,
-      headers: { "content-type": "application/json", "access-control-allow-origin": "*" },
-      body: JSON.stringify({ score: scoreNum, rationale }),
-    };
+    return cors(200, { score: scoreNum, rationale });
   } catch (e: any) {
-    return { statusCode: 500, body: JSON.stringify({ error: String(e?.message || e || "Unknown error") }) };
+    return cors(500, { error: String(e?.message || e || "Unknown error") });
   }
 };
