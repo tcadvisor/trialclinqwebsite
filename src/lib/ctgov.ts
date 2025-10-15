@@ -199,7 +199,7 @@ export async function fetchStudyByNctId(nctId: string, _signal?: AbortSignal): P
       ].join(',');
       const url = `https://clinicaltrials.gov/api/v2/studies/${encodeURIComponent(nctId)}?format=json&fields=${encodeURIComponent(fields)}`;
       const direct = await safeFetch(url, { method: 'GET', signal: _signal });
-      if (direct.ok) {
+      if (direct && direct.ok) {
         const dj = await direct.json();
         return normalizeStudyResponse(dj);
       }
