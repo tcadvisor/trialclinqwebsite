@@ -158,6 +158,53 @@ export default function CtgovStudyDetails(): JSX.Element {
   const { inclusion, exclusion } = parseEligibility(eligibilityRaw);
   const ageHint = extractAgeRangeFromText(`${title}\n${eligibilityRaw}`);
 
+  function buildEligibilitySuggestions(): string[] {
+    const out: string[] = [];
+    const p = readCurrentHealthProfile();
+    const text = `${title}\n${eligibilityRaw}`.toLowerCase();
+    const info = (p.additionalInfo || '').toLowerCase();
+
+    if ((ageHint?.min != null || ageHint?.max != null) && (p.age == null || !Number.isFinite(p.age as any))) {
+      const label = ageHint?.min != null && ageHint?.max != null ? `${ageHint.min}–${ageHint.max} yrs` : ageHint?.min != null ? `${ageHint.min}+ yrs` : `< ${ageHint?.max} yrs`;
+      out.push(`Add your age or DOB (trial targets ${label}).`);
+    }
+
+    const genderRestr = (() => {
+      const t = text;
+      if (/(female|women)\s*-?\s*only\b/.test(t) || /\bfemales?\s+only\b/.test(t)) return 'female';
+      if (/(male|men)\s*-?\s*only\b/.test(t) || /\bmales?\s+only\b/.test(t)) return 'male';
+      return null;
+    })();
+    if (genderRestr && !(p.gender || '').trim()) {
+      out.push('Add your gender (this study limits enrollment by gender).');
+    }
+
+    if (/(planned|schedule[rd]).{0,30}(elective\s+)?(hepato|hepatobiliary|hepato[-\s]?pancreato[-\s]?biliary|pancreatic|colorectal)/i.test(text)) {
+      const hasSignal = /(planned surgery|elective surgery|hepato|hepatobiliary|pancreat|colorectal|colectomy|whipple|hepatectomy)/i.test(info);
+      if (!hasSignal) out.push('Confirm a planned elective HPB/colorectal surgery (add in Additional Info).');
+    }
+
+    if (/\bECOG\b/i.test(eligibilityRaw) && !/ecog\s*:\s*\d/i.test(p.additionalInfo || '')) {
+      out.push('Add your ECOG performance status.');
+    }
+
+    if (/(biomarker|mutation|egfr|brca|pd-?l1|her2)/i.test(eligibilityRaw) && !/(biomarker|egfr|brca|pd-?l1|her2)/i.test(p.additionalInfo || '')) {
+      out.push('Add key biomarkers relevant to your condition.');
+    }
+
+    if (/(creatinine|egfr|bilirubin|alt|ast)/i.test(eligibilityRaw)) {
+      out.push('Provide recent lab values (e.g., creatinine, liver function) if available.');
+    }
+
+    if (/(tamsulosin|pde5|sildenafil|tadalafil|vardenafil|avanafil)/i.test(eligibilityRaw) && (!Array.isArray(p.medications) || p.medications.length === 0)) {
+      out.push('List your current medications to verify drug restrictions.');
+    }
+
+    return Array.from(new Set(out));
+  }
+
+  const suggestions = buildEligibilitySuggestions();
+
   const incMax = showAllInc ? inclusion.length : Math.min(10, inclusion.length);
   const excMax = showAllExc ? exclusion.length : Math.min(10, exclusion.length);
 
