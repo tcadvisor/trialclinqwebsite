@@ -478,33 +478,21 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
     });
   }
 
-  // Compute distance to user and fold proximity into AI score; then sort purely by AI score
+  // Approximate proximity using token overlap to avoid per-trial geocoding network calls
   try {
     const user = await geocodeLocPref();
-    const rMi = parseRadiusMi(user.radius) ?? 50;
-    await Promise.all(
-      list.map(async (t) => {
-        if (!t.location || typeof user.lat !== 'number' || typeof user.lng !== 'number') { t.inRadius = true; return; }
-        try {
-          const { geocodeText } = await import('./geocode');
-          const g = await geocodeText(t.location);
-          if (g && typeof g.lat === 'number' && typeof g.lng === 'number') {
-            const d = haversineMi(user.lat!, user.lng!, g.lat, g.lng);
-            t.distanceMi = Math.round(d);
-            t.inRadius = d <= rMi;
-            const proximityBoost = t.inRadius ? Math.max(1, Math.round((1 - (d / rMi)) * 40)) : -20; // within radius: +1..+40 (closer=higher), outside: -20
-            t.aiScore = clamp(t.aiScore + proximityBoost, 0, 100);
-          } else {
-            t.inRadius = true;
-          }
-        } catch {
-          t.inRadius = true;
-        }
-      })
-    );
+    const userLabel = (user && (user.label || '')) || (readLocationPref().loc || '');
+    const userTokens = tokenize(userLabel);
+    for (const t of list) {
+      const locTokens = tokenize(t.location || '');
+      const overlap = intersectCount(locTokens, userTokens);
+      t.inRadius = overlap > 0;
+      const proximityBoost = overlap > 0 ? Math.min(30, overlap * 10) : 0; // small boost for token match
+      t.aiScore = clamp(t.aiScore + proximityBoost, 0, 100);
+    }
   } catch {}
 
-  // Sort strictly by AI score (distance already reflected in score)
+  // Sort strictly by AI score (we used token overlap to nudge nearby trials)
   list.sort((a, b) => b.aiScore - a.aiScore);
 
   // Try AI rescoring for the top 15 when an AI backend is configured; fallback silently otherwise
