@@ -1,5 +1,5 @@
 import React from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useLocation } from "react-router-dom";
 import HomeHeader from "../components/HomeHeader";
 import { Card, CardContent } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
