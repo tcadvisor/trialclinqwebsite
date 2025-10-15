@@ -1,3 +1,5 @@
+import { safeFetch } from './fetchUtils';
+
 export type CtgovStudy = {
   protocolSection: {
     identificationModule: {
@@ -89,7 +91,7 @@ export function buildStudiesUrl({ q = '', status = '', type = '', loc = '', lat,
 export async function fetchStudies(query: CtgovQuery, _signal?: AbortSignal): Promise<CtgovResponse> {
   try {
     const proxy = (import.meta as any).env?.VITE_CT_PROXY_URL as string | undefined || '/.netlify/functions/ctgov';
-    const res = await fetch(proxy, {
+    const res = await safeFetch(proxy, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ action: 'studies', query }),
@@ -100,7 +102,7 @@ export async function fetchStudies(query: CtgovQuery, _signal?: AbortSignal): Pr
       if (res.status === 404) {
         try {
           const directUrl = buildStudiesUrl(query);
-          const direct = await fetch(directUrl, { method: 'GET', signal: _signal });
+          const direct = await safeFetch(directUrl, { method: 'GET', signal: _signal });
           if (direct.ok) return (await direct.json()) as CtgovResponse;
         } catch {}
       }
@@ -115,7 +117,7 @@ export async function fetchStudies(query: CtgovQuery, _signal?: AbortSignal): Pr
     try {
       // Network/proxy error: final attempt to call API directly
       const directUrl = buildStudiesUrl(query);
-      const direct = await fetch(directUrl, { method: 'GET', signal: _signal });
+      const direct = await safeFetch(directUrl, { method: 'GET', signal: _signal });
       if (direct.ok) return (await direct.json()) as CtgovResponse;
     } catch {}
     return { studies: [] };
@@ -146,7 +148,7 @@ function normalizeStudyResponse(json: any): CtgovResponse {
 export async function fetchStudyByNctId(nctId: string, _signal?: AbortSignal): Promise<CtgovResponse> {
   try {
     const proxy = (import.meta as any).env?.VITE_CT_PROXY_URL as string | undefined || '/.netlify/functions/ctgov';
-    const res = await fetch(proxy, {
+    const res = await safeFetch(proxy, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ action: 'study', nctId }),
@@ -167,7 +169,7 @@ export async function fetchStudyByNctId(nctId: string, _signal?: AbortSignal): P
             'protocolSection.eligibilityModule.eligibilityCriteria',
           ].join(',');
           const url = `https://clinicaltrials.gov/api/v2/studies/${encodeURIComponent(nctId)}?format=json&fields=${encodeURIComponent(fields)}`;
-          const direct = await fetch(url, { method: 'GET', signal: _signal });
+          const direct = await safeFetch(url, { method: 'GET', signal: _signal });
           if (direct.ok) {
             const dj = await direct.json();
             return normalizeStudyResponse(dj);
@@ -196,7 +198,7 @@ export async function fetchStudyByNctId(nctId: string, _signal?: AbortSignal): P
         'protocolSection.eligibilityModule.eligibilityCriteria',
       ].join(',');
       const url = `https://clinicaltrials.gov/api/v2/studies/${encodeURIComponent(nctId)}?format=json&fields=${encodeURIComponent(fields)}`;
-      const direct = await fetch(url, { method: 'GET', signal: _signal });
+      const direct = await safeFetch(url, { method: 'GET', signal: _signal });
       if (direct.ok) {
         const dj = await direct.json();
         return normalizeStudyResponse(dj);
