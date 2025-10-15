@@ -90,7 +90,7 @@ export default function SignupPersonalDetails(): JSX.Element {
               <div>
                 <label className="block text-sm font-medium">Search Radius</label>
                 <select value={radius} onChange={(e)=>setRadius(e.target.value)} className="mt-2 w-full rounded-full border px-4 py-2">
-                  {["25mi","50mi","100mi","200mi"].map((r)=> (<option key={r} value={r}>{r}</option>))}
+                  {["25mi","50mi","100mi","200mi","300mi","500mi","1000mi"].map((r)=> (<option key={r} value={r}>{r}</option>))}
                 </select>
               </div>
               <div />

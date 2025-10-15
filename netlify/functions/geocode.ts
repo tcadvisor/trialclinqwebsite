@@ -33,8 +33,11 @@ export const handler: Handler = async (event) => {
           const place = z?.places?.[0];
           const lat = Number(place?.latitude);
           const lng = Number(place?.longitude);
+          const city = String(place?.["place name"] || place?.place || '').trim();
+          const state = String(place?.["state abbreviation"] || place?.state || '').trim();
+          const label = [city, state].filter(Boolean).join(', ');
           if (Number.isFinite(lat) && Number.isFinite(lng)) {
-            return cors(200, { lat, lng }, { "cache-control": "public, max-age=86400" });
+            return cors(200, { lat, lng, label }, { "cache-control": "public, max-age=86400" });
           }
         }
       } catch {}
@@ -50,8 +53,9 @@ export const handler: Handler = async (event) => {
     const first = arr?.[0];
     const lat = Number(first?.lat);
     const lng = Number(first?.lon);
+    const label = (first?.display_name || '').toString();
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return cors(404, { error: 'Not found' });
-    return cors(200, { lat, lng }, { "cache-control": "public, max-age=86400" });
+    return cors(200, { lat, lng, label }, { "cache-control": "public, max-age=86400" });
   } catch (e: any) {
     return cors(500, { error: String(e?.message || e || 'Unknown error') });
   }

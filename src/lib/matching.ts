@@ -377,6 +377,7 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
 
   const { loc } = readLocationPref();
   const geo = await geocodeLocPref();
+  const locText = (geo as any)?.label || loc;
 
   const candidateRadii = (r?: string): string[] => {
     const baseMi = parseRadiusMi(r);
@@ -389,7 +390,7 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
   const fetchSet = async (query: string, opts: { withGeo?: boolean; withStatuses?: boolean } = { withGeo: true, withStatuses: true }) => {
     const base = { q: query, pageSize } as any;
     if (opts.withGeo && typeof geo.lat === 'number' && typeof geo.lng === 'number') {
-      base.loc = loc;
+      base.loc = locText;
       // Try with selected radius, then expand progressively if no results
       const radii = candidateRadii(geo.radius);
       for (const rStr of radii) {
@@ -408,7 +409,7 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
     }
 
     // No geo available or nothing found with geo: use textual location only
-    base.loc = loc;
+    base.loc = locText;
     if (opts.withStatuses) {
       const results = await Promise.all(statuses.map((s) => fetchStudies({ ...base, status: s })));
       return results.flatMap((r) => r.studies || []);

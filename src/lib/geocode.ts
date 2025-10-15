@@ -1,4 +1,4 @@
-type GeoResult = { lat: number; lng: number };
+type GeoResult = { lat: number; lng: number; label?: string };
 
 const CACHE_KEY = 'tc_geocode_cache_v1';
 const ELIGIBILITY_KEY = 'tc_eligibility_profile';
@@ -19,7 +19,7 @@ export function readLocPref(): { loc: string; radius?: string } {
   } catch { return { loc: '' }; }
 }
 
-export async function geocodeLocPref(): Promise<{ lat?: number; lng?: number; radius?: string }> {
+export async function geocodeLocPref(): Promise<{ lat?: number; lng?: number; label?: string; radius?: string }> {
   const { loc, radius } = readLocPref();
   if (!loc) return { radius };
 
@@ -35,10 +35,11 @@ export async function geocodeLocPref(): Promise<{ lat?: number; lng?: number; ra
     const data = (await res.json()) as any;
     const lat = Number(data.lat);
     const lng = Number(data.lng);
+    const label = typeof data.label === 'string' ? data.label : undefined;
     if (Number.isFinite(lat) && Number.isFinite(lng)) {
-      cache[loc] = { lat, lng };
+      cache[loc] = { lat, lng, label };
       writeCache(cache);
-      return { lat, lng, radius };
+      return { lat, lng, label, radius };
     }
     return { radius };
   } catch {
