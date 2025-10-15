@@ -248,9 +248,11 @@ function pickPhase(study: CtgovStudy): string {
 }
 
 function ctStatus(study: CtgovStudy): string {
-  const s = study.protocolSection?.statusModule?.overallStatus || "";
-  if (/recruit/i.test(s)) return "Recruiting";
-  return s || "";
+  const raw = (study.protocolSection?.statusModule?.overallStatus || "").toString();
+  const up = raw.toUpperCase();
+  if (up === 'RECRUITING') return 'Recruiting';
+  if (up === 'ENROLLING_BY_INVITATION') return 'Enrolling by invitation';
+  return raw || '';
 }
 
 function ctLocation(study: CtgovStudy): string {
@@ -371,8 +373,6 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
   const statuses = [
     'RECRUITING',
     'ENROLLING_BY_INVITATION',
-    'NOT_YET_RECRUITING',
-    'ACTIVE_NOT_RECRUITING',
   ];
 
   const { loc } = readLocationPref();
@@ -449,6 +449,8 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
   for (const s of studies) {
     const nct = s.protocolSection?.identificationModule?.nctId || "";
     if (!nct || seen.has(nct)) continue;
+    const overall = (s.protocolSection?.statusModule?.overallStatus || '').toString().toUpperCase();
+    if (overall !== 'RECRUITING' && overall !== 'ENROLLING_BY_INVITATION') continue; // recruiting-only
     seen.add(nct);
     const title = s.protocolSection?.identificationModule?.briefTitle || nct;
     const status = ctStatus(s);
@@ -472,7 +474,16 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
     });
   }
 
-  list.sort((a, b) => b.aiScore - a.aiScore);
+  // Location-first sorting: prioritize overlap between user location and trial site, then AI score
+  const pref = readLocationPref();
+  const userLocTokens = tokenize(((await geocodeLocPref()) as any)?.label || pref.loc || '');
+  const locPriority = (t: LiteTrial) => intersectCount(tokenize(t.location), userLocTokens);
+  list.sort((a, b) => {
+    const la = locPriority(a);
+    const lb = locPriority(b);
+    if (la !== lb) return lb - la;
+    return b.aiScore - a.aiScore;
+  });
 
   // Try AI rescoring for the top 15 when an AI backend is configured; fallback silently otherwise
   try {
