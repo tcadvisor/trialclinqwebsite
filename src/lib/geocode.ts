@@ -20,16 +20,37 @@ export function readLocPref(): { loc: string; radius?: string } {
 }
 
 export async function geocodeText(q: string): Promise<{ lat?: number; lng?: number; label?: string } | null> {
-  const key = q.trim();
-  if (!key) return null;
-  const cache = readCache();
-  if (cache[key]) return { ...cache[key] };
+  try {
+    const key = q.trim();
+    if (!key) return null;
+    const cache = readCache();
+    if (cache[key]) return { ...cache[key] };
 
-  const configured = (import.meta as any).env?.VITE_GEO_WEBHOOK_URL as string | undefined;
-  const url = configured || '/.netlify/functions/geocode';
+    const configured = (import.meta as any).env?.VITE_GEO_WEBHOOK_URL as string | undefined;
+    const url = configured || '/.netlify/functions/geocode';
 
-  // In browser, prefer serverless endpoint; if unavailable, fall back to public geocoders
-  if (typeof window !== 'undefined') {
+    // In browser, prefer serverless endpoint; if unavailable, fall back to public geocoders
+    if (typeof window !== 'undefined') {
+      try {
+        const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ q: key }) });
+        if (res.ok) {
+          const data = (await res.json()) as any;
+          const lat = Number(data.lat);
+          const lng = Number(data.lng);
+          const label = typeof data.label === 'string' ? data.label : undefined;
+          if (Number.isFinite(lat) && Number.isFinite(lng)) {
+            cache[key] = { lat, lng, label };
+            writeCache(cache);
+            return { lat, lng, label };
+          }
+        }
+      } catch (e) {
+        // swallow errors from webhook fetches
+      }
+      // Do not return; fall through to ZIP and OSM fallbacks below
+    }
+
+    // Server-side or fallback: try webhook again (no-op if fails), then public geocoders
     try {
       const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ q: key }) });
       if (res.ok) {
@@ -43,65 +64,64 @@ export async function geocodeText(q: string): Promise<{ lat?: number; lng?: numb
           return { lat, lng, label };
         }
       }
-    } catch {}
-    // Do not return; fall through to ZIP and OSM fallbacks below
-  }
-
-  // Server-side or fallback: try webhook again (no-op if fails), then public geocoders
-  try {
-    const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ q: key }) });
-    if (res.ok) {
-      const data = (await res.json()) as any;
-      const lat = Number(data.lat);
-      const lng = Number(data.lng);
-      const label = typeof data.label === 'string' ? data.label : undefined;
-      if (Number.isFinite(lat) && Number.isFinite(lng)) {
-        cache[key] = { lat, lng, label };
-        writeCache(cache);
-        return { lat, lng, label };
-      }
+    } catch (e) {
+      // swallow
     }
-  } catch {}
 
-  try {
-    const zip = String(key).match(/^(\d{5})(?:-\d{4})?$/)?.[1];
-    if (zip) {
-      const zres = await fetch(`https://api.zippopotam.us/us/${zip}`);
-      if (zres.ok) {
-        const z = await zres.json();
-        const place = z?.places?.[0];
-        const flat = Number(place?.latitude);
-        const flng = Number(place?.longitude);
-        const city = String(place?.["place name"] || place?.place || '').trim();
-        const state = String(place?.["state abbreviation"] || place?.state || '').trim();
-        const label = [city, state].filter(Boolean).join(', ');
-        if (Number.isFinite(flat) && Number.isFinite(flng)) {
-          cache[key] = { lat: flat, lng: flng, label };
-          writeCache(cache);
-          return { lat: flat, lng: flng, label };
+    try {
+      const zip = String(key).match(/^(\d{5})(?:-\d{4})?$/)?.[1];
+      if (zip) {
+        try {
+          const zres = await fetch(`https://api.zippopotam.us/us/${zip}`);
+          if (zres.ok) {
+            const z = await zres.json();
+            const place = z?.places?.[0];
+            const flat = Number(place?.latitude);
+            const flng = Number(place?.longitude);
+            const city = String(place?.["place name"] || place?.place || '').trim();
+            const state = String(place?.["state abbreviation"] || place?.state || '').trim();
+            const label = [city, state].filter(Boolean).join(', ');
+            if (Number.isFinite(flat) && Number.isFinite(flng)) {
+              cache[key] = { lat: flat, lng: flng, label };
+              writeCache(cache);
+              return { lat: flat, lng: flng, label };
+            }
+          }
+        } catch (e) {
+          // swallow individual external fetch errors
         }
       }
+    } catch (e) {
+      // swallow
     }
-  } catch {}
 
-  try {
-    const params = new URLSearchParams({ format: 'jsonv2', limit: '1', q: key });
-    const nres = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`);
-    if (nres.ok) {
-      const arr = (await nres.json()) as Array<any>;
-      const first = arr?.[0];
-      const flat = Number(first?.lat);
-      const flng = Number(first?.lon);
-      const label = (first?.display_name || '').toString();
-      if (Number.isFinite(flat) && Number.isFinite(flng)) {
-        cache[key] = { lat: flat, lng: flng, label };
-        writeCache(cache);
-        return { lat: flat, lng: flng, label };
+    try {
+      const params = new URLSearchParams({ format: 'jsonv2', limit: '1', q: key });
+      try {
+        const nres = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`);
+        if (nres.ok) {
+          const arr = (await nres.json()) as Array<any>;
+          const first = arr?.[0];
+          const flat = Number(first?.lat);
+          const flng = Number(first?.lon);
+          const label = (first?.display_name || '').toString();
+          if (Number.isFinite(flat) && Number.isFinite(flng)) {
+            cache[key] = { lat: flat, lng: flng, label };
+            writeCache(cache);
+            return { lat: flat, lng: flng, label };
+          }
+        }
+      } catch (e) {
+        // swallow
       }
+    } catch (e) {
+      // swallow
     }
-  } catch {}
 
-  return null;
+    return null;
+  } catch (e) {
+    return null;
+  }
 }
 
 export async function geocodeLocPref(): Promise<{ lat?: number; lng?: number; label?: string; radius?: string }> {
