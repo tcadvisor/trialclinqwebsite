@@ -357,31 +357,69 @@ function computeStudyScore(study: CtgovStudy, profile: MinimalProfile): number {
 }
 
 function ageLikeBoost(profile: MinimalProfile, study: CtgovStudy): number {
-  // Optional minor boost when age range seems compatible based on min/max present in study title/conditions
-  // This is a placeholder-neutral helper that returns 0 for now since CtGov light data here lacks min/max fields.
-  return 0;
+  // Optional minor boost when age range seems compatible based on min/max present in title text
+  const a = typeof profile.age === 'number' ? profile.age : null;
+  if (a == null) return 0;
+  const title = (study.protocolSection?.identificationModule?.briefTitle || '').toString();
+  const rng = extractAgeRangeFromText(title);
+  if (!rng) return 0;
+  if (rng.min != null && a < rng.min) return 0;
+  if (rng.max != null) {
+    if (rng.maxExclusive ? a >= rng.max : a > rng.max) return 0;
+  }
+  // inside range: small positive boost
+  return 5;
+}
+
+function extractAgeRangeFromText(s: string): { min?: number; max?: number; maxExclusive?: boolean } | null {
+  const text = (s || '').toLowerCase();
+  // Patterns like "2 to less than 12 years"
+  let m = text.match(/(\d{1,3})\s*(?:to|–|-|—)\s*(?:less\s+than\s*)?(\d{1,3})\s*(?:years?|yrs?|yo)\b/);
+  if (m) {
+    const min = Number(m[1]);
+    const max = Number(m[2]);
+    const maxExclusive = /less\s+than\s*\d{1,3}\s*(?:years?|yrs?|yo)\b/.test(text.slice(m.index || 0, (m.index || 0) + m[0].length));
+    return { min: Number.isFinite(min) ? min : undefined, max: Number.isFinite(max) ? max : undefined, maxExclusive };
+  }
+  // "18 years and older"
+  m = text.match(/(\d{1,3})\s*(?:years?|yrs?|yo)\s*(?:and\s*older|and\s*over|or\s*older)\b/);
+  if (m) { const min = Number(m[1]); return { min: Number.isFinite(min) ? min : undefined }; }
+  // "under 18 years" or "less than 12 years"
+  m = text.match(/(?:under|less\s*than)\s*(\d{1,3})\s*(?:years?|yrs?|yo)\b/);
+  if (m) { const max = Number(m[1]); return { max: Number.isFinite(max) ? max : undefined, maxExclusive: true }; }
+  // Category keywords
+  if (/\b(pediatric|child|children|infant|adolescent)s?\b/.test(text)) return { max: 17, maxExclusive: false };
+  if (/\bolder\s+adult|elderly|senior\b/.test(text)) return { min: 65 };
+  if (/\badult(s)?\b/.test(text) && !/\b(child|children|pediatric)\b/.test(text)) return { min: 18 };
+  return null;
+}
+
+function isAgeCompatible(userAge: number | null | undefined, s: CtgovStudy): boolean {
+  if (userAge == null || !Number.isFinite(userAge as number)) return true; // cannot enforce without age
+  const title = (s.protocolSection?.identificationModule?.briefTitle || '').toString();
+  const rng = extractAgeRangeFromText(title);
+  if (!rng) return true; // if unknown, do not filter
+  const a = userAge as number;
+  if (rng.min != null && a < rng.min) return false;
+  if (rng.max != null) {
+    if (rng.maxExclusive ? a >= rng.max : a > rng.max) return false;
+  }
+  return true;
 }
 
 export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<LiteTrial[]> {
   const profile = readCurrentHealthProfile();
-  const qPrimary = (profile.primaryCondition || "").trim();
-  const qAltTokens = tokenize(profile.additionalInfo || "");
-  const qAlt = qAltTokens.slice(0, 3).join(" ");
-  const q = qPrimary || qAlt || "";
+  const qPrimary = (profile.primaryCondition || '').trim();
+  const qAltTokens = tokenize(profile.additionalInfo || '');
+  const qAlt = qAltTokens.slice(0, 3).join(' ');
+  const q = qPrimary || qAlt || '';
 
   const pageSize = Math.max(10, Math.min(100, limit));
-  const statuses = [
-    'RECRUITING',
-    'ENROLLING_BY_INVITATION',
-  ];
+  const statuses = ['RECRUITING', 'ENROLLING_BY_INVITATION'];
 
   const { loc } = readLocationPref();
   let geo: any = {};
-  try {
-    geo = (await geocodeLocPref()) || {};
-  } catch (e) {
-    geo = {};
-  }
+  try { geo = (await geocodeLocPref()) || {}; } catch { geo = {}; }
   const locText = (geo as any)?.label || loc;
 
   const candidateRadii = (r?: string): string[] => {
@@ -395,7 +433,6 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
     const base = { q: query, pageSize } as any;
     if (opts.withGeo && typeof geo.lat === 'number' && typeof geo.lng === 'number') {
       base.loc = locText;
-      // Try with selected radius, then expand progressively if no results
       const radii = candidateRadii(geo.radius);
       for (const rStr of radii) {
         const withGeo = { ...base, lat: geo.lat, lng: geo.lng, radius: rStr } as any;
@@ -409,10 +446,8 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
           if (studies.length > 0) return studies;
         }
       }
-      // If nothing found even at max radius, fall back to no-geo handling below
     }
 
-    // No geo available or nothing found with geo: use textual location only
     base.loc = locText;
     if (opts.withStatuses) {
       const results = await Promise.all(statuses.map((s) => fetchStudies({ ...base, status: s })));
@@ -423,33 +458,23 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
     }
   };
 
-  // 1) Primary or additional-info query with geo+statuses
   let studies = await fetchSet(q, { withGeo: true, withStatuses: true });
 
   const strictRadius = typeof (geo as any)?.lat === 'number' && typeof (geo as any)?.lng === 'number' && typeof parseRadiusMi(geo.radius) === 'number';
 
-  // 2) If empty, try single call with geo+no statuses (broader) unless strict radius is set
   if (!studies || studies.length === 0) {
     if (!strictRadius) studies = await fetchSet(q, { withGeo: true, withStatuses: false });
   }
-
-  // 3) If still empty, try loc-only (no geo) with statuses unless strict radius is set
   if (!studies || studies.length === 0) {
     if (!strictRadius) studies = await fetchSet(q, { withGeo: false, withStatuses: true });
   }
-
-  // 4) If still empty and additional-info query was used, try the primary condition explicitly (respect strict radius)
   if ((!studies || studies.length === 0) && q && q !== qPrimary) {
     studies = await fetchSet(qPrimary || '', { withGeo: !strictRadius ? true : true, withStatuses: true });
   }
-
-  // 5) As last resort, try loc-only with no statuses unless strict radius is set
   if (!studies || studies.length === 0) {
     if (!strictRadius) studies = await fetchSet(q, { withGeo: false, withStatuses: false });
   }
-
   if (!studies || studies.length === 0) {
-    // Final fallback: show any recruiting trials near user regardless of condition
     studies = await fetchSet('', { withGeo: true, withStatuses: true });
   }
   if (!studies) studies = [];
@@ -457,15 +482,19 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
   const seen = new Set<string>();
   const list: (LiteTrial & { distanceMi?: number; inRadius?: boolean })[] = [];
   for (const s of studies) {
-    const nct = s.protocolSection?.identificationModule?.nctId || "";
+    const nct = s.protocolSection?.identificationModule?.nctId || '';
     if (!nct || seen.has(nct)) continue;
     const overall = (s.protocolSection?.statusModule?.overallStatus || '').toString().toUpperCase();
-    if (overall !== 'RECRUITING' && overall !== 'ENROLLING_BY_INVITATION') continue; // recruiting-only
+    if (overall !== 'RECRUITING' && overall !== 'ENROLLING_BY_INVITATION') continue;
+
+    // Age compatibility gate: if user's age known and title indicates a range, enforce it strictly
+    if (!isAgeCompatible(profile.age, s)) continue;
+
     seen.add(nct);
     const title = s.protocolSection?.identificationModule?.briefTitle || nct;
     const status = ctStatus(s);
     const phase = pickPhase(s);
-    const center = s.protocolSection?.sponsorCollaboratorsModule?.leadSponsor?.name || "";
+    const center = s.protocolSection?.sponsorCollaboratorsModule?.leadSponsor?.name || '';
     const location = ctLocation(s);
     const aiScore = computeStudyScore(s, profile);
     const conds = s.protocolSection?.conditionsModule?.conditions || [];
@@ -484,7 +513,6 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
     });
   }
 
-  // Compute distance for tie-breaks using location geocoding (cached) without altering AI score
   let radMiComputed: number | undefined;
   try {
     const user = await geocodeLocPref();
@@ -496,12 +524,7 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
       const labels = Array.from(new Set(list.map((t) => (t.location || '').trim()).filter(Boolean)));
       const locMap = new Map<string, { lat: number; lng: number }>();
       const geos = await Promise.all(labels.map(async (lbl) => {
-        try {
-          const g = await geocodeText(lbl);
-          return [lbl, g] as const;
-        } catch (e) {
-          return [lbl, null] as const;
-        }
+        try { const g = await geocodeText(lbl); return [lbl, g] as const; } catch { return [lbl, null] as const; }
       }));
       for (const [lbl, g] of geos) {
         const glat = g && typeof g.lat === 'number' ? (g.lat as number) : undefined;
@@ -520,16 +543,11 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
     }
   } catch {}
 
-  // If a travel radius is set, filter out trials beyond it when we could compute distance
   if (typeof radMiComputed === 'number') {
     const within = list.filter((t) => typeof t.distanceMi !== 'number' || (t.distanceMi as number) <= (radMiComputed as number));
-    if (within.length > 0) {
-      list.length = 0;
-      list.push(...within);
-    }
+    if (within.length > 0) { list.length = 0; list.push(...within); }
   }
 
-  // Sort by AI score desc; on ties prefer closer distance
   list.sort((a, b) => {
     const s = (b.aiScore ?? 0) - (a.aiScore ?? 0);
     if (s !== 0) return s;
@@ -538,7 +556,6 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
     return da - db;
   });
 
-  // Try AI rescoring for the top 15 when an AI backend is configured; fallback silently otherwise
   try {
     const { scoreTopKWithAI } = await import('./aiScoring');
     const rescored = await scoreTopKWithAI(list, 15, profile);
