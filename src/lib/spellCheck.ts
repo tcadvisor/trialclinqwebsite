@@ -84,6 +84,9 @@ export async function correctWithAI(query: string): Promise<string | null> {
   if (!apiKey) return null;
 
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -101,14 +104,18 @@ export async function correctWithAI(query: string): Promise<string | null> {
         max_tokens: 50,
         temperature: 0.3,
       }),
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) return null;
 
     const data = (await response.json()) as any;
     const corrected = data.choices?.[0]?.message?.content?.trim();
     return corrected && corrected !== query ? corrected : null;
-  } catch {
+  } catch (e) {
+    // Silently fail on any error (network, timeout, parse error, etc)
     return null;
   }
 }
