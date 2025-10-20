@@ -213,12 +213,14 @@ export default function Home() {
       {/* Recruitment cards CTA */}
       <section className="py-16 px-4">
         <div className="max-w-6xl mx-auto text-center">
+          <h3 className="text-2xl font-semibold mb-4">See How TrialCliniq Can Optimize Your Recruitment</h3>
+          <p className="text-gray-600 mb-10">Manage consent workflows, track AI-powered trial matches, and monitor recruitment funnels all in one place.</p>
           <div className="grid md:grid-cols-3 gap-6 mb-10">
             <div className="rounded-2xl border p-6 text-left">
-              <div className="text-sm text-gray-500">Consent Status</div>
+              <div className="text-sm text-gray-500">Example: Consent Management</div>
               <div className="mt-2 text-2xl font-semibold text-emerald-600">Active</div>
               <div className="mt-6 h-2 rounded bg-emerald-100"><div className="h-2 w-[95%] rounded bg-emerald-500" /></div>
-              <div className="mt-2 text-xs text-gray-500">Last updated: 17 Jun, 2025</div>
+              <div className="mt-2 text-xs text-gray-500">Real-time consent tracking</div>
             </div>
             <div className="rounded-2xl border p-6">
               <div className="mx-auto h-40 w-40 rounded-full bg-gradient-to-tr from-blue-100 to-emerald-100 flex items-center justify-center">
@@ -235,13 +237,12 @@ export default function Home() {
             </div>
             <div className="rounded-2xl border p-6 text-left">
               <div className="text-lg font-semibold">Add or link a trial</div>
-              <p className="text-gray-600 mt-2">Connect an existing trial to your profile or register a new one to start managing.</p>
+              <p className="text-gray-600 mt-2">Connect an existing trial to your platform or register a new one to start managing recruitment.</p>
               <div className="mt-6 rounded-xl bg-gradient-to-tr from-gray-100 to-white p-6 border">
                 <div className="text-sm text-gray-500">HIPAA Compliant</div>
               </div>
             </div>
           </div>
-          <h3 className="text-2xl font-semibold mb-4">See How TrialCliniq Can Optimize Your Recruitment</h3>
           <p className="text-gray-600 mb-6">Book a personalized demo and discover faster, data-driven trial enrollment.</p>
           <Link to="/book-demo" className="inline-flex items-center gap-2 rounded-full bg-gray-900 px-6 py-3 text-white hover:bg-black">Book a Demo <ArrowRight className="h-4 w-4" /></Link>
         </div>
