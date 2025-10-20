@@ -169,36 +169,64 @@ export async function fetchStudyByNctId(nctId: string, _signal?: AbortSignal): P
       body: JSON.stringify({ action: 'study', nctId }),
       signal: _signal,
     });
-    if (!res || !res.ok) {
-      if (res && res.status === 404) {
-        try {
-          const fields = [
-            'protocolSection.identificationModule.nctId',
-            'protocolSection.identificationModule.briefTitle',
-            'protocolSection.statusModule.overallStatus',
-            'protocolSection.conditionsModule.conditions',
-            'protocolSection.designModule.phases',
-            'protocolSection.contactsLocationsModule.locations',
-            'protocolSection.sponsorCollaboratorsModule.leadSponsor',
-            'protocolSection.descriptionModule.briefSummary',
-            'protocolSection.eligibilityModule.eligibilityCriteria',
-          ].join(',');
-          const url = `https://clinicaltrials.gov/api/v2/studies/${encodeURIComponent(nctId)}?format=json&fields=${encodeURIComponent(fields)}`;
-          const direct = await safeFetch(url, { method: 'GET', signal: _signal });
-          if (direct && direct.ok) {
-            const dj = await direct.json();
-            return normalizeStudyResponse(dj);
-          }
-        } catch {}
-      }
+
+    if (res && res.ok) {
       try {
-        const body = res ? await res.json().catch(() => null) : null;
+        const j = await res.json();
+        return normalizeStudyResponse(j);
+      } catch {}
+    }
+
+    if (res && res.status === 404) {
+      try {
+        const fields = [
+          'protocolSection.identificationModule.nctId',
+          'protocolSection.identificationModule.briefTitle',
+          'protocolSection.statusModule.overallStatus',
+          'protocolSection.conditionsModule.conditions',
+          'protocolSection.designModule.phases',
+          'protocolSection.contactsLocationsModule.locations',
+          'protocolSection.sponsorCollaboratorsModule.leadSponsor',
+          'protocolSection.descriptionModule.briefSummary',
+          'protocolSection.eligibilityModule.eligibilityCriteria',
+        ].join(',');
+        const url = `https://clinicaltrials.gov/api/v2/studies/${encodeURIComponent(nctId)}?format=json&fields=${encodeURIComponent(fields)}`;
+        const direct = await safeFetch(url, { method: 'GET', signal: _signal });
+        if (direct && direct.ok) {
+          const dj = await direct.json();
+          return normalizeStudyResponse(dj);
+        }
+      } catch {}
+    }
+
+    if (res) {
+      try {
+        const body = await res.json().catch(() => null);
         if (body) return normalizeStudyResponse(body);
       } catch {}
-      return { studies: [] };
     }
-    const j = await res.json();
-    return normalizeStudyResponse(j);
+
+    try {
+      const fields = [
+        'protocolSection.identificationModule.nctId',
+        'protocolSection.identificationModule.briefTitle',
+        'protocolSection.statusModule.overallStatus',
+        'protocolSection.conditionsModule.conditions',
+        'protocolSection.designModule.phases',
+        'protocolSection.contactsLocationsModule.locations',
+        'protocolSection.sponsorCollaboratorsModule.leadSponsor',
+        'protocolSection.descriptionModule.briefSummary',
+        'protocolSection.eligibilityModule.eligibilityCriteria',
+      ].join(',');
+      const url = `https://clinicaltrials.gov/api/v2/studies/${encodeURIComponent(nctId)}?format=json&fields=${encodeURIComponent(fields)}`;
+      const direct = await safeFetch(url, { method: 'GET', signal: _signal });
+      if (direct && direct.ok) {
+        const dj = await direct.json();
+        return normalizeStudyResponse(dj);
+      }
+    } catch {}
+
+    return { studies: [] };
   } catch (e: any) {
     try {
       const fields = [
@@ -219,6 +247,6 @@ export async function fetchStudyByNctId(nctId: string, _signal?: AbortSignal): P
         return normalizeStudyResponse(dj);
       }
     } catch {}
-    return { studies: [] }
+    return { studies: [] };
   }
 }
