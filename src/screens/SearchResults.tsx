@@ -9,6 +9,7 @@ import { Separator } from "../components/ui/separator";
 import { ChevronDownIcon, MapPinIcon, Loader2 } from "lucide-react";
 import HomeHeader from "../components/HomeHeader";
 import { buildSmartCondQuery, buildLooseCondQuery, normalizeLocation } from "../lib/searchQuery";
+import { getSpellCheckSuggestions, correctWithAI, type SpellCheckSuggestion } from "../lib/spellCheck";
 import {
   CtgovResponse,
   CtgovStudy,
