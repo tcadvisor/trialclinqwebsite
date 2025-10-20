@@ -290,9 +290,9 @@ export const SearchResults = (): JSX.Element => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="any">Any</SelectItem>
-                      <SelectItem value="INTERVENTIONAL">INTERVENTIONAL</SelectItem>
-                      <SelectItem value="OBSERVATIONAL">OBSERVATIONAL</SelectItem>
-                      <SelectItem value="EXPANDED_ACCESS">EXPANDED_ACCESS</SelectItem>
+                      <SelectItem value="INTERVENTIONAL">{formatStudyType('INTERVENTIONAL')}</SelectItem>
+                      <SelectItem value="OBSERVATIONAL">{formatStudyType('OBSERVATIONAL')}</SelectItem>
+                      <SelectItem value="EXPANDED_ACCESS">{formatStudyType('EXPANDED_ACCESS')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
