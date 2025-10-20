@@ -264,15 +264,15 @@ export const SearchResults = (): JSX.Element => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="any">Any</SelectItem>
-                      <SelectItem value="RECRUITING">RECRUITING</SelectItem>
-                      <SelectItem value="ACTIVE_NOT_RECRUITING">ACTIVE_NOT_RECRUITING</SelectItem>
-                      <SelectItem value="COMPLETED">COMPLETED</SelectItem>
-                      <SelectItem value="NOT_YET_RECRUITING">NOT_YET_RECRUITING</SelectItem>
-                      <SelectItem value="ENROLLING_BY_INVITATION">ENROLLING_BY_INVITATION</SelectItem>
-                      <SelectItem value="SUSPENDED">SUSPENDED</SelectItem>
-                      <SelectItem value="TERMINATED">TERMINATED</SelectItem>
-                      <SelectItem value="WITHDRAWN">WITHDRAWN</SelectItem>
-                      <SelectItem value="UNKNOWN">UNKNOWN</SelectItem>
+                      <SelectItem value="RECRUITING">{formatStudyStatus('RECRUITING')}</SelectItem>
+                      <SelectItem value="ACTIVE_NOT_RECRUITING">{formatStudyStatus('ACTIVE_NOT_RECRUITING')}</SelectItem>
+                      <SelectItem value="COMPLETED">{formatStudyStatus('COMPLETED')}</SelectItem>
+                      <SelectItem value="NOT_YET_RECRUITING">{formatStudyStatus('NOT_YET_RECRUITING')}</SelectItem>
+                      <SelectItem value="ENROLLING_BY_INVITATION">{formatStudyStatus('ENROLLING_BY_INVITATION')}</SelectItem>
+                      <SelectItem value="SUSPENDED">{formatStudyStatus('SUSPENDED')}</SelectItem>
+                      <SelectItem value="TERMINATED">{formatStudyStatus('TERMINATED')}</SelectItem>
+                      <SelectItem value="WITHDRAWN">{formatStudyStatus('WITHDRAWN')}</SelectItem>
+                      <SelectItem value="UNKNOWN">{formatStudyStatus('UNKNOWN')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
