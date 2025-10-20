@@ -289,6 +289,7 @@ export const SearchResults = (): JSX.Element => {
                     <SelectTrigger>
                       <SelectValue placeholder="Any" />
                     </SelectTrigger>
+                    {tempType && <div className="hidden">{formatStudyType(tempType)}</div>}
                     <SelectContent>
                       <SelectItem value="any">Any</SelectItem>
                       <SelectItem value="INTERVENTIONAL">{formatStudyType('INTERVENTIONAL')}</SelectItem>
