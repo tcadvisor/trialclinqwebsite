@@ -232,11 +232,10 @@ export const SearchResults = (): JSX.Element => {
                 <div>
                   <h4 className="font-medium mb-2">Study Type</h4>
                   <Select
-                    value={type || "any"}
+                    value={tempType || "any"}
                     onValueChange={(v) => {
                       const next = v === "any" ? "" : v;
-                      setPage(1);
-                      setType(next);
+                      setTempType(next);
                     }}
                   >
                     <SelectTrigger>
@@ -253,11 +252,10 @@ export const SearchResults = (): JSX.Element => {
                 <div>
                   <h4 className="font-medium mb-2">Results per page</h4>
                   <Select
-                    value={String(pageSize)}
+                    value={String(tempPageSize)}
                     onValueChange={(v) => {
                       const size = parseInt(v, 10);
-                      setPage(1);
-                      setPageSize(size);
+                      setTempPageSize(size);
                     }}
                   >
                     <SelectTrigger>
@@ -269,6 +267,12 @@ export const SearchResults = (): JSX.Element => {
                     </SelectContent>
                   </Select>
                 </div>
+                <button
+                  onClick={handleApplyFilters}
+                  className="w-full rounded-md bg-blue-600 text-white px-4 py-2 text-sm font-medium hover:bg-blue-700 transition-colors"
+                >
+                  Search
+                </button>
               </CardContent>
             </Card>
           </aside>
