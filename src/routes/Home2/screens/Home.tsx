@@ -123,9 +123,21 @@ export default function Home() {
       <section id="trusted" className="py-16 px-4 bg-gradient-to-b from-white to-gray-50">
         <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-10 items-center">
           <div className="grid grid-cols-3 gap-4">
-            <div className="aspect-[4/5] rounded-3xl bg-gray-200" />
-            <div className="aspect-[4/5] rounded-3xl bg-gray-200 translate-y-6" />
-            <div className="aspect-[4/5] rounded-3xl bg-gray-200" />
+            <img
+              src="https://cdn.builder.io/api/v1/image/assets%2F3ef0caf3200f4046b04c16f3c60b68c9%2Fc72a3e8ce37647129222f353e12e04d1?format=webp&width=800"
+              alt="Healthcare professional with patient"
+              className="aspect-[4/5] rounded-3xl object-cover"
+            />
+            <img
+              src="https://cdn.builder.io/api/v1/image/assets%2F3ef0caf3200f4046b04c16f3c60b68c9%2Ffacc7c2898e24668b8ebefd37e17c7ca?format=webp&width=800"
+              alt="Doctor consulting with patient"
+              className="aspect-[4/5] rounded-3xl object-cover translate-y-6"
+            />
+            <img
+              src="https://cdn.builder.io/api/v1/image/assets%2F3ef0caf3200f4046b04c16f3c60b68c9%2F05aeac203c0a447fa2c7d7cd8faf2429?format=webp&width=800"
+              alt="Medical professional with patient"
+              className="aspect-[4/5] rounded-3xl object-cover"
+            />
           </div>
           <div>
             <h2 className="text-3xl font-semibold mb-4">Powered by Trusted Sources</h2>
