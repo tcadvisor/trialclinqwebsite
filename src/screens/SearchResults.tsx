@@ -405,7 +405,7 @@ export const SearchResults = (): JSX.Element => {
                         <h3 className="text-lg font-semibold text-[#1033e5] mb-1 break-words leading-snug">{title}</h3>
                       </Link>
                       <div className="flex items-center gap-2">
-                        {overallStatus && <Badge variant="secondary">{overallStatus}</Badge>}
+                        {overallStatus && <Badge variant="secondary">{formatStudyStatus(overallStatus)}</Badge>}
                         {!(isAuthenticated && user?.role === 'patient') && (
                           <a href={ctgovStudyDetailUrl(study)} target="_blank" rel="noopener noreferrer">
                             <Button size="sm" className="bg-gray-900 text-white rounded-full whitespace-nowrap">
