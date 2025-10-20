@@ -218,9 +218,9 @@ export default function CtgovStudyDetails(): JSX.Element {
       <HomeHeader />
       <main className="w-full max-w-[1000px] px-4 py-8">
         <div className="flex items-center gap-2 mb-6 text-sm text-gray-600">
-          <Link to="/patients/dashboard" className="inline-flex items-center gap-1 text-blue-700 hover:underline">
-            <ArrowLeft className="w-4 h-4" /> Back to dashboard
-          </Link>
+          <button onClick={() => window.history.back()} className="inline-flex items-center gap-1 text-blue-700 hover:underline">
+            <ArrowLeft className="w-4 h-4" /> Back to search
+          </button>
         </div>
 
         {loading && (

@@ -97,25 +97,40 @@ export async function fetchStudies(query: CtgovQuery, _signal?: AbortSignal): Pr
       body: JSON.stringify({ action: 'studies', query }),
       signal: _signal,
     });
-    if (!res || !res.ok) {
-      // If proxy route is missing (404), fallback to direct API GET
-      if (res && res.status === 404) {
-        try {
-          const directUrl = buildStudiesUrl(query);
-          const direct = await safeFetch(directUrl, { method: 'GET', signal: _signal });
-          if (direct && direct.ok) return (await direct.json()) as CtgovResponse;
-        } catch {}
-      }
+
+    // If proxy succeeds, return the result
+    if (res && res.ok) {
+      return (await res.json()) as CtgovResponse;
+    }
+
+    // If proxy fails with 404, try direct API
+    if (res && res.status === 404) {
       try {
-        const body = res ? await res.json().catch(() => null) : null;
+        const directUrl = buildStudiesUrl(query);
+        const direct = await safeFetch(directUrl, { method: 'GET', signal: _signal });
+        if (direct && direct.ok) return (await direct.json()) as CtgovResponse;
+      } catch {}
+    }
+
+    // Try to parse error response
+    if (res) {
+      try {
+        const body = await res.json().catch(() => null);
         if (body && (Array.isArray(body.studies) || body.totalCount === 0)) return body as CtgovResponse;
       } catch {}
-      return { studies: [] };
     }
-    return (await res.json()) as CtgovResponse;
-  } catch (e: any) {
+
+    // Fallback: try direct API if proxy failed
     try {
-      // Network/proxy error: final attempt to call API directly
+      const directUrl = buildStudiesUrl(query);
+      const direct = await safeFetch(directUrl, { method: 'GET', signal: _signal });
+      if (direct && direct.ok) return (await direct.json()) as CtgovResponse;
+    } catch {}
+
+    return { studies: [] };
+  } catch (e: any) {
+    // Final fallback: try direct API
+    try {
       const directUrl = buildStudiesUrl(query);
       const direct = await safeFetch(directUrl, { method: 'GET', signal: _signal });
       if (direct && direct.ok) return (await direct.json()) as CtgovResponse;
@@ -154,36 +169,64 @@ export async function fetchStudyByNctId(nctId: string, _signal?: AbortSignal): P
       body: JSON.stringify({ action: 'study', nctId }),
       signal: _signal,
     });
-    if (!res || !res.ok) {
-      if (res && res.status === 404) {
-        try {
-          const fields = [
-            'protocolSection.identificationModule.nctId',
-            'protocolSection.identificationModule.briefTitle',
-            'protocolSection.statusModule.overallStatus',
-            'protocolSection.conditionsModule.conditions',
-            'protocolSection.designModule.phases',
-            'protocolSection.contactsLocationsModule.locations',
-            'protocolSection.sponsorCollaboratorsModule.leadSponsor',
-            'protocolSection.descriptionModule.briefSummary',
-            'protocolSection.eligibilityModule.eligibilityCriteria',
-          ].join(',');
-          const url = `https://clinicaltrials.gov/api/v2/studies/${encodeURIComponent(nctId)}?format=json&fields=${encodeURIComponent(fields)}`;
-          const direct = await safeFetch(url, { method: 'GET', signal: _signal });
-          if (direct && direct.ok) {
-            const dj = await direct.json();
-            return normalizeStudyResponse(dj);
-          }
-        } catch {}
-      }
+
+    if (res && res.ok) {
       try {
-        const body = res ? await res.json().catch(() => null) : null;
+        const j = await res.json();
+        return normalizeStudyResponse(j);
+      } catch {}
+    }
+
+    if (res && res.status === 404) {
+      try {
+        const fields = [
+          'protocolSection.identificationModule.nctId',
+          'protocolSection.identificationModule.briefTitle',
+          'protocolSection.statusModule.overallStatus',
+          'protocolSection.conditionsModule.conditions',
+          'protocolSection.designModule.phases',
+          'protocolSection.contactsLocationsModule.locations',
+          'protocolSection.sponsorCollaboratorsModule.leadSponsor',
+          'protocolSection.descriptionModule.briefSummary',
+          'protocolSection.eligibilityModule.eligibilityCriteria',
+        ].join(',');
+        const url = `https://clinicaltrials.gov/api/v2/studies/${encodeURIComponent(nctId)}?format=json&fields=${encodeURIComponent(fields)}`;
+        const direct = await safeFetch(url, { method: 'GET', signal: _signal });
+        if (direct && direct.ok) {
+          const dj = await direct.json();
+          return normalizeStudyResponse(dj);
+        }
+      } catch {}
+    }
+
+    if (res) {
+      try {
+        const body = await res.json().catch(() => null);
         if (body) return normalizeStudyResponse(body);
       } catch {}
-      return { studies: [] };
     }
-    const j = await res.json();
-    return normalizeStudyResponse(j);
+
+    try {
+      const fields = [
+        'protocolSection.identificationModule.nctId',
+        'protocolSection.identificationModule.briefTitle',
+        'protocolSection.statusModule.overallStatus',
+        'protocolSection.conditionsModule.conditions',
+        'protocolSection.designModule.phases',
+        'protocolSection.contactsLocationsModule.locations',
+        'protocolSection.sponsorCollaboratorsModule.leadSponsor',
+        'protocolSection.descriptionModule.briefSummary',
+        'protocolSection.eligibilityModule.eligibilityCriteria',
+      ].join(',');
+      const url = `https://clinicaltrials.gov/api/v2/studies/${encodeURIComponent(nctId)}?format=json&fields=${encodeURIComponent(fields)}`;
+      const direct = await safeFetch(url, { method: 'GET', signal: _signal });
+      if (direct && direct.ok) {
+        const dj = await direct.json();
+        return normalizeStudyResponse(dj);
+      }
+    } catch {}
+
+    return { studies: [] };
   } catch (e: any) {
     try {
       const fields = [
@@ -204,6 +247,6 @@ export async function fetchStudyByNctId(nctId: string, _signal?: AbortSignal): P
         return normalizeStudyResponse(dj);
       }
     } catch {}
-    return { studies: [] }
+    return { studies: [] };
   }
 }
