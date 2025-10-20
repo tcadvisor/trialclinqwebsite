@@ -440,7 +440,7 @@ export const SearchResults = (): JSX.Element => {
                           <Badge variant="secondary">{conditions.join(", ")}</Badge>
                         )}
                         {phases.length > 0 && (
-                          <Badge variant="secondary">{phases.join(", ")}</Badge>
+                          <Badge variant="secondary">{phases.map(p => formatPhase(p)).join(", ")}</Badge>
                         )}
                         {sponsor && <Badge variant="secondary">{sponsor}</Badge>}
                       </div>
