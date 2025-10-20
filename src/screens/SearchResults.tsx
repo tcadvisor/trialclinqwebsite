@@ -59,26 +59,27 @@ export const SearchResults = (): JSX.Element => {
           used = { qq: q.trim(), st: '', lc: '' };
         } else {
           const loose = buildLooseCondQuery(q);
-          const isBroadLocation = !preparedLoc || preparedLoc.toLowerCase() === 'usa' || preparedLoc.toLowerCase() === 'us';
           const attempts: Array<{ qq: string; st?: string; lc?: string }> = [];
 
-          // For broad location terms like "usa" or empty, prioritize condition-based search without location filter
-          if (isBroadLocation) {
-            attempts.push({ qq: preparedQ, st: status, lc: '' });
-            if (loose && loose !== preparedQ) attempts.push({ qq: loose, st: status, lc: '' });
-            attempts.push({ qq: q.trim(), st: status, lc: '' });
-            attempts.push({ qq: preparedQ, st: '', lc: '' });
-            attempts.push({ qq: loose || preparedQ || q.trim(), st: '', lc: '' });
-          } else {
-            // For specific locations, try with location first, then without
+          // Build attempt list: try with location first if specified, always have fallback without location
+          if (preparedLoc) {
             attempts.push({ qq: preparedQ, st: status, lc: preparedLoc });
             if (loose && loose !== preparedQ) attempts.push({ qq: loose, st: status, lc: preparedLoc });
             attempts.push({ qq: q.trim(), st: status, lc: preparedLoc });
+          }
+
+          // Always include attempts without location as fallback
+          attempts.push({ qq: preparedQ, st: status, lc: '' });
+          if (loose && loose !== preparedQ) attempts.push({ qq: loose, st: status, lc: '' });
+          attempts.push({ qq: q.trim(), st: status, lc: '' });
+
+          if (preparedLoc) {
             attempts.push({ qq: preparedQ, st: '', lc: preparedLoc });
             attempts.push({ qq: loose || preparedQ || q.trim(), st: '', lc: preparedLoc });
-            attempts.push({ qq: preparedQ, st: '', lc: '' });
-            attempts.push({ qq: loose || preparedQ || q.trim(), st: '', lc: '' });
           }
+
+          attempts.push({ qq: preparedQ, st: '', lc: '' });
+          attempts.push({ qq: loose || preparedQ || q.trim(), st: '', lc: '' });
 
           if (page > 1 || pageToken) {
             const a = activeQuery || attempts[0];
@@ -89,7 +90,11 @@ export const SearchResults = (): JSX.Element => {
               const r = await fetchStudies({ q: a.qq, status: a.st, type, loc: a.lc, pageSize, pageToken: "" });
               res = r;
               used = a;
-              if ((r.studies || []).length > 0 || r.nextPageToken !== undefined) break;
+              // Only stop if we got a meaningful number of results or hit next page token
+              // For location-specific searches that return very few results, keep trying broader searches
+              const hasLocationFilter = a.lc && a.lc.toLowerCase() !== 'usa' && a.lc.toLowerCase() !== 'us';
+              const hasEnoughResults = (r.studies || []).length >= 5 || r.nextPageToken !== undefined;
+              if (hasEnoughResults || (!hasLocationFilter && (r.studies || []).length > 0)) break;
             }
           }
         }
