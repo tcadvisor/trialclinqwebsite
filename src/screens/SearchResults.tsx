@@ -187,11 +187,8 @@ export const SearchResults = (): JSX.Element => {
                   <h4 className="font-medium mb-2">Condition</h4>
                   <input
                     type="text"
-                    value={q}
-                    onChange={(e) => {
-                      setPage(1);
-                      setQ(e.target.value);
-                    }}
+                    value={tempQ}
+                    onChange={(e) => setTempQ(e.target.value)}
                     placeholder="e.g. breast cancer"
                     className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
                   />
@@ -200,11 +197,8 @@ export const SearchResults = (): JSX.Element => {
                   <h4 className="font-medium mb-2">Near</h4>
                   <input
                     type="text"
-                    value={loc}
-                    onChange={(e) => {
-                      setPage(1);
-                      setLoc(e.target.value);
-                    }}
+                    value={tempLoc}
+                    onChange={(e) => setTempLoc(e.target.value)}
                     placeholder="City, State or ZIP"
                     className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
                   />
@@ -212,11 +206,10 @@ export const SearchResults = (): JSX.Element => {
                 <div>
                   <h4 className="font-medium mb-2">Status</h4>
                   <Select
-                    value={status || "any"}
+                    value={tempStatus || "any"}
                     onValueChange={(v) => {
                       const next = v === "any" ? "" : v;
-                      setPage(1);
-                      setStatus(next);
+                      setTempStatus(next);
                     }}
                   >
                     <SelectTrigger>
