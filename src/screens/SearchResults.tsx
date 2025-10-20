@@ -31,6 +31,11 @@ export const SearchResults = (): JSX.Element => {
 
   const [q, setQ] = React.useState<string>(initialQ);
   const [loc, setLoc] = React.useState<string>(initialLoc);
+  const [tempQ, setTempQ] = React.useState<string>(initialQ);
+  const [tempLoc, setTempLoc] = React.useState<string>(initialLoc);
+  const [tempStatus, setTempStatus] = React.useState<string>(initialStatus);
+  const [tempType, setTempType] = React.useState<string>("");
+  const [tempPageSize, setTempPageSize] = React.useState<number>(12);
   const preparedQ = React.useMemo(() => buildSmartCondQuery(q), [q]);
   const preparedLoc = React.useMemo(() => normalizeLocation(loc), [loc]);
   const [status, setStatus] = React.useState<string>(initialStatus);
@@ -44,6 +49,15 @@ export const SearchResults = (): JSX.Element => {
   const [data, setData] = React.useState<CtgovResponse | null>(null);
   const [loading, setLoading] = React.useState<boolean>(false);
   const [error, setError] = React.useState<string>("");
+
+  const handleApplyFilters = () => {
+    setQ(tempQ);
+    setLoc(tempLoc);
+    setStatus(tempStatus);
+    setType(tempType);
+    setPageSize(tempPageSize);
+    setPage(1);
+  };
 
   React.useEffect(() => {
     let mounted = true;
