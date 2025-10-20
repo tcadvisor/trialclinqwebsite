@@ -338,7 +338,51 @@ export const SearchResults = (): JSX.Element => {
             )}
 
             {!loading && !error && studies.length === 0 && (
-              <div className="p-6 border rounded-md text-gray-600">No studies found. Try changing your filters.</div>
+              <div className="p-6 border rounded-md">
+                <div className="text-gray-700 font-medium mb-4">No studies found. Try changing your filters.</div>
+
+                {spellSuggestions.length > 0 && (
+                  <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
+                    <p className="text-sm text-gray-700 mb-3">Did you mean:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {spellSuggestions.map((sugg, i) => (
+                        <button
+                          key={i}
+                          onClick={() => applySuggestion(sugg.suggestion)}
+                          className="px-3 py-2 rounded-md bg-white border border-blue-300 text-blue-700 text-sm hover:bg-blue-100 transition-colors"
+                          title={`Confidence: ${sugg.confidence}`}
+                        >
+                          {sugg.suggestion}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {!aiSuggestion && spellSuggestions.length === 0 && (
+                  <div className="mt-4">
+                    <button
+                      onClick={handleAiCorrection}
+                      disabled={aiLoading}
+                      className="px-4 py-2 rounded-md bg-purple-600 text-white text-sm hover:bg-purple-700 transition-colors disabled:opacity-50"
+                    >
+                      {aiLoading ? 'Checking with AI...' : 'Try AI Spell Check'}
+                    </button>
+                  </div>
+                )}
+
+                {aiSuggestion && (
+                  <div className="mt-4 p-4 bg-purple-50 border border-purple-200 rounded-md">
+                    <p className="text-sm text-gray-700 mb-2">AI suggests:</p>
+                    <button
+                      onClick={() => applySuggestion(aiSuggestion)}
+                      className="px-3 py-2 rounded-md bg-white border border-purple-300 text-purple-700 text-sm hover:bg-purple-100 transition-colors"
+                    >
+                      {aiSuggestion}
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
 
             {!loading && !error && studies.map((study: CtgovStudy, index: number) => {
