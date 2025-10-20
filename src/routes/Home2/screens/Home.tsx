@@ -123,9 +123,21 @@ export default function Home() {
       <section id="trusted" className="py-16 px-4 bg-gradient-to-b from-white to-gray-50">
         <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-10 items-center">
           <div className="grid grid-cols-3 gap-4">
-            <div className="aspect-[4/5] rounded-3xl bg-gray-200" />
-            <div className="aspect-[4/5] rounded-3xl bg-gray-200 translate-y-6" />
-            <div className="aspect-[4/5] rounded-3xl bg-gray-200" />
+            <img
+              src="https://cdn.builder.io/api/v1/image/assets%2F3ef0caf3200f4046b04c16f3c60b68c9%2Fc72a3e8ce37647129222f353e12e04d1?format=webp&width=800"
+              alt="Healthcare professional with patient"
+              className="aspect-[4/5] rounded-3xl object-cover"
+            />
+            <img
+              src="https://cdn.builder.io/api/v1/image/assets%2F3ef0caf3200f4046b04c16f3c60b68c9%2Ffacc7c2898e24668b8ebefd37e17c7ca?format=webp&width=800"
+              alt="Doctor consulting with patient"
+              className="aspect-[4/5] rounded-3xl object-cover translate-y-6"
+            />
+            <img
+              src="https://cdn.builder.io/api/v1/image/assets%2F3ef0caf3200f4046b04c16f3c60b68c9%2F05aeac203c0a447fa2c7d7cd8faf2429?format=webp&width=800"
+              alt="Medical professional with patient"
+              className="aspect-[4/5] rounded-3xl object-cover"
+            />
           </div>
           <div>
             <h2 className="text-3xl font-semibold mb-4">Powered by Trusted Sources</h2>
@@ -150,7 +162,11 @@ export default function Home() {
       {/* Why */}
       <section id="why" className="py-16 px-4">
         <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-10 items-center">
-          <div className="aspect-[4/3] rounded-3xl bg-gray-200" />
+          <img
+            src="https://cdn.builder.io/api/v1/image/assets%2F3ef0caf3200f4046b04c16f3c60b68c9%2F05cc97dfd2c94dd5b740abfc6e59421e?format=webp&width=800"
+            alt="Researchers collaborating in laboratory"
+            className="aspect-[4/3] rounded-3xl object-cover"
+          />
           <div className="space-y-6">
             <h2 className="text-3xl font-semibold">Why TrialCliniq?</h2>
             <div className="space-y-5">
@@ -173,61 +189,118 @@ export default function Home() {
       </section>
 
       {/* Journey */}
-      <section id="journey" className="py-16 px-4 bg-gray-50">
-        <div className="max-w-6xl mx-auto text-center">
-          <h2 className="text-3xl font-semibold mb-12">Your Trial Journey</h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              { icon: "👤", text: "Create a secure account and share basic health details or connect your EHR and sign consent" },
-              { icon: "🔍", text: "Our system scans active trials based on your profile, diagnosis, and location then get you matched" },
-              { icon: "🧪", text: "Review eligible trials, consent to be contacted by research site and stay updated on new opportunities" },
-            ].map((s, i) => (
-              <div key={i} className="text-center">
-                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 text-2xl">{s.icon}</div>
-                <p className="text-gray-700 max-w-sm mx-auto">{s.text}</p>
-              </div>
-            ))}
+      <section id="journey" className="py-24 px-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-20">
+            <h2 className="text-4xl font-bold mb-4">Your Path to the Right Trial</h2>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">Simple, secure, and guided. Join thousands of patients finding their match.</p>
           </div>
-          <Link to="/search-results" className="mt-10 inline-flex items-center gap-2 rounded-full bg-gray-900 px-6 py-3 text-white hover:bg-black">
-            Find A Trial <ArrowRight className="h-4 w-4" />
-          </Link>
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="relative">
+              <div className="flex flex-col items-center">
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center mb-6 shadow-lg">
+                  <UserRound className="h-10 w-10 text-white" />
+                </div>
+                <h3 className="text-xl font-semibold mb-3">Create Your Profile</h3>
+                <p className="text-gray-600">Share your basic health information securely, connect your EHR, and provide consent to participate.</p>
+              </div>
+              <div className="hidden md:block absolute top-20 right-0 w-1/2 h-1 bg-gradient-to-r from-blue-300 to-transparent transform translate-x-1/2" />
+            </div>
+            <div className="relative">
+              <div className="flex flex-col items-center">
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center mb-6 shadow-lg">
+                  <Search className="h-10 w-10 text-white" />
+                </div>
+                <h3 className="text-xl font-semibold mb-3">Get AI-Matched</h3>
+                <p className="text-gray-600">Our intelligent system analyzes your profile and scans active trials to find the best matches for you.</p>
+              </div>
+              <div className="hidden md:block absolute top-20 right-0 w-1/2 h-1 bg-gradient-to-r from-emerald-300 to-transparent transform translate-x-1/2" />
+            </div>
+            <div>
+              <div className="flex flex-col items-center">
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center mb-6 shadow-lg">
+                  <CheckCircle2 className="h-10 w-10 text-white" />
+                </div>
+                <h3 className="text-xl font-semibold mb-3">Review & Enroll</h3>
+                <p className="text-gray-600">Explore eligible trials, review all details, and approve contact from research sites for trials you're interested in.</p>
+              </div>
+            </div>
+          </div>
+          <div className="mt-16 text-center">
+            <Link to="/search-results" className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-8 py-3 text-white font-medium hover:bg-blue-700 transition-colors shadow-lg hover:shadow-xl">
+              Find A Trial <ArrowRight className="h-5 w-5" />
+            </Link>
+          </div>
         </div>
       </section>
 
       {/* Recruitment cards CTA */}
-      <section className="py-16 px-4">
-        <div className="max-w-6xl mx-auto text-center">
-          <div className="grid md:grid-cols-3 gap-6 mb-10">
-            <div className="rounded-2xl border p-6 text-left">
-              <div className="text-sm text-gray-500">Consent Status</div>
-              <div className="mt-2 text-2xl font-semibold text-emerald-600">Active</div>
-              <div className="mt-6 h-2 rounded bg-emerald-100"><div className="h-2 w-[95%] rounded bg-emerald-500" /></div>
-              <div className="mt-2 text-xs text-gray-500">Last updated: 17 Jun, 2025</div>
-            </div>
-            <div className="rounded-2xl border p-6">
-              <div className="mx-auto h-40 w-40 rounded-full bg-gradient-to-tr from-blue-100 to-emerald-100 flex items-center justify-center">
-                <div className="text-center">
-                  <div className="text-gray-700 text-sm">AI-Matching</div>
-                  <div className="font-semibold">Clinical Trial</div>
+      <section className="py-24 px-4 bg-gradient-to-b from-white to-gray-50">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold mb-4">Accelerate Your Trial Recruitment</h2>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">Get real-time insights into patient matching, consent management, and enrollment funnels with our AI-powered platform.</p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-8 mb-16">
+            <div className="rounded-3xl bg-white border border-gray-200 p-8 hover:shadow-xl transition-shadow">
+              <div className="mb-6">
+                <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100">
+                  <CheckCircle2 className="h-6 w-6 text-emerald-600" />
                 </div>
               </div>
-              <div className="mt-6 flex items-center justify-center gap-4 text-sm">
-                <span className="rounded-full bg-blue-50 px-3 py-1">Matched 10%</span>
-                <span className="rounded-full bg-blue-50 px-3 py-1">Pre-screen pass 10%</span>
-                <span className="rounded-full bg-blue-50 px-3 py-1">Enrolled 10%</span>
+              <h3 className="text-xl font-semibold mb-3">Smart Consent Workflows</h3>
+              <p className="text-gray-600 mb-6">Automate consent collection and track real-time enrollment status across your trials.</p>
+              <div className="pt-4 border-t">
+                <div className="text-sm text-gray-500 mb-3">Status: Active</div>
+                <div className="h-2 rounded-full bg-emerald-100">
+                  <div className="h-2 w-[95%] rounded-full bg-emerald-500" />
+                </div>
               </div>
             </div>
-            <div className="rounded-2xl border p-6 text-left">
-              <div className="text-lg font-semibold">Add or link a trial</div>
-              <p className="text-gray-600 mt-2">Connect an existing trial to your profile or register a new one to start managing.</p>
-              <div className="mt-6 rounded-xl bg-gradient-to-tr from-gray-100 to-white p-6 border">
-                <div className="text-sm text-gray-500">HIPAA Compliant</div>
+            <div className="rounded-3xl bg-white border border-gray-200 p-8 hover:shadow-xl transition-shadow">
+              <div className="mb-6">
+                <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
+                  <Shield className="h-6 w-6 text-blue-600" />
+                </div>
+              </div>
+              <h3 className="text-xl font-semibold mb-3">AI-Powered Matching</h3>
+              <p className="text-gray-600 mb-6">Automatically match qualified patients to your trials using advanced AI and EHR data.</p>
+              <div className="pt-4 border-t">
+                <div className="grid grid-cols-3 gap-2 text-sm">
+                  <div className="text-center">
+                    <div className="font-semibold text-blue-600">10%</div>
+                    <div className="text-gray-500 text-xs">Matched</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-semibold text-blue-600">10%</div>
+                    <div className="text-gray-500 text-xs">Pass Screen</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-semibold text-blue-600">10%</div>
+                    <div className="text-gray-500 text-xs">Enrolled</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="rounded-3xl bg-white border border-gray-200 p-8 hover:shadow-xl transition-shadow">
+              <div className="mb-6">
+                <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-purple-100">
+                  <UserRound className="h-6 w-6 text-purple-600" />
+                </div>
+              </div>
+              <h3 className="text-xl font-semibold mb-3">Unified Trial Management</h3>
+              <p className="text-gray-600 mb-6">Manage multiple trials in one platform with complete HIPAA compliance and security.</p>
+              <div className="pt-4 border-t">
+                <span className="inline-block rounded-full bg-purple-50 px-3 py-1 text-sm text-purple-700 font-medium">HIPAA Compliant</span>
               </div>
             </div>
           </div>
-          <h3 className="text-2xl font-semibold mb-4">See How TrialCliniq Can Optimize Your Recruitment</h3>
-          <p className="text-gray-600 mb-6">Book a personalized demo and discover faster, data-driven trial enrollment.</p>
-          <Link to="/book-demo" className="inline-flex items-center gap-2 rounded-full bg-gray-900 px-6 py-3 text-white hover:bg-black">Book a Demo <ArrowRight className="h-4 w-4" /></Link>
+          <div className="text-center">
+            <p className="text-gray-600 mb-6">Ready to transform your recruitment strategy?</p>
+            <Link to="/book-demo" className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-8 py-3 text-white font-medium hover:bg-blue-700 transition-colors">
+              Book a Demo <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
         </div>
       </section>
 
