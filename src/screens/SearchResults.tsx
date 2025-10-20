@@ -10,6 +10,7 @@ import { ChevronDownIcon, MapPinIcon, Loader2 } from "lucide-react";
 import HomeHeader from "../components/HomeHeader";
 import { buildSmartCondQuery, buildLooseCondQuery, normalizeLocation } from "../lib/searchQuery";
 import { getSpellCheckSuggestions, correctWithAI, type SpellCheckSuggestion } from "../lib/spellCheck";
+import { formatStudyStatus, formatStudyType } from "../lib/formatters";
 import {
   CtgovResponse,
   CtgovStudy,
