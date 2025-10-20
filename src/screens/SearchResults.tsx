@@ -53,6 +53,9 @@ export const SearchResults = (): JSX.Element => {
   const [data, setData] = React.useState<CtgovResponse | null>(null);
   const [loading, setLoading] = React.useState<boolean>(false);
   const [error, setError] = React.useState<string>("");
+  const [spellSuggestions, setSpellSuggestions] = React.useState<SpellCheckSuggestion[]>([]);
+  const [aiSuggestion, setAiSuggestion] = React.useState<string | null>(null);
+  const [aiLoading, setAiLoading] = React.useState(false);
 
   const handleApplyFilters = () => {
     const queryParams = new URLSearchParams();
