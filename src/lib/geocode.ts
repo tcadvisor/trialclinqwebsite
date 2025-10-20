@@ -83,7 +83,8 @@ export async function geocodeText(q: string): Promise<{ lat?: number; lng?: numb
             const city = String(place?.["place name"] || place?.place || '').trim();
             const state = String(place?.["state abbreviation"] || place?.state || '').trim();
             const label = [city, state].filter(Boolean).join(', ');
-            if (Number.isFinite(flat) && Number.isFinite(flng)) {
+            // Validate US coordinates (continental US bounds)
+            if (Number.isFinite(flat) && Number.isFinite(flng) && state && flat > 24 && flat < 50 && flng > -130 && flng < -65) {
               cache[key] = { lat: flat, lng: flng, label };
               writeCache(cache);
               return { lat: flat, lng: flng, label };
