@@ -141,6 +141,12 @@ export function buildLooseCondQuery(raw: string): string {
 export function normalizeLocation(raw: string): string {
   const s = (raw || '').trim()
   if (!s) return ''
+
+  // Normalize US variations to consistent "United States" string
+  if (/^\s*(usa?|united\s+states?)\s*$/i.test(s)) {
+    return 'United States'
+  }
+
   // Remove leading keywords like "near", "around", "in" while preserving postal/city terms
   return s.replace(/^\s*(near|around|in|within)\s+/i, '').replace(/\s{2,}/g,' ').trim()
 }
