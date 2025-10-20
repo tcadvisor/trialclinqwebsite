@@ -59,27 +59,38 @@ export const SearchResults = (): JSX.Element => {
           used = { qq: q.trim(), st: '', lc: '' };
         } else {
           const loose = buildLooseCondQuery(q);
+          const isBroadUSLocation = preparedLoc && /^\s*(usa?|united\s+states?)\s*$/i.test(preparedLoc);
           const attempts: Array<{ qq: string; st?: string; lc?: string }> = [];
 
-          // Build attempt list: try with location first if specified, always have fallback without location
-          if (preparedLoc) {
+          // If location is a broad "USA" search, try with location first but don't fall back to worldwide
+          // For specific locations, allow broader fallbacks if few results
+          if (isBroadUSLocation) {
+            // US-only searches: keep location constraint
             attempts.push({ qq: preparedQ, st: status, lc: preparedLoc });
             if (loose && loose !== preparedQ) attempts.push({ qq: loose, st: status, lc: preparedLoc });
             attempts.push({ qq: q.trim(), st: status, lc: preparedLoc });
-          }
-
-          // Always include attempts without location as fallback
-          attempts.push({ qq: preparedQ, st: status, lc: '' });
-          if (loose && loose !== preparedQ) attempts.push({ qq: loose, st: status, lc: '' });
-          attempts.push({ qq: q.trim(), st: status, lc: '' });
-
-          if (preparedLoc) {
             attempts.push({ qq: preparedQ, st: '', lc: preparedLoc });
             attempts.push({ qq: loose || preparedQ || q.trim(), st: '', lc: preparedLoc });
+          } else if (preparedLoc) {
+            // Specific location: try with location first, then fallback to broader searches
+            attempts.push({ qq: preparedQ, st: status, lc: preparedLoc });
+            if (loose && loose !== preparedQ) attempts.push({ qq: loose, st: status, lc: preparedLoc });
+            attempts.push({ qq: q.trim(), st: status, lc: preparedLoc });
+            attempts.push({ qq: preparedQ, st: status, lc: '' });
+            if (loose && loose !== preparedQ) attempts.push({ qq: loose, st: status, lc: '' });
+            attempts.push({ qq: q.trim(), st: status, lc: '' });
+            attempts.push({ qq: preparedQ, st: '', lc: preparedLoc });
+            attempts.push({ qq: loose || preparedQ || q.trim(), st: '', lc: preparedLoc });
+            attempts.push({ qq: preparedQ, st: '', lc: '' });
+            attempts.push({ qq: loose || preparedQ || q.trim(), st: '', lc: '' });
+          } else {
+            // No location specified
+            attempts.push({ qq: preparedQ, st: status, lc: '' });
+            if (loose && loose !== preparedQ) attempts.push({ qq: loose, st: status, lc: '' });
+            attempts.push({ qq: q.trim(), st: status, lc: '' });
+            attempts.push({ qq: preparedQ, st: '', lc: '' });
+            attempts.push({ qq: loose || preparedQ || q.trim(), st: '', lc: '' });
           }
-
-          attempts.push({ qq: preparedQ, st: '', lc: '' });
-          attempts.push({ qq: loose || preparedQ || q.trim(), st: '', lc: '' });
 
           if (page > 1 || pageToken) {
             const a = activeQuery || attempts[0];
@@ -90,11 +101,15 @@ export const SearchResults = (): JSX.Element => {
               const r = await fetchStudies({ q: a.qq, status: a.st, type, loc: a.lc, pageSize, pageToken: "" });
               res = r;
               used = a;
-              // Only stop if we got a meaningful number of results or hit next page token
-              // For location-specific searches that return very few results, keep trying broader searches
-              const hasLocationFilter = a.lc && a.lc.toLowerCase() !== 'usa' && a.lc.toLowerCase() !== 'us';
-              const hasEnoughResults = (r.studies || []).length >= 5 || r.nextPageToken !== undefined;
-              if (hasEnoughResults || (!hasLocationFilter && (r.studies || []).length > 0)) break;
+              // For broad US searches, always keep results even if few (don't fall back to worldwide)
+              // For specific locations, allow fallback if very few results
+              if (isBroadUSLocation) {
+                // Always accept results for US-specific searches
+                if ((r.studies || []).length > 0 || r.nextPageToken !== undefined) break;
+              } else {
+                // For specific locations, accept if we have results or fallback for broader searches
+                if ((r.studies || []).length > 0 || r.nextPageToken !== undefined) break;
+              }
             }
           }
         }
