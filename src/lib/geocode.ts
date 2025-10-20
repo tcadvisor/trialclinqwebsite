@@ -99,19 +99,45 @@ export async function geocodeText(q: string): Promise<{ lat?: number; lng?: numb
     }
 
     try {
-      const params = new URLSearchParams({ format: 'jsonv2', limit: '1', q: key });
+      const params = new URLSearchParams({ format: 'jsonv2', limit: '10', q: key });
       try {
         const nres = await safeFetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`);
         if (nres && nres.ok) {
           const arr = (await nres.json()) as Array<any>;
-          const first = arr?.[0];
-          const flat = Number(first?.lat);
-          const flng = Number(first?.lon);
-          const label = (first?.display_name || '').toString();
-          if (Number.isFinite(flat) && Number.isFinite(flng)) {
-            cache[key] = { lat: flat, lng: flng, label };
-            writeCache(cache);
-            return { lat: flat, lng: flng, label };
+          if (arr && arr.length > 0) {
+            // Prefer US results when searching (especially if query suggests US location)
+            const keyUpper = key.toUpperCase();
+            const usStateAbbr = ['AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY', 'DC'];
+            const hasStateHint = usStateAbbr.some(s => keyUpper.includes(s)) || key.match(/georgia|california|texas|florida|new york|pennsylvania|ohio|illinois|michigan|north carolina|virginia|washington|colorado|arizona|tennessee|missouri|indiana|maryland|minnesota|wisconsin|massachusetts|louisiana|alabama|kentucky|oregon|oklahoma|connecticut|utah|iowa|nevada|arkansas|kansas|mississippi|new mexico|west virginia|nebraska|idaho|south dakota|north dakota|maine|montana|rhode island|delaware|south carolina|wyoming|vermont|alaska|hawaii|district of columbia/i);
+
+            let first = arr[0];
+
+            if (hasStateHint) {
+              // Find best US match
+              const usResults = arr.filter((r) => {
+                const displayName = (r?.display_name || '').toUpperCase();
+                return displayName.includes('UNITED STATES') || displayName.includes('USA') || displayName.includes(', US') || displayName.endsWith('US');
+              });
+              if (usResults.length > 0) {
+                first = usResults[0];
+              } else {
+                // Fallback: prefer results with reasonable US coordinates
+                first = arr.find((r) => {
+                  const lat = Number(r?.lat);
+                  const lng = Number(r?.lon);
+                  return Number.isFinite(lat) && Number.isFinite(lng) && lat > 24 && lat < 50 && lng > -130 && lng < -65;
+                }) || first;
+              }
+            }
+
+            const flat = Number(first?.lat);
+            const flng = Number(first?.lon);
+            const label = (first?.display_name || '').toString();
+            if (Number.isFinite(flat) && Number.isFinite(flng)) {
+              cache[key] = { lat: flat, lng: flng, label };
+              writeCache(cache);
+              return { lat: flat, lng: flng, label };
+            }
           }
         }
       } catch (e) {
