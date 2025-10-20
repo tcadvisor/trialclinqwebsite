@@ -275,11 +275,19 @@ export const SearchResults = (): JSX.Element => {
                             View details
                           </Button>
                         </a>
-                        <Link to={`/study/${nctId}`}>
-                          <Button size="sm" className="bg-[#1033e5] text-white rounded-full whitespace-nowrap">
-                            {isAuthenticated && user?.role === 'patient' ? 'View Details' : 'Check eligibility'}
-                          </Button>
-                        </Link>
+                        {isAuthenticated && user?.role === 'patient' ? (
+                          <Link to={`/study/${nctId}`}>
+                            <Button size="sm" className="bg-[#1033e5] text-white rounded-full whitespace-nowrap">
+                              View Details
+                            </Button>
+                          </Link>
+                        ) : (
+                          <Link to={`/patients/connect${nctId ? `?nctId=${encodeURIComponent(nctId)}` : ''}`}>
+                            <Button size="sm" className="bg-[#1033e5] text-white rounded-full whitespace-nowrap">
+                              Check eligibility
+                            </Button>
+                          </Link>
+                        )}
                       </div>
                     </div>
                     <Link to={`/study/${nctId}`} className="block">
