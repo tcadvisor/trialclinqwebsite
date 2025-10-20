@@ -139,6 +139,21 @@ export default function Dashboard(): JSX.Element {
             </div>
           </div>
 
+          {noResultsWithinRadius && items.length === 0 && (
+            <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4">
+              <div className="flex items-start gap-3">
+                <div className="text-xl">⚠️</div>
+                <div>
+                  <h3 className="font-semibold text-amber-900">No trials found within your search radius</h3>
+                  <p className="mt-1 text-sm text-amber-800">We couldn't find any matching trials within your specified distance. Try increasing your travel distance to see more options.</p>
+                  <Link to="/patients/health-profile" className="mt-2 inline-flex items-center gap-2 rounded-lg bg-amber-900 px-4 py-2 text-sm text-white hover:bg-amber-800">
+                    Update Location Preferences →
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="mt-4 overflow-hidden rounded-xl border bg-white">
             <table className="w-full text-sm">
               <thead className="bg-gray-50/80 backdrop-blur text-left text-gray-600">
