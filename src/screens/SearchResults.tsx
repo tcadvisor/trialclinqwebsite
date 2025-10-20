@@ -311,8 +311,8 @@ export const SearchResults = (): JSX.Element => {
                       <SelectValue placeholder="12" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="12">12</SelectItem>
-                      <SelectItem value="20">20</SelectItem>
+                      <SelectItem value="12">12 per page</SelectItem>
+                      <SelectItem value="20">20 per page</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
