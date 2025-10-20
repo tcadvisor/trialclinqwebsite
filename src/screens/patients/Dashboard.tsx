@@ -12,6 +12,7 @@ export default function Dashboard(): JSX.Element {
   const [items, setItems] = useState<LiteTrial[]>([]);
   const [whyOpen, setWhyOpen] = useState(false);
   const [whyContent, setWhyContent] = useState<string>("");
+  const [noResultsWithinRadius, setNoResultsWithinRadius] = useState(false);
   useEffect(() => {
     let cancelled = false;
     const update = async () => {
