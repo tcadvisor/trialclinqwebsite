@@ -29,14 +29,16 @@ export const SearchResults = (): JSX.Element => {
   const initialQ = params.get("q")?.trim() || "breast cancer";
   const initialLoc = params.get("loc")?.trim() || "";
   const initialStatus = (params.get("status")?.trim().toUpperCase() || "RECRUITING");
+  const initialType = params.get("type")?.trim() || "";
+  const initialPageSize = parseInt(params.get("pageSize") || "12", 10);
 
   const [q, setQ] = React.useState<string>(initialQ);
   const [loc, setLoc] = React.useState<string>(initialLoc);
   const [tempQ, setTempQ] = React.useState<string>(initialQ);
   const [tempLoc, setTempLoc] = React.useState<string>(initialLoc);
   const [tempStatus, setTempStatus] = React.useState<string>(initialStatus);
-  const [tempType, setTempType] = React.useState<string>("");
-  const [tempPageSize, setTempPageSize] = React.useState<number>(12);
+  const [tempType, setTempType] = React.useState<string>(initialType);
+  const [tempPageSize, setTempPageSize] = React.useState<number>(initialPageSize);
   const preparedQ = React.useMemo(() => buildSmartCondQuery(q), [q]);
   const preparedLoc = React.useMemo(() => normalizeLocation(loc), [loc]);
   const [status, setStatus] = React.useState<string>(initialStatus);
