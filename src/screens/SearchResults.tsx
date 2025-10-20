@@ -1,5 +1,5 @@
 import React from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
@@ -9,6 +9,8 @@ import { Separator } from "../components/ui/separator";
 import { ChevronDownIcon, MapPinIcon, Loader2 } from "lucide-react";
 import HomeHeader from "../components/HomeHeader";
 import { buildSmartCondQuery, buildLooseCondQuery, normalizeLocation } from "../lib/searchQuery";
+import { getSpellCheckSuggestions, correctWithAI, type SpellCheckSuggestion } from "../lib/spellCheck";
+import { formatStudyStatus, formatStudyType, formatPhase } from "../lib/formatters";
 import {
   CtgovResponse,
   CtgovStudy,
@@ -23,14 +25,22 @@ const companyLinks = ["Terms of Conditions", "Contact Us", "About Us", "Privacy 
 
 export const SearchResults = (): JSX.Element => {
   const { search } = useLocation();
+  const navigate = useNavigate();
 
   const params = React.useMemo(() => new URLSearchParams(search), [search]);
   const initialQ = params.get("q")?.trim() || "breast cancer";
   const initialLoc = params.get("loc")?.trim() || "";
   const initialStatus = (params.get("status")?.trim().toUpperCase() || "RECRUITING");
+  const initialType = params.get("type")?.trim() || "";
+  const initialPageSize = parseInt(params.get("pageSize") || "12", 10);
 
   const [q, setQ] = React.useState<string>(initialQ);
   const [loc, setLoc] = React.useState<string>(initialLoc);
+  const [tempQ, setTempQ] = React.useState<string>(initialQ);
+  const [tempLoc, setTempLoc] = React.useState<string>(initialLoc);
+  const [tempStatus, setTempStatus] = React.useState<string>(initialStatus);
+  const [tempType, setTempType] = React.useState<string>(initialType);
+  const [tempPageSize, setTempPageSize] = React.useState<number>(initialPageSize);
   const preparedQ = React.useMemo(() => buildSmartCondQuery(q), [q]);
   const preparedLoc = React.useMemo(() => normalizeLocation(loc), [loc]);
   const [status, setStatus] = React.useState<string>(initialStatus);
@@ -44,6 +54,25 @@ export const SearchResults = (): JSX.Element => {
   const [data, setData] = React.useState<CtgovResponse | null>(null);
   const [loading, setLoading] = React.useState<boolean>(false);
   const [error, setError] = React.useState<string>("");
+  const [spellSuggestions, setSpellSuggestions] = React.useState<SpellCheckSuggestion[]>([]);
+  const [aiSuggestion, setAiSuggestion] = React.useState<string | null>(null);
+  const [aiLoading, setAiLoading] = React.useState(false);
+
+  const handleApplyFilters = () => {
+    const queryParams = new URLSearchParams();
+    if (tempQ) queryParams.set("q", tempQ);
+    if (tempLoc) queryParams.set("loc", tempLoc);
+    if (tempStatus) queryParams.set("status", tempStatus);
+    if (tempType) queryParams.set("type", tempType);
+    queryParams.set("pageSize", String(tempPageSize));
+    navigate(`/patients/find-trial?${queryParams.toString()}`);
+    setQ(tempQ);
+    setLoc(tempLoc);
+    setStatus(tempStatus);
+    setType(tempType);
+    setPageSize(tempPageSize);
+    setPage(1);
+  };
 
   React.useEffect(() => {
     let mounted = true;
@@ -59,14 +88,38 @@ export const SearchResults = (): JSX.Element => {
           used = { qq: q.trim(), st: '', lc: '' };
         } else {
           const loose = buildLooseCondQuery(q);
+          const isBroadUSLocation = preparedLoc === 'United States';
           const attempts: Array<{ qq: string; st?: string; lc?: string }> = [];
-          attempts.push({ qq: preparedQ, st: status, lc: preparedLoc });
-          if (loose && loose !== preparedQ) attempts.push({ qq: loose, st: status, lc: preparedLoc });
-          attempts.push({ qq: q.trim(), st: status, lc: preparedLoc });
-          attempts.push({ qq: preparedQ, st: '', lc: preparedLoc });
-          attempts.push({ qq: loose || preparedQ || q.trim(), st: '', lc: preparedLoc });
-          attempts.push({ qq: preparedQ, st: '', lc: '' });
-          attempts.push({ qq: loose || preparedQ || q.trim(), st: '', lc: '' });
+
+          // If location is a broad "USA" search, try with location first but don't fall back to worldwide
+          // For specific locations, allow broader fallbacks if few results
+          if (isBroadUSLocation) {
+            // US-only searches: keep location constraint
+            attempts.push({ qq: preparedQ, st: status, lc: preparedLoc });
+            if (loose && loose !== preparedQ) attempts.push({ qq: loose, st: status, lc: preparedLoc });
+            attempts.push({ qq: q.trim(), st: status, lc: preparedLoc });
+            attempts.push({ qq: preparedQ, st: '', lc: preparedLoc });
+            attempts.push({ qq: loose || preparedQ || q.trim(), st: '', lc: preparedLoc });
+          } else if (preparedLoc) {
+            // Specific location: try with location first, then fallback to broader searches
+            attempts.push({ qq: preparedQ, st: status, lc: preparedLoc });
+            if (loose && loose !== preparedQ) attempts.push({ qq: loose, st: status, lc: preparedLoc });
+            attempts.push({ qq: q.trim(), st: status, lc: preparedLoc });
+            attempts.push({ qq: preparedQ, st: status, lc: '' });
+            if (loose && loose !== preparedQ) attempts.push({ qq: loose, st: status, lc: '' });
+            attempts.push({ qq: q.trim(), st: status, lc: '' });
+            attempts.push({ qq: preparedQ, st: '', lc: preparedLoc });
+            attempts.push({ qq: loose || preparedQ || q.trim(), st: '', lc: preparedLoc });
+            attempts.push({ qq: preparedQ, st: '', lc: '' });
+            attempts.push({ qq: loose || preparedQ || q.trim(), st: '', lc: '' });
+          } else {
+            // No location specified
+            attempts.push({ qq: preparedQ, st: status, lc: '' });
+            if (loose && loose !== preparedQ) attempts.push({ qq: loose, st: status, lc: '' });
+            attempts.push({ qq: q.trim(), st: status, lc: '' });
+            attempts.push({ qq: preparedQ, st: '', lc: '' });
+            attempts.push({ qq: loose || preparedQ || q.trim(), st: '', lc: '' });
+          }
 
           if (page > 1 || pageToken) {
             const a = activeQuery || attempts[0];
@@ -77,7 +130,15 @@ export const SearchResults = (): JSX.Element => {
               const r = await fetchStudies({ q: a.qq, status: a.st, type, loc: a.lc, pageSize, pageToken: "" });
               res = r;
               used = a;
-              if ((r.studies || []).length > 0 || r.nextPageToken !== undefined) break;
+              // For broad US searches, always keep results even if few (don't fall back to worldwide)
+              // For specific locations, allow fallback if very few results
+              if (isBroadUSLocation) {
+                // Always accept results for US-specific searches
+                if ((r.studies || []).length > 0 || r.nextPageToken !== undefined) break;
+              } else {
+                // For specific locations, accept if we have results or fallback for broader searches
+                if ((r.studies || []).length > 0 || r.nextPageToken !== undefined) break;
+              }
             }
           }
         }
@@ -106,6 +167,38 @@ export const SearchResults = (): JSX.Element => {
     setPage(1);
     setPageToken("");
   }, [preparedQ, preparedLoc, status, type, pageSize]);
+
+  // Compute spell check suggestions when results are empty
+  React.useEffect(() => {
+    if (data && data.studies && data.studies.length === 0 && !loading && q) {
+      const suggestions = getSpellCheckSuggestions(q);
+      setSpellSuggestions(suggestions);
+    } else {
+      setSpellSuggestions([]);
+      setAiSuggestion(null);
+    }
+  }, [data?.studies?.length, loading, q]);
+
+  const handleAiCorrection = async () => {
+    if (!q || aiLoading) return;
+    setAiLoading(true);
+    try {
+      const corrected = await correctWithAI(q);
+      if (corrected) {
+        setAiSuggestion(corrected);
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const applySuggestion = (suggestion: string) => {
+    setTempQ(suggestion);
+    setQ(suggestion);
+    setPage(1);
+  };
 
   const studies = data?.studies ?? [];
 
@@ -141,11 +234,8 @@ export const SearchResults = (): JSX.Element => {
                   <h4 className="font-medium mb-2">Condition</h4>
                   <input
                     type="text"
-                    value={q}
-                    onChange={(e) => {
-                      setPage(1);
-                      setQ(e.target.value);
-                    }}
+                    value={tempQ}
+                    onChange={(e) => setTempQ(e.target.value)}
                     placeholder="e.g. breast cancer"
                     className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
                   />
@@ -154,11 +244,8 @@ export const SearchResults = (): JSX.Element => {
                   <h4 className="font-medium mb-2">Near</h4>
                   <input
                     type="text"
-                    value={loc}
-                    onChange={(e) => {
-                      setPage(1);
-                      setLoc(e.target.value);
-                    }}
+                    value={tempLoc}
+                    onChange={(e) => setTempLoc(e.target.value)}
                     placeholder="City, State or ZIP"
                     className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
                   />
@@ -166,70 +253,75 @@ export const SearchResults = (): JSX.Element => {
                 <div>
                   <h4 className="font-medium mb-2">Status</h4>
                   <Select
-                    value={status || "any"}
+                    value={tempStatus || "any"}
                     onValueChange={(v) => {
                       const next = v === "any" ? "" : v;
-                      setPage(1);
-                      setStatus(next);
+                      setTempStatus(next);
                     }}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Any" />
                     </SelectTrigger>
+                    {tempStatus && <div className="hidden">{formatStudyStatus(tempStatus)}</div>}
                     <SelectContent>
                       <SelectItem value="any">Any</SelectItem>
-                      <SelectItem value="RECRUITING">RECRUITING</SelectItem>
-                      <SelectItem value="ACTIVE_NOT_RECRUITING">ACTIVE_NOT_RECRUITING</SelectItem>
-                      <SelectItem value="COMPLETED">COMPLETED</SelectItem>
-                      <SelectItem value="NOT_YET_RECRUITING">NOT_YET_RECRUITING</SelectItem>
-                      <SelectItem value="ENROLLING_BY_INVITATION">ENROLLING_BY_INVITATION</SelectItem>
-                      <SelectItem value="SUSPENDED">SUSPENDED</SelectItem>
-                      <SelectItem value="TERMINATED">TERMINATED</SelectItem>
-                      <SelectItem value="WITHDRAWN">WITHDRAWN</SelectItem>
-                      <SelectItem value="UNKNOWN">UNKNOWN</SelectItem>
+                      <SelectItem value="RECRUITING">{formatStudyStatus('RECRUITING')}</SelectItem>
+                      <SelectItem value="ACTIVE_NOT_RECRUITING">{formatStudyStatus('ACTIVE_NOT_RECRUITING')}</SelectItem>
+                      <SelectItem value="COMPLETED">{formatStudyStatus('COMPLETED')}</SelectItem>
+                      <SelectItem value="NOT_YET_RECRUITING">{formatStudyStatus('NOT_YET_RECRUITING')}</SelectItem>
+                      <SelectItem value="ENROLLING_BY_INVITATION">{formatStudyStatus('ENROLLING_BY_INVITATION')}</SelectItem>
+                      <SelectItem value="SUSPENDED">{formatStudyStatus('SUSPENDED')}</SelectItem>
+                      <SelectItem value="TERMINATED">{formatStudyStatus('TERMINATED')}</SelectItem>
+                      <SelectItem value="WITHDRAWN">{formatStudyStatus('WITHDRAWN')}</SelectItem>
+                      <SelectItem value="UNKNOWN">{formatStudyStatus('UNKNOWN')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
                   <h4 className="font-medium mb-2">Study Type</h4>
                   <Select
-                    value={type || "any"}
+                    value={tempType || "any"}
                     onValueChange={(v) => {
                       const next = v === "any" ? "" : v;
-                      setPage(1);
-                      setType(next);
+                      setTempType(next);
                     }}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Any" />
                     </SelectTrigger>
+                    {tempType && <div className="hidden">{formatStudyType(tempType)}</div>}
                     <SelectContent>
                       <SelectItem value="any">Any</SelectItem>
-                      <SelectItem value="INTERVENTIONAL">INTERVENTIONAL</SelectItem>
-                      <SelectItem value="OBSERVATIONAL">OBSERVATIONAL</SelectItem>
-                      <SelectItem value="EXPANDED_ACCESS">EXPANDED_ACCESS</SelectItem>
+                      <SelectItem value="INTERVENTIONAL">{formatStudyType('INTERVENTIONAL')}</SelectItem>
+                      <SelectItem value="OBSERVATIONAL">{formatStudyType('OBSERVATIONAL')}</SelectItem>
+                      <SelectItem value="EXPANDED_ACCESS">{formatStudyType('EXPANDED_ACCESS')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
                   <h4 className="font-medium mb-2">Results per page</h4>
                   <Select
-                    value={String(pageSize)}
+                    value={String(tempPageSize)}
                     onValueChange={(v) => {
                       const size = parseInt(v, 10);
-                      setPage(1);
-                      setPageSize(size);
+                      setTempPageSize(size);
                     }}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="12" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="12">12</SelectItem>
-                      <SelectItem value="20">20</SelectItem>
+                      <SelectItem value="12">12 per page</SelectItem>
+                      <SelectItem value="20">20 per page</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
+                <button
+                  onClick={handleApplyFilters}
+                  className="w-full rounded-md bg-blue-600 text-white px-4 py-2 text-sm font-medium hover:bg-blue-700 transition-colors"
+                >
+                  Search
+                </button>
               </CardContent>
             </Card>
           </aside>
@@ -249,7 +341,51 @@ export const SearchResults = (): JSX.Element => {
             )}
 
             {!loading && !error && studies.length === 0 && (
-              <div className="p-6 border rounded-md text-gray-600">No studies found. Try changing your filters.</div>
+              <div className="p-6 border rounded-md">
+                <div className="text-gray-700 font-medium mb-4">No studies found. Try changing your filters.</div>
+
+                {spellSuggestions.length > 0 && (
+                  <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
+                    <p className="text-sm text-gray-700 mb-3">Did you mean:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {spellSuggestions.map((sugg, i) => (
+                        <button
+                          key={i}
+                          onClick={() => applySuggestion(sugg.suggestion)}
+                          className="px-3 py-2 rounded-md bg-white border border-blue-300 text-blue-700 text-sm hover:bg-blue-100 transition-colors"
+                          title={`Confidence: ${sugg.confidence}`}
+                        >
+                          {sugg.suggestion}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {!aiSuggestion && spellSuggestions.length === 0 && (
+                  <div className="mt-4">
+                    <button
+                      onClick={handleAiCorrection}
+                      disabled={aiLoading}
+                      className="px-4 py-2 rounded-md bg-purple-600 text-white text-sm hover:bg-purple-700 transition-colors disabled:opacity-50"
+                    >
+                      {aiLoading ? 'Checking with AI...' : 'Try AI Spell Check'}
+                    </button>
+                  </div>
+                )}
+
+                {aiSuggestion && (
+                  <div className="mt-4 p-4 bg-purple-50 border border-purple-200 rounded-md">
+                    <p className="text-sm text-gray-700 mb-2">AI suggests:</p>
+                    <button
+                      onClick={() => applySuggestion(aiSuggestion)}
+                      className="px-3 py-2 rounded-md bg-white border border-purple-300 text-purple-700 text-sm hover:bg-purple-100 transition-colors"
+                    >
+                      {aiSuggestion}
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
 
             {!loading && !error && studies.map((study: CtgovStudy, index: number) => {
@@ -269,21 +405,27 @@ export const SearchResults = (): JSX.Element => {
                         <h3 className="text-lg font-semibold text-[#1033e5] mb-1 break-words leading-snug">{title}</h3>
                       </Link>
                       <div className="flex items-center gap-2">
-                        {overallStatus && <Badge variant="secondary">{overallStatus}</Badge>}
-                        <a href={ctgovStudyDetailUrl(study)} target="_blank" rel="noopener noreferrer">
-                          <Button size="sm" className="bg-gray-900 text-white rounded-full whitespace-nowrap">
-                            View details
-                          </Button>
-                        </a>
-                        <Link to={
-                          isAuthenticated && user?.role === 'patient'
-                            ? `/patients/check${nctId ? `?source=profile&nctId=${encodeURIComponent(nctId)}` : '?source=profile'}`
-                            : `/patients/connect${nctId ? `?nctId=${encodeURIComponent(nctId)}` : ''}`
-                        }>
-                          <Button size="sm" className="bg-[#1033e5] text-white rounded-full whitespace-nowrap">
-                            Check eligibility
-                          </Button>
-                        </Link>
+                        {overallStatus && <Badge variant="secondary">{formatStudyStatus(overallStatus)}</Badge>}
+                        {!(isAuthenticated && user?.role === 'patient') && (
+                          <a href={ctgovStudyDetailUrl(study)} target="_blank" rel="noopener noreferrer">
+                            <Button size="sm" className="bg-gray-900 text-white rounded-full whitespace-nowrap">
+                              View details
+                            </Button>
+                          </a>
+                        )}
+                        {isAuthenticated && user?.role === 'patient' ? (
+                          <Link to={`/study/${nctId}`}>
+                            <Button size="sm" className="bg-[#1033e5] text-white rounded-full whitespace-nowrap">
+                              View Details
+                            </Button>
+                          </Link>
+                        ) : (
+                          <Link to={`/patients/connect${nctId ? `?nctId=${encodeURIComponent(nctId)}` : ''}`}>
+                            <Button size="sm" className="bg-[#1033e5] text-white rounded-full whitespace-nowrap">
+                              Check eligibility
+                            </Button>
+                          </Link>
+                        )}
                       </div>
                     </div>
                     <Link to={`/study/${nctId}`} className="block">
@@ -298,7 +440,7 @@ export const SearchResults = (): JSX.Element => {
                           <Badge variant="secondary">{conditions.join(", ")}</Badge>
                         )}
                         {phases.length > 0 && (
-                          <Badge variant="secondary">{phases.join(", ")}</Badge>
+                          <Badge variant="secondary">{phases.map(p => formatPhase(p)).join(", ")}</Badge>
                         )}
                         {sponsor && <Badge variant="secondary">{sponsor}</Badge>}
                       </div>

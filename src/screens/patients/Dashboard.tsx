@@ -12,14 +12,21 @@ export default function Dashboard(): JSX.Element {
   const [items, setItems] = useState<LiteTrial[]>([]);
   const [whyOpen, setWhyOpen] = useState(false);
   const [whyContent, setWhyContent] = useState<string>("");
+  const [noResultsWithinRadius, setNoResultsWithinRadius] = useState(false);
   useEffect(() => {
     let cancelled = false;
     const update = async () => {
       try {
         const list = await getRealMatchedTrialsForCurrentUser(50);
-        if (!cancelled) setItems(list);
+        if (!cancelled) {
+          setItems(list);
+          setNoResultsWithinRadius((list as any).__noResultsWithinRadius === true);
+        }
       } catch {
-        if (!cancelled) setItems([]);
+        if (!cancelled) {
+          setItems([]);
+          setNoResultsWithinRadius(false);
+        }
       }
     };
     update();
@@ -131,6 +138,21 @@ export default function Dashboard(): JSX.Element {
               </Link>
             </div>
           </div>
+
+          {noResultsWithinRadius && items.length === 0 && (
+            <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4">
+              <div className="flex items-start gap-3">
+                <div className="text-xl">⚠️</div>
+                <div>
+                  <h3 className="font-semibold text-amber-900">No trials found within your search radius</h3>
+                  <p className="mt-1 text-sm text-amber-800">We couldn't find any matching trials within your specified distance. Try increasing your travel distance to see more options.</p>
+                  <Link to="/patients/health-profile" className="mt-2 inline-flex items-center gap-2 rounded-lg bg-amber-900 px-4 py-2 text-sm text-white hover:bg-amber-800">
+                    Update Location Preferences →
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="mt-4 overflow-hidden rounded-xl border bg-white">
             <table className="w-full text-sm">

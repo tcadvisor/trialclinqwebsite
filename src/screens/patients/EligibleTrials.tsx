@@ -66,6 +66,8 @@ export default function EligibleTrials(): JSX.Element {
     </span>
   );
 
+  const noResultsWithinRadius = (base as any).__noResultsWithinRadius === true;
+
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
       <PatientHeader />
@@ -82,6 +84,26 @@ export default function EligibleTrials(): JSX.Element {
             />
           </div>
         </div>
+
+        {noResultsWithinRadius && base.length === 0 && (
+          <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4">
+            <div className="flex items-start gap-3">
+              <div className="text-xl">⚠️</div>
+              <div>
+                <h3 className="font-semibold text-amber-900">No trials found within your search radius</h3>
+                <p className="mt-1 text-sm text-amber-800">We couldn't find any matching trials within your specified distance. Consider:</p>
+                <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-amber-800">
+                  <li>Increasing your travel distance in your health profile</li>
+                  <li>Checking your location is correctly set</li>
+                  <li>Expanding your search to explore options further away</li>
+                </ul>
+                <button onClick={() => window.location.href = '/patients/health-profile'} className="mt-3 inline-flex items-center gap-2 rounded-lg bg-amber-900 px-4 py-2 text-sm text-white hover:bg-amber-800">
+                  Update Location Preferences →
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="overflow-hidden rounded-xl border bg-white">
           <table className="w-full text-sm">
