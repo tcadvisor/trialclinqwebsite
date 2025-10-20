@@ -23,6 +23,7 @@ const companyLinks = ["Terms of Conditions", "Contact Us", "About Us", "Privacy 
 
 export const SearchResults = (): JSX.Element => {
   const { search } = useLocation();
+  const navigate = useNavigate();
 
   const params = React.useMemo(() => new URLSearchParams(search), [search]);
   const initialQ = params.get("q")?.trim() || "breast cancer";
@@ -51,6 +52,13 @@ export const SearchResults = (): JSX.Element => {
   const [error, setError] = React.useState<string>("");
 
   const handleApplyFilters = () => {
+    const queryParams = new URLSearchParams();
+    if (tempQ) queryParams.set("q", tempQ);
+    if (tempLoc) queryParams.set("loc", tempLoc);
+    if (tempStatus) queryParams.set("status", tempStatus);
+    if (tempType) queryParams.set("type", tempType);
+    queryParams.set("pageSize", String(tempPageSize));
+    navigate(`/patients/find-trial?${queryParams.toString()}`);
     setQ(tempQ);
     setLoc(tempLoc);
     setStatus(tempStatus);
