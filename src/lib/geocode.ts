@@ -71,7 +71,13 @@ export async function geocodeText(q: string): Promise<{ lat?: number; lng?: numb
     }
 
     try {
-      const zip = String(key).match(/^(\d{5})(?:-\d{4})?$/)?.[1];
+      // Normalize US variations first
+      let normalizedKey = key;
+      if (/^\s*(usa?|united\s+states?)\s*$/i.test(key)) {
+        normalizedKey = 'United States';
+      }
+
+      const zip = String(normalizedKey).match(/^(\d{5})(?:-\d{4})?$/)?.[1];
       if (zip) {
         try {
           const zres = await safeFetch(`https://api.zippopotam.us/us/${zip}`);
