@@ -189,24 +189,48 @@ export default function Home() {
       </section>
 
       {/* Journey */}
-      <section id="journey" className="py-16 px-4 bg-gray-50">
-        <div className="max-w-6xl mx-auto text-center">
-          <h2 className="text-3xl font-semibold mb-12">Your Trial Journey</h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              { icon: "👤", text: "Create a secure account and share basic health details or connect your EHR and sign consent" },
-              { icon: "🔍", text: "Our system scans active trials based on your profile, diagnosis, and location then get you matched" },
-              { icon: "🧪", text: "Review eligible trials, consent to be contacted by research site and stay updated on new opportunities" },
-            ].map((s, i) => (
-              <div key={i} className="text-center">
-                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 text-2xl">{s.icon}</div>
-                <p className="text-gray-700 max-w-sm mx-auto">{s.text}</p>
-              </div>
-            ))}
+      <section id="journey" className="py-24 px-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-20">
+            <h2 className="text-4xl font-bold mb-4">Your Path to the Right Trial</h2>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">Simple, secure, and guided. Join thousands of patients finding their match.</p>
           </div>
-          <Link to="/search-results" className="mt-10 inline-flex items-center gap-2 rounded-full bg-gray-900 px-6 py-3 text-white hover:bg-black">
-            Find A Trial <ArrowRight className="h-4 w-4" />
-          </Link>
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="relative">
+              <div className="flex flex-col items-center">
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center mb-6 shadow-lg">
+                  <UserRound className="h-10 w-10 text-white" />
+                </div>
+                <h3 className="text-xl font-semibold mb-3">Create Your Profile</h3>
+                <p className="text-gray-600">Share your basic health information securely, connect your EHR, and provide consent to participate.</p>
+              </div>
+              <div className="hidden md:block absolute top-20 right-0 w-1/2 h-1 bg-gradient-to-r from-blue-300 to-transparent transform translate-x-1/2" />
+            </div>
+            <div className="relative">
+              <div className="flex flex-col items-center">
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center mb-6 shadow-lg">
+                  <Search className="h-10 w-10 text-white" />
+                </div>
+                <h3 className="text-xl font-semibold mb-3">Get AI-Matched</h3>
+                <p className="text-gray-600">Our intelligent system analyzes your profile and scans active trials to find the best matches for you.</p>
+              </div>
+              <div className="hidden md:block absolute top-20 right-0 w-1/2 h-1 bg-gradient-to-r from-emerald-300 to-transparent transform translate-x-1/2" />
+            </div>
+            <div>
+              <div className="flex flex-col items-center">
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center mb-6 shadow-lg">
+                  <CheckCircle2 className="h-10 w-10 text-white" />
+                </div>
+                <h3 className="text-xl font-semibold mb-3">Review & Enroll</h3>
+                <p className="text-gray-600">Explore eligible trials, review all details, and approve contact from research sites for trials you're interested in.</p>
+              </div>
+            </div>
+          </div>
+          <div className="mt-16 text-center">
+            <Link to="/search-results" className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-8 py-3 text-white font-medium hover:bg-blue-700 transition-colors shadow-lg hover:shadow-xl">
+              Find A Trial <ArrowRight className="h-5 w-5" />
+            </Link>
+          </div>
         </div>
       </section>
 
