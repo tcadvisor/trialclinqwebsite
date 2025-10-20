@@ -270,11 +270,13 @@ export const SearchResults = (): JSX.Element => {
                       </Link>
                       <div className="flex items-center gap-2">
                         {overallStatus && <Badge variant="secondary">{overallStatus}</Badge>}
-                        <a href={ctgovStudyDetailUrl(study)} target="_blank" rel="noopener noreferrer">
-                          <Button size="sm" className="bg-gray-900 text-white rounded-full whitespace-nowrap">
-                            View details
-                          </Button>
-                        </a>
+                        {!(isAuthenticated && user?.role === 'patient') && (
+                          <a href={ctgovStudyDetailUrl(study)} target="_blank" rel="noopener noreferrer">
+                            <Button size="sm" className="bg-gray-900 text-white rounded-full whitespace-nowrap">
+                              View details
+                            </Button>
+                          </a>
+                        )}
                         {isAuthenticated && user?.role === 'patient' ? (
                           <Link to={`/study/${nctId}`}>
                             <Button size="sm" className="bg-[#1033e5] text-white rounded-full whitespace-nowrap">
