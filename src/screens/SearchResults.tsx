@@ -275,13 +275,9 @@ export const SearchResults = (): JSX.Element => {
                             View details
                           </Button>
                         </a>
-                        <Link to={
-                          isAuthenticated && user?.role === 'patient'
-                            ? `/patients/check${nctId ? `?source=profile&nctId=${encodeURIComponent(nctId)}` : '?source=profile'}`
-                            : `/patients/connect${nctId ? `?nctId=${encodeURIComponent(nctId)}` : ''}`
-                        }>
+                        <Link to={`/study/${nctId}`}>
                           <Button size="sm" className="bg-[#1033e5] text-white rounded-full whitespace-nowrap">
-                            Check eligibility
+                            {isAuthenticated && user?.role === 'patient' ? 'View Details' : 'Check eligibility'}
                           </Button>
                         </Link>
                       </div>
