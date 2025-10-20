@@ -2,6 +2,7 @@ export async function safeFetch(input: RequestInfo, init?: RequestInit, timeoutM
   const controller = new AbortController();
   let externalSignal: AbortSignal | undefined;
   let onExtAbort: (() => void) | undefined;
+  let timeoutId: NodeJS.Timeout | undefined;
   try {
     if (init && (init as any).signal) {
       externalSignal = (init as any).signal as AbortSignal;
@@ -11,14 +12,16 @@ export async function safeFetch(input: RequestInfo, init?: RequestInit, timeoutM
         externalSignal.addEventListener('abort', onExtAbort);
       }
     }
-    const id = setTimeout(() => controller.abort(), timeoutMs);
+    timeoutId = setTimeout(() => controller.abort(), timeoutMs);
     const merged = { ...(init || {}), signal: controller.signal } as RequestInit;
     const res = await fetch(input, merged);
-    clearTimeout(id);
+    if (timeoutId) clearTimeout(timeoutId);
     return res;
   } catch (e) {
+    // Return null on any error (timeout, network, abort, etc)
     return null;
   } finally {
+    if (timeoutId) clearTimeout(timeoutId);
     if (externalSignal && onExtAbort) {
       try { externalSignal.removeEventListener('abort', onExtAbort); } catch {}
     }
