@@ -97,25 +97,40 @@ export async function fetchStudies(query: CtgovQuery, _signal?: AbortSignal): Pr
       body: JSON.stringify({ action: 'studies', query }),
       signal: _signal,
     });
-    if (!res || !res.ok) {
-      // If proxy route is missing (404), fallback to direct API GET
-      if (res && res.status === 404) {
-        try {
-          const directUrl = buildStudiesUrl(query);
-          const direct = await safeFetch(directUrl, { method: 'GET', signal: _signal });
-          if (direct && direct.ok) return (await direct.json()) as CtgovResponse;
-        } catch {}
-      }
+
+    // If proxy succeeds, return the result
+    if (res && res.ok) {
+      return (await res.json()) as CtgovResponse;
+    }
+
+    // If proxy fails with 404, try direct API
+    if (res && res.status === 404) {
       try {
-        const body = res ? await res.json().catch(() => null) : null;
+        const directUrl = buildStudiesUrl(query);
+        const direct = await safeFetch(directUrl, { method: 'GET', signal: _signal });
+        if (direct && direct.ok) return (await direct.json()) as CtgovResponse;
+      } catch {}
+    }
+
+    // Try to parse error response
+    if (res) {
+      try {
+        const body = await res.json().catch(() => null);
         if (body && (Array.isArray(body.studies) || body.totalCount === 0)) return body as CtgovResponse;
       } catch {}
-      return { studies: [] };
     }
-    return (await res.json()) as CtgovResponse;
-  } catch (e: any) {
+
+    // Fallback: try direct API if proxy failed
     try {
-      // Network/proxy error: final attempt to call API directly
+      const directUrl = buildStudiesUrl(query);
+      const direct = await safeFetch(directUrl, { method: 'GET', signal: _signal });
+      if (direct && direct.ok) return (await direct.json()) as CtgovResponse;
+    } catch {}
+
+    return { studies: [] };
+  } catch (e: any) {
+    // Final fallback: try direct API
+    try {
       const directUrl = buildStudiesUrl(query);
       const direct = await safeFetch(directUrl, { method: 'GET', signal: _signal });
       if (direct && direct.ok) return (await direct.json()) as CtgovResponse;
