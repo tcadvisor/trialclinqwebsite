@@ -18,9 +18,15 @@ export default function Dashboard(): JSX.Element {
     const update = async () => {
       try {
         const list = await getRealMatchedTrialsForCurrentUser(50);
-        if (!cancelled) setItems(list);
+        if (!cancelled) {
+          setItems(list);
+          setNoResultsWithinRadius((list as any).__noResultsWithinRadius === true);
+        }
       } catch {
-        if (!cancelled) setItems([]);
+        if (!cancelled) {
+          setItems([]);
+          setNoResultsWithinRadius(false);
+        }
       }
     };
     update();
