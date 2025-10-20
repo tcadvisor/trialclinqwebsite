@@ -262,6 +262,7 @@ export const SearchResults = (): JSX.Element => {
                     <SelectTrigger>
                       <SelectValue placeholder="Any" />
                     </SelectTrigger>
+                    {tempStatus && <div className="hidden">{formatStudyStatus(tempStatus)}</div>}
                     <SelectContent>
                       <SelectItem value="any">Any</SelectItem>
                       <SelectItem value="RECRUITING">{formatStudyStatus('RECRUITING')}</SelectItem>
