@@ -167,6 +167,38 @@ export const SearchResults = (): JSX.Element => {
     setPageToken("");
   }, [preparedQ, preparedLoc, status, type, pageSize]);
 
+  // Compute spell check suggestions when results are empty
+  React.useEffect(() => {
+    if (data && data.studies && data.studies.length === 0 && !loading && q) {
+      const suggestions = getSpellCheckSuggestions(q);
+      setSpellSuggestions(suggestions);
+    } else {
+      setSpellSuggestions([]);
+      setAiSuggestion(null);
+    }
+  }, [data?.studies?.length, loading, q]);
+
+  const handleAiCorrection = async () => {
+    if (!q || aiLoading) return;
+    setAiLoading(true);
+    try {
+      const corrected = await correctWithAI(q);
+      if (corrected) {
+        setAiSuggestion(corrected);
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const applySuggestion = (suggestion: string) => {
+    setTempQ(suggestion);
+    setQ(suggestion);
+    setPage(1);
+  };
+
   const studies = data?.studies ?? [];
 
   const { isAuthenticated, user } = useAuth();
