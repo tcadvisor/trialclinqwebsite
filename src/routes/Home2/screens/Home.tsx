@@ -162,7 +162,11 @@ export default function Home() {
       {/* Why */}
       <section id="why" className="py-16 px-4">
         <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-10 items-center">
-          <div className="aspect-[4/3] rounded-3xl bg-gray-200" />
+          <img
+            src="https://cdn.builder.io/api/v1/image/assets%2F3ef0caf3200f4046b04c16f3c60b68c9%2F05cc97dfd2c94dd5b740abfc6e59421e?format=webp&width=800"
+            alt="Researchers collaborating in laboratory"
+            className="aspect-[4/3] rounded-3xl object-cover"
+          />
           <div className="space-y-6">
             <h2 className="text-3xl font-semibold">Why TrialCliniq?</h2>
             <div className="space-y-5">
