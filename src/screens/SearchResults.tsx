@@ -83,7 +83,7 @@ export const SearchResults = (): JSX.Element => {
           used = { qq: q.trim(), st: '', lc: '' };
         } else {
           const loose = buildLooseCondQuery(q);
-          const isBroadUSLocation = preparedLoc && /^\s*(usa?|united\s+states?)\s*$/i.test(preparedLoc);
+          const isBroadUSLocation = preparedLoc === 'United States';
           const attempts: Array<{ qq: string; st?: string; lc?: string }> = [];
 
           // If location is a broad "USA" search, try with location first but don't fall back to worldwide
