@@ -2,7 +2,7 @@
 app = "trialcliniq"
 
 [build]
-  builder = "paketobuildpacks"
+  dockerfile = "Dockerfile"
 
 [env]
   PORT = "3000"
