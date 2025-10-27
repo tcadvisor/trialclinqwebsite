@@ -217,7 +217,7 @@ export default function EhrDirectory(): JSX.Element {
                   </div>
                   <button
                     onClick={() => {
-                      console.log("Test patient button clicked:", patient.name);
+                      alert("Clicked: " + patient.name);
                       handleConnect({ id: "epic-sandbox", vendor: "Epic", organization: "EPIC Sandbox", portals: 1, isEpic: true });
                     }}
                     disabled={connecting}
