@@ -1,7 +1,7 @@
 import react from "@vitejs/plugin-react";
 import tailwind from "tailwindcss";
 import { defineConfig } from "vite";
-import path from "path";  // Add this import
+import path from "path";
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -13,9 +13,18 @@ export default defineConfig({
       plugins: [tailwind()],
     },
   },
-  resolve: {  // Add this resolve configuration
+  resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+  },
+  server: {
+    middlewareMode: false,
+    fs: {
+      strict: true,
+    },
+  },
+  preview: {
+    middlewareMode: false,
   },
 });
