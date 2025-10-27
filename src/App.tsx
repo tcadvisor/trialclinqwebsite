@@ -54,6 +54,7 @@ function App() {
         <Route path="/patients/signup-info" element={<SignupInfo />} />
         <Route path="/patients/signup-personal" element={<SignupPersonalDetails />} />
         <Route path="/patients/ehr" element={<EhrDirectory />} />
+        <Route path="/patients/ehr-callback" element={<EhrCallback />} />
         <Route path="/patients/check" element={<EligibilityCheck />} />
         <Route path="/patients/result" element={<EligibilityResult />} />
         <Route path="/patients/login" element={<Login />} />
