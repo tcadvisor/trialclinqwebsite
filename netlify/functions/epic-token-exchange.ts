@@ -1,7 +1,25 @@
 import { Handler } from "@netlify/functions";
 
 const handler: Handler = async (event) => {
-  const { code, state, code_verifier } = event.queryStringParameters || {};
+  let code: string | null = null;
+  let code_verifier: string | null = null;
+
+  // Parse code and code_verifier from either query params or JSON body
+  if (event.httpMethod === "POST" && event.body) {
+    try {
+      const body = JSON.parse(event.body);
+      code = body.code;
+      code_verifier = body.code_verifier;
+    } catch (e) {
+      console.error("Failed to parse POST body:", e);
+    }
+  }
+
+  // Fallback to query parameters if not in body
+  if (!code && event.queryStringParameters) {
+    code = event.queryStringParameters.code;
+    code_verifier = event.queryStringParameters.code_verifier;
+  }
 
   if (!code) {
     return {
