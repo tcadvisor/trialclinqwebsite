@@ -1,0 +1,113 @@
+import React, { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { exchangeCodeForToken, fetchPatientData, getEpicTokens } from "../../lib/epic";
+import SiteHeader from "../../components/SiteHeader";
+
+type Stage = "loading" | "success" | "error";
+
+export default function EhrCallback(): JSX.Element {
+  const [stage, setStage] = useState<Stage>("loading");
+  const [error, setError] = useState<string>("");
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const handleCallback = async () => {
+      try {
+        const code = searchParams.get("code");
+        const errorParam = searchParams.get("error");
+
+        if (errorParam) {
+          setError(`EPIC Authorization failed: ${errorParam}`);
+          setStage("error");
+          return;
+        }
+
+        if (!code) {
+          setError("No authorization code received from EPIC");
+          setStage("error");
+          return;
+        }
+
+        // Exchange authorization code for access token
+        const tokens = await exchangeCodeForToken(code);
+
+        // Fetch patient data
+        const patientData = await fetchPatientData(tokens.patient, tokens.access_token);
+
+        // Store patient data in localStorage for use in health profile
+        localStorage.setItem(
+          "epic:patient:v1",
+          JSON.stringify({
+            patientId: tokens.patient,
+            patientData,
+            connectedAt: new Date().toISOString(),
+          })
+        );
+
+        setStage("success");
+
+        // Redirect to health profile after 2 seconds
+        setTimeout(() => {
+          navigate("/patients/health-profile", {
+            state: { epicConnected: true, patientData },
+          });
+        }, 2000);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unknown error occurred";
+        setError(message);
+        setStage("error");
+        console.error("Callback error:", err);
+      }
+    };
+
+    handleCallback();
+  }, [searchParams, navigate]);
+
+  return (
+    <div className="min-h-screen bg-white text-gray-900">
+      <SiteHeader />
+      <main className="max-w-2xl mx-auto px-4 py-16">
+        {stage === "loading" && (
+          <div className="text-center">
+            <div className="inline-block">
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-200 border-t-blue-600"></div>
+            </div>
+            <h1 className="mt-6 text-2xl font-semibold">Connecting to EPIC...</h1>
+            <p className="mt-2 text-gray-600">Retrieving your health information securely.</p>
+          </div>
+        )}
+
+        {stage === "success" && (
+          <div className="text-center">
+            <div className="inline-block w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+              <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h1 className="mt-6 text-2xl font-semibold">Connected Successfully!</h1>
+            <p className="mt-2 text-gray-600">Your EPIC health data has been imported. Redirecting...</p>
+          </div>
+        )}
+
+        {stage === "error" && (
+          <div className="text-center">
+            <div className="inline-block w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+              <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </div>
+            <h1 className="mt-6 text-2xl font-semibold">Connection Failed</h1>
+            <p className="mt-2 text-gray-600">{error}</p>
+            <button
+              onClick={() => navigate("/patients/ehr")}
+              className="mt-6 inline-block px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Try Again
+            </button>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
