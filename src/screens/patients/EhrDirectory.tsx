@@ -105,20 +105,34 @@ export default function EhrDirectory(): JSX.Element {
     if (item.isEpic) {
       try {
         setConnecting(true);
+        const clientId = (import.meta as any).env?.VITE_EPIC_CLIENT_ID;
+        const redirectUri = (import.meta as any).env?.VITE_EPIC_REDIRECT_URI;
+
+        console.log("EPIC OAuth Debug:", { clientId, redirectUri });
+
+        if (!clientId || !redirectUri) {
+          throw new Error("Missing EPIC configuration: " + JSON.stringify({ clientId: !!clientId, redirectUri: !!redirectUri }));
+        }
+
         const authEndpoint = await getEpicAuthorizationEndpoint();
+        console.log("Authorization endpoint:", authEndpoint);
 
         const params = new URLSearchParams({
           response_type: "code",
-          client_id: (import.meta as any).env?.VITE_EPIC_CLIENT_ID,
-          redirect_uri: (import.meta as any).env?.VITE_EPIC_REDIRECT_URI,
+          client_id: clientId,
+          redirect_uri: redirectUri,
           scope: "launch/patient patient/*.read openid fhirUser",
           state: Math.random().toString(36).substring(7),
         });
 
-        window.location.href = `${authEndpoint}?${params.toString()}`;
+        const fullUrl = `${authEndpoint}?${params.toString()}`;
+        console.log("Full OAuth URL:", fullUrl);
+
+        window.location.href = fullUrl;
       } catch (error) {
         console.error("Failed to initiate EPIC connection:", error);
-        alert("Failed to connect to EPIC. Please try again.");
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        alert(`Failed to connect to EPIC: ${errorMsg}`);
         setConnecting(false);
       }
     }
