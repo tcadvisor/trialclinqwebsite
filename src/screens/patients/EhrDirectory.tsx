@@ -216,7 +216,10 @@ export default function EhrDirectory(): JSX.Element {
                     <div className="text-xs text-gray-600">{patient.medications.join(", ")}</div>
                   </div>
                   <button
-                    onClick={() => handleConnect({ id: "epic-sandbox", vendor: "Epic", organization: "EPIC Sandbox", portals: 1, isEpic: true })}
+                    onClick={() => {
+                      console.log("Test patient button clicked:", patient.name);
+                      handleConnect({ id: "epic-sandbox", vendor: "Epic", organization: "EPIC Sandbox", portals: 1, isEpic: true });
+                    }}
                     disabled={connecting}
                     className="mt-4 w-full px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50"
                   >
