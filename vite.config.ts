@@ -20,9 +20,6 @@ export default defineConfig({
   },
   server: {
     middlewareMode: false,
-    fs: {
-      strict: true,
-    },
   },
   preview: {
     middlewareMode: false,
