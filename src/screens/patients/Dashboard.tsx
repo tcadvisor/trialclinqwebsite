@@ -119,6 +119,16 @@ export default function Dashboard(): JSX.Element {
             </div>
             <div className="mt-2 text-xs text-gray-500">Last updated: 17 Jun, 2025</div>
           </div>
+
+          <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+            <div className="text-sm font-medium text-blue-900">Connect Your EHR</div>
+            <p className="mt-2 text-sm text-blue-700">
+              Securely import your electronic health records from your hospital or clinic to improve trial matching
+            </p>
+            <Link to="/patients/ehr" className="mt-4 inline-flex items-center gap-2 rounded-lg bg-blue-600 text-white px-3 py-2 text-sm hover:bg-blue-700">
+              Connect Now
+            </Link>
+          </div>
         </div>
 
         {/* Trial matches */}

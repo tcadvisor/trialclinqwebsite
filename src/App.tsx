@@ -31,6 +31,7 @@ import EligibilityResult from "./screens/patients/EligibilityResult";
 import ContactUs from "./screens/support/ContactUs";
 import BookDemo from "./screens/support/BookDemo";
 import EhrDirectory from "./screens/patients/EhrDirectory";
+import EhrCallback from "./screens/patients/EhrCallback";
 import Consent from "./screens/patients/Consent";
 import SignupProcessing from "./screens/patients/SignupProcessing";
 import Connect from "./screens/patients/Connect";
@@ -53,6 +54,7 @@ function App() {
         <Route path="/patients/signup-info" element={<SignupInfo />} />
         <Route path="/patients/signup-personal" element={<SignupPersonalDetails />} />
         <Route path="/patients/ehr" element={<EhrDirectory />} />
+        <Route path="/patients/ehr-callback" element={<EhrCallback />} />
         <Route path="/patients/check" element={<EligibilityCheck />} />
         <Route path="/patients/result" element={<EligibilityResult />} />
         <Route path="/patients/login" element={<Login />} />
