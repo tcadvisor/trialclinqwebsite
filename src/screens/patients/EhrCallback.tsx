@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { exchangeCodeForToken, fetchPatientData, getEpicTokens } from "../../lib/epic";
 import SiteHeader from "../../components/SiteHeader";
 
 type Stage = "loading" | "success" | "error";
@@ -16,9 +15,10 @@ export default function EhrCallback(): JSX.Element {
       try {
         const code = searchParams.get("code");
         const errorParam = searchParams.get("error");
+        const errorDescription = searchParams.get("error_description");
 
         if (errorParam) {
-          setError(`EPIC Authorization failed: ${errorParam}`);
+          setError(`EPIC Authorization failed: ${errorParam} - ${errorDescription || ""}`);
           setStage("error");
           return;
         }
@@ -29,28 +29,73 @@ export default function EhrCallback(): JSX.Element {
           return;
         }
 
-        // Exchange authorization code for access token
-        const tokens = await exchangeCodeForToken(code);
+        // Get code_verifier from sessionStorage (set during authorization request)
+        const codeVerifier = sessionStorage.getItem("epic_code_verifier");
 
-        // Fetch patient data
-        const patientData = await fetchPatientData(tokens.patient, tokens.access_token);
+        if (!codeVerifier) {
+          setError("Missing code verifier - session may have expired");
+          setStage("error");
+          return;
+        }
 
-        // Store patient data in localStorage for use in health profile
+        // Exchange code for token using Netlify function (server-side)
+        const tokenResponse = await fetch("/.netlify/functions/epic-token-exchange", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          // Pass code and code_verifier as query parameters
+          redirect: "follow",
+        });
+
+        // Actually, let's use POST instead for better practice
+        const exchangeResponse = await fetch("/.netlify/functions/epic-token-exchange", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            code: code,
+            code_verifier: codeVerifier,
+          }),
+        });
+
+        if (!exchangeResponse.ok) {
+          const errorData = await exchangeResponse.json();
+          throw new Error(errorData.message || `Token exchange failed: ${exchangeResponse.status}`);
+        }
+
+        const tokenData = await exchangeResponse.json();
+
+        // Save tokens and patient data
         localStorage.setItem(
-          "epic:patient:v1",
+          "epic:tokens:v1",
           JSON.stringify({
-            patientId: tokens.patient,
-            patientData,
-            connectedAt: new Date().toISOString(),
+            access_token: tokenData.access_token,
+            token_type: tokenData.token_type,
+            expires_in: tokenData.expires_in,
+            refresh_token: tokenData.refresh_token,
+            patient: tokenData.patient,
           })
         );
+
+        if (tokenData.patientData) {
+          localStorage.setItem(
+            "epic:patient:v1",
+            JSON.stringify({
+              patientId: tokenData.patient,
+              patientData: tokenData.patientData,
+              connectedAt: new Date().toISOString(),
+            })
+          );
+        }
 
         setStage("success");
 
         // Redirect to health profile after 2 seconds
         setTimeout(() => {
           navigate("/patients/health-profile", {
-            state: { epicConnected: true, patientData },
+            state: { epicConnected: true, patientData: tokenData.patientData },
           });
         }, 2000);
       } catch (err) {
