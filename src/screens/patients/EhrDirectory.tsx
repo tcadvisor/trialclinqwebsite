@@ -107,26 +107,50 @@ export default function EhrDirectory(): JSX.Element {
         setConnecting(true);
         const clientId = (import.meta as any).env?.VITE_EPIC_CLIENT_ID;
         const redirectUri = (import.meta as any).env?.VITE_EPIC_REDIRECT_URI;
+        const fhirUrl = (import.meta as any).env?.VITE_EPIC_FHIR_URL;
 
-        console.log("EPIC OAuth Debug:", { clientId, redirectUri });
+        console.log("EPIC OAuth Debug:", { clientId, redirectUri, fhirUrl });
 
-        if (!clientId || !redirectUri) {
-          throw new Error("Missing EPIC configuration: " + JSON.stringify({ clientId: !!clientId, redirectUri: !!redirectUri }));
+        if (!clientId || !redirectUri || !fhirUrl) {
+          throw new Error("Missing EPIC configuration");
         }
 
         const authEndpoint = await getEpicAuthorizationEndpoint();
         console.log("Authorization endpoint:", authEndpoint);
 
+        // Generate PKCE values
+        const codeVerifier = Array.from(crypto.getRandomValues(new Uint8Array(32)))
+          .map((b) => String.fromCharCode(b))
+          .join("");
+        const codeChallenge = btoa(codeVerifier)
+          .replace(/\+/g, "-")
+          .replace(/\//g, "_")
+          .replace(/=/g, "");
+
+        // Store code verifier for callback
+        sessionStorage.setItem("epic_code_verifier", codeVerifier);
+
         const params = new URLSearchParams({
           response_type: "code",
           client_id: clientId,
           redirect_uri: redirectUri,
-          scope: "launch/patient patient/*.read openid fhirUser",
+          scope: "openid fhirUser patient/*.read",
           state: Math.random().toString(36).substring(7),
+          aud: fhirUrl.replace(/\/$/, ""), // Remove trailing slash if present
+          code_challenge: codeChallenge,
+          code_challenge_method: "S256",
         });
 
         const fullUrl = `${authEndpoint}?${params.toString()}`;
         console.log("Full OAuth URL:", fullUrl);
+        console.log("OAuth Parameters:", {
+          response_type: "code",
+          client_id: clientId,
+          redirect_uri: redirectUri,
+          scope: "openid fhirUser patient/*.read",
+          aud: fhirUrl,
+          code_challenge_method: "S256",
+        });
 
         window.location.href = fullUrl;
       } catch (error) {
