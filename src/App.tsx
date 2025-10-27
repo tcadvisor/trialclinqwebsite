@@ -31,6 +31,7 @@ import EligibilityResult from "./screens/patients/EligibilityResult";
 import ContactUs from "./screens/support/ContactUs";
 import BookDemo from "./screens/support/BookDemo";
 import EhrDirectory from "./screens/patients/EhrDirectory";
+import EhrCallback from "./screens/patients/EhrCallback";
 import Consent from "./screens/patients/Consent";
 import SignupProcessing from "./screens/patients/SignupProcessing";
 import Connect from "./screens/patients/Connect";
