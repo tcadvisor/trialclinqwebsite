@@ -63,14 +63,31 @@ export function getEpicConfig(): EpicOAuthConfig {
   return { clientId, redirectUri, fhirUrl };
 }
 
+// Generate PKCE code challenge
+function generatePKCE(): { codeVerifier: string; codeChallenge: string } {
+  const codeVerifier = Array.from(crypto.getRandomValues(new Uint8Array(32)))
+    .map((b) => String.fromCharCode(b))
+    .join("");
+  const base64url = btoa(codeVerifier)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=/g, "");
+  return { codeVerifier, codeChallenge: base64url };
+}
+
 export function getEpicAuthUrl(state?: string): string {
   const config = getEpicConfig();
+  const { codeChallenge } = generatePKCE();
+
   const params = new URLSearchParams({
     response_type: "code",
     client_id: config.clientId,
     redirect_uri: config.redirectUri,
-    scope: "launch/patient patient/*.read openid fhirUser",
+    scope: "openid fhirUser patient/*.read",
     state: state || Math.random().toString(36).substring(7),
+    aud: config.fhirUrl,
+    code_challenge: codeChallenge,
+    code_challenge_method: "S256",
   });
 
   return `${config.fhirUrl}..well-known/smart-configuration`;
