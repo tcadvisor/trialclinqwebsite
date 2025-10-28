@@ -75,7 +75,7 @@ const EpicBadge: React.FC<{ syncedAt?: string }> = ({ syncedAt }) => {
   return (
     <span className="inline-flex items-center gap-1 ml-2 px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs">
       <span>Synced from EPIC</span>
-      {syncedAt && <span className="text-blue-600">�� {syncedAt}</span>}
+      {syncedAt && <span className="text-blue-600">— {syncedAt}</span>}
     </span>
   );
 };
@@ -431,6 +431,14 @@ export default function HealthProfile(): JSX.Element {
     try { return !localStorage.getItem(PROFILE_KEY); } catch { return true; }
   });
 
+  const [metadata, setMetadata] = useState<HealthProfileMetadata>(() => {
+    try {
+      const raw = localStorage.getItem(PROFILE_METADATA_KEY);
+      if (raw) return JSON.parse(raw) as HealthProfileMetadata;
+    } catch {}
+    return { fieldSources: {} };
+  });
+
   const [profile, setProfile] = useState<HealthProfileData>(() => {
     try {
       const raw = localStorage.getItem(PROFILE_KEY);
@@ -468,6 +476,80 @@ export default function HealthProfile(): JSX.Element {
       infectionHCV: false,
     };
   });
+
+  // Load and auto-fill from EPIC data on mount
+  useEffect(() => {
+    try {
+      const epicRaw = localStorage.getItem("epic:patient:v1");
+      if (!epicRaw) return;
+
+      const epicData = JSON.parse(epicRaw) as any;
+      const profileData = epicData.profileData as Record<string, any>;
+
+      if (!profileData) return;
+
+      const newFieldSources: Record<string, FieldSource> = { ...metadata.fieldSources };
+      const updates: Partial<HealthProfileData> = {};
+
+      // Auto-fill age if not already set
+      if (profileData.age && !profile.age) {
+        updates.age = profileData.age.value;
+        newFieldSources.age = {
+          value: profileData.age.value,
+          source: 'epic',
+          syncedAt: profileData.age.syncedAt
+        };
+      }
+
+      // Auto-fill gender if not already set
+      if (profileData.gender && !profile.gender) {
+        updates.gender = profileData.gender.value;
+        newFieldSources.gender = {
+          value: profileData.gender.value,
+          source: 'epic',
+          syncedAt: profileData.gender.syncedAt
+        };
+      }
+
+      // Auto-fill primary condition if not already set
+      if (profileData.primaryCondition && !profile.primaryCondition) {
+        updates.primaryCondition = profileData.primaryCondition.value;
+        newFieldSources.primaryCondition = {
+          value: profileData.primaryCondition.value,
+          source: 'epic',
+          syncedAt: profileData.primaryCondition.syncedAt
+        };
+      }
+
+      // Auto-fill medications if not already set
+      if (profileData.medications && (!profile.medications || profile.medications.length === 0)) {
+        updates.medications = profileData.medications.value;
+        newFieldSources.medications = {
+          value: profileData.medications.value,
+          source: 'epic',
+          syncedAt: profileData.medications.syncedAt
+        };
+      }
+
+      // Auto-fill allergies if not already set
+      if (profileData.allergies && (!profile.allergies || profile.allergies.length === 0)) {
+        updates.allergies = profileData.allergies.value;
+        newFieldSources.allergies = {
+          value: profileData.allergies.value,
+          source: 'epic',
+          syncedAt: profileData.allergies.syncedAt
+        };
+      }
+
+      if (Object.keys(updates).length > 0) {
+        setProfile(p => ({ ...p, ...updates }));
+        setMetadata({ fieldSources: newFieldSources });
+        console.log('[HealthProfile] Auto-filled from EPIC data:', updates);
+      }
+    } catch (error) {
+      console.error('[HealthProfile] Error loading EPIC data:', error);
+    }
+  }, []); // Only run once on mount
 
   // Bootstrap from auth/account and eligibility profile
   useEffect(() => {
