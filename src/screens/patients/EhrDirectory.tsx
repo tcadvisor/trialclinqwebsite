@@ -89,7 +89,27 @@ export default function EhrDirectory(): JSX.Element {
   const [visible, setVisible] = React.useState(12);
   const [connecting, setConnecting] = React.useState(false);
   const [showSandbox, setShowSandbox] = React.useState(false);
+  const [popupMessage, setPopupMessage] = React.useState("");
   const navigate = useNavigate();
+
+  // Check if user has authenticated after popup closes
+  React.useEffect(() => {
+    if (!connecting) return;
+
+    const checkAuthTimer = setInterval(() => {
+      const tokens = localStorage.getItem("epic:tokens:v1");
+      if (tokens) {
+        setConnecting(false);
+        setPopupMessage("");
+        clearInterval(checkAuthTimer);
+        navigate("/patients/health-profile", {
+          state: { epicConnected: true },
+        });
+      }
+    }, 500);
+
+    return () => clearInterval(checkAuthTimer);
+  }, [connecting, navigate]);
 
   const filtered = React.useMemo(() => {
     const t = q.trim().toLowerCase();
