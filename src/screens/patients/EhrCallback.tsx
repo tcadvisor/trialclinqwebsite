@@ -148,6 +148,8 @@ export default function EhrCallback(): JSX.Element {
         }
 
         // Save tokens and patient data
+        console.log("[EPIC CALLBACK] Step 7: Saving tokens to localStorage...");
+
         localStorage.setItem(
           "epic:tokens:v1",
           JSON.stringify({
@@ -160,6 +162,7 @@ export default function EhrCallback(): JSX.Element {
         );
 
         if (tokenData.patientData) {
+          console.log("[EPIC CALLBACK] Step 8: Saving patient data to localStorage...");
           localStorage.setItem(
             "epic:patient:v1",
             JSON.stringify({
@@ -170,15 +173,18 @@ export default function EhrCallback(): JSX.Element {
           );
         }
 
+        console.log("[EPIC CALLBACK] SUCCESS: All tokens and data saved. Authorization complete!");
         setStage("success");
 
         // Close popup window if opened from popup (window.opener exists)
         if (window.opener) {
+          console.log("[EPIC CALLBACK] Closing popup window (opened from popup)");
           setTimeout(() => {
             window.close();
           }, 1500);
         } else {
           // If opened directly, redirect to health profile after 2 seconds
+          console.log("[EPIC CALLBACK] Redirecting to health profile (direct navigation)");
           setTimeout(() => {
             navigate("/patients/health-profile", {
               state: { epicConnected: true, patientData: tokenData.patientData },
@@ -187,9 +193,17 @@ export default function EhrCallback(): JSX.Element {
         }
       } catch (err) {
         const message = err instanceof Error ? err.message : "Unknown error occurred";
-        setError(message);
+        const fullError = `OAuth Callback Error:\n\n${message}\n\nFor debugging, check the browser console (F12 → Console) for detailed step-by-step logs marked with [EPIC CALLBACK].`;
+
+        console.error("[EPIC CALLBACK] FATAL ERROR:", err);
+        console.error("[EPIC CALLBACK] Full error context:", {
+          errorMessage: message,
+          errorType: err instanceof Error ? err.constructor.name : typeof err,
+          timestamp: new Date().toISOString(),
+        });
+
+        setError(fullError);
         setStage("error");
-        console.error("Callback error:", err);
       }
     };
 
