@@ -1088,11 +1088,11 @@ export default function HealthProfile(): JSX.Element {
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
-                      <Row label="ECOG" value={profile.ecog} missing={!profile.ecog} />
-                      <Row label="Disease Stage/Subtype" value={profile.diseaseStage} missing={!profile.diseaseStage} />
-                      <Row label="Key Biomarkers" value={profile.biomarkers} missing={!profile.biomarkers} />
-                      <Row label="Comorbidities" value={[profile.comorbidityCardiac&&'Cardiac',profile.comorbidityRenal&&'Renal',profile.comorbidityHepatic&&'Hepatic',profile.comorbidityAutoimmune&&'Autoimmune'].filter(Boolean).join(', ')} />
-                      <Row label="Infections" value={[profile.infectionHIV&&'HIV',profile.infectionHBV&&'HBV',profile.infectionHCV&&'HCV'].filter(Boolean).join(', ')} />
+                      <Row label="ECOG" value={profile.ecog} missing={!profile.ecog} epicSyncedAt={metadata.fieldSources.ecog?.syncedAt} />
+                      <Row label="Disease Stage/Subtype" value={profile.diseaseStage} missing={!profile.diseaseStage} epicSyncedAt={metadata.fieldSources.diseaseStage?.syncedAt} />
+                      <Row label="Key Biomarkers" value={profile.biomarkers} missing={!profile.biomarkers} epicSyncedAt={metadata.fieldSources.biomarkers?.syncedAt} />
+                      <Row label="Comorbidities" value={[profile.comorbidityCardiac&&'Cardiac',profile.comorbidityRenal&&'Renal',profile.comorbidityHepatic&&'Hepatic',profile.comorbidityAutoimmune&&'Autoimmune'].filter(Boolean).join(', ')} epicSyncedAt={metadata.fieldSources.comorbidity?.syncedAt} />
+                      <Row label="Infections" value={[profile.infectionHIV&&'HIV',profile.infectionHBV&&'HBV',profile.infectionHCV&&'HCV'].filter(Boolean).join(', ')} epicSyncedAt={metadata.fieldSources.infection?.syncedAt} />
                     </div>
                   )}
                 </Section>
