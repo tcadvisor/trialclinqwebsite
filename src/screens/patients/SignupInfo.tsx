@@ -37,7 +37,6 @@ export default function SignupInfo(): JSX.Element {
   const [healthy, setHealthy] = React.useState(false);
   const [year, setYear] = React.useState("");
   const [meds, setMeds] = React.useState("");
-  const [docCount, setDocCount] = React.useState(0);
   const [agree1, setAgree1] = React.useState(false);
   const [agree2, setAgree2] = React.useState(false);
 
