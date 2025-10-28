@@ -224,21 +224,15 @@ export default function EhrDirectory(): JSX.Element {
         const authUrl = `${authorizationEndpoint}?${params.toString()}`;
         console.log(`[EPIC] Authorization URL: ${authUrl.substring(0, 100)}...`);
 
-        const step5 = "Step 5: Opening authorization popup window";
+        const step5 = "Step 5: Redirecting to EPIC authorization";
         console.log(`[EPIC] ${step5}`);
-        setPopupMessage(step5);
+        setPopupMessage("Redirecting to EPIC for authorization...");
 
-        // Open EPIC auth in new window (bypasses iframe sandbox)
-        const authWindow = window.open(authUrl, "epic_auth", "width=800,height=600");
+        console.log(`[EPIC] Full auth URL: ${authUrl}`);
+        console.log(`[EPIC] Performing window.location.href redirect...`);
 
-        if (!authWindow) {
-          throw new Error("Failed to open authorization window. Please check your popup blocker settings.");
-        }
-
-        console.log(`[EPIC] Popup window opened successfully`);
-        setPopupMessage(
-          "Authorization window opened. Please complete the EPIC login and authorization process. You will be redirected back automatically."
-        );
+        // Direct redirect to EPIC auth (works even in sandboxed iframe)
+        window.location.href = authUrl;
       } catch (error) {
         console.error("[EPIC] Connection failed:", error);
         const errorMsg = error instanceof Error ? error.message : String(error);
