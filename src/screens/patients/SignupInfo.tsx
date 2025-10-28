@@ -139,19 +139,23 @@ export default function SignupInfo(): JSX.Element {
                 <input type="checkbox" checked={healthy} onChange={(e)=>setHealthy(e.target.checked)} className="rounded" /> I am a healthy volunteer
               </label>
             </div>
-            <div>
-              <label className="block text-sm font-medium">When were you diagnosed?*</label>
-              <select value={year} onChange={(e)=>setYear(e.target.value)} className="mt-2 w-full rounded-full border px-4 py-2 text-gray-700">
-                <option value="">Select year</option>
-                {years.map((y)=> (<option key={y} value={y}>{y}</option>))}
-              </select>
-              <p className="text-xs text-gray-600 mt-1">This can help match you to trials requiring recent or long-term diagnoses.</p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium">Your Current Medications*</label>
-              <p className="text-xs text-gray-600 mt-1">Include prescription, over-the-counter, or supplements you take regularly. Add as many as apply.</p>
-              <input value={meds} onChange={(e)=>setMeds(e.target.value)} className="mt-2 w-full rounded-full border px-4 py-2" placeholder="Start typing a medication name (e.g. Metformin, Lis...)" />
-            </div>
+            {!healthy && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium">When were you diagnosed?<span className="text-red-500">*</span></label>
+                  <select value={year} onChange={(e)=>setYear(e.target.value)} className="mt-2 w-full rounded-full border px-4 py-2 text-gray-700" required={!healthy}>
+                    <option value="">Select year</option>
+                    {years.map((y)=> (<option key={y} value={y}>{y}</option>))}
+                  </select>
+                  <p className="text-xs text-gray-600 mt-1">This can help match you to trials requiring recent or long-term diagnoses.</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium">Your Current Medications<span className="text-red-500">*</span></label>
+                  <p className="text-xs text-gray-600 mt-1">Include prescription, over-the-counter, or supplements you take regularly. Add as many as apply.</p>
+                  <input value={meds} onChange={(e)=>setMeds(e.target.value)} className="mt-2 w-full rounded-full border px-4 py-2" placeholder="Start typing a medication name (e.g. Metformin, Lis...)" required={!healthy} />
+                </div>
+              </>
+            )}
             <div>
               <label className="block text-sm font-medium mb-2">Upload medical documents*</label>
               <UploadBox onFiles={(files)=> setDocCount((prev)=> prev + (files ? files.length : 0))} />
