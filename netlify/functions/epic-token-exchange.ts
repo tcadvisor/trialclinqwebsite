@@ -41,7 +41,8 @@ const handler: Handler = async (event) => {
 
   try {
     // Get the OAuth 2.0 token endpoint from EPIC's well-known configuration
-    const wellKnownUrl = `${fhirUrl}.well-known/smart-configuration`;
+    const fhirUrlBase = fhirUrl.replace(/\/api\/FHIR\/R4\/?$/, "");
+    const wellKnownUrl = `${fhirUrlBase}/.well-known/smart-configuration`;
     const configResponse = await fetch(wellKnownUrl);
 
     if (!configResponse.ok) {
