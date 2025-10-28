@@ -18,10 +18,16 @@ import { useAuth } from "../../lib/auth";
 import PatientHeader from "../../components/PatientHeader";
 import { findAccountByEmail } from "../../lib/accountStore";
 
+// Field source tracking
+type FieldSource = {
+  value: any;
+  source: 'epic' | 'manual';
+  syncedAt?: string; // ISO string or display string
+};
+
 // Editable profile types
 type Allergy = { name: string; reaction?: string; severity?: "Mild" | "Moderate" | "Severe"; note?: string };
 type Medication = { name: string; dose?: string; amountDaily?: string; schedule?: string };
-
 type PriorTherapy = { name: string; date?: string };
 
 type HealthProfileData = {
@@ -54,6 +60,10 @@ type HealthProfileData = {
   infectionHIV?: boolean;
   infectionHBV?: boolean;
   infectionHCV?: boolean;
+};
+
+type HealthProfileMetadata = {
+  fieldSources: Record<string, FieldSource>;
 };
 
 const PROFILE_KEY = "tc_health_profile_v1";
