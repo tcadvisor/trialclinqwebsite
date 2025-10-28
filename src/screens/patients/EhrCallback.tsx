@@ -244,13 +244,19 @@ export default function EhrCallback(): JSX.Element {
               </svg>
             </div>
             <h1 className="mt-6 text-2xl font-semibold">Connection Failed</h1>
-            <p className="mt-2 text-gray-600">{error}</p>
-            {error.includes("server function not available") && (
-              <p className="mt-2 text-sm text-gray-500">
-                Note: Token exchange requires the production deployment. In development, please test on the deployed
-                version.
-              </p>
-            )}
+            <div className="mt-4 text-left bg-gray-50 border border-gray-200 rounded-lg p-4 max-w-lg mx-auto">
+              <p className="text-sm text-gray-700 whitespace-pre-wrap font-mono">{error}</p>
+            </div>
+            <div className="mt-4 text-left bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-lg mx-auto">
+              <p className="text-xs text-blue-900 font-semibold mb-2">💡 Troubleshooting Tips:</p>
+              <ul className="text-xs text-blue-800 space-y-1 list-disc list-inside">
+                <li>Open Developer Tools (F12) and go to the Console tab</li>
+                <li>Look for logs starting with [EPIC] or [EPIC CALLBACK]</li>
+                <li>Check the "Network" tab to see the actual HTTP requests and responses</li>
+                <li>Verify your redirect URI matches what's configured in the EPIC developer portal</li>
+                <li>Ensure environment variables are set: VITE_EPIC_CLIENT_ID, VITE_EPIC_REDIRECT_URI, VITE_EPIC_FHIR_URL</li>
+              </ul>
+            </div>
             <button
               onClick={() => navigate("/patients/ehr")}
               className="mt-6 inline-block px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
