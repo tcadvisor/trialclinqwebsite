@@ -39,33 +39,49 @@ export default function EhrCallback(): JSX.Element {
         }
 
         // Exchange code for token using Netlify function (server-side)
-        const tokenResponse = await fetch("/.netlify/functions/epic-token-exchange", {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          // Pass code and code_verifier as query parameters
-          redirect: "follow",
-        });
+        console.log("Exchanging authorization code for token...");
+        let exchangeResponse: Response;
 
-        // Actually, let's use POST instead for better practice
-        const exchangeResponse = await fetch("/.netlify/functions/epic-token-exchange", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            code: code,
-            code_verifier: codeVerifier,
-          }),
-        });
-
-        if (!exchangeResponse.ok) {
-          const errorData = await exchangeResponse.json();
-          throw new Error(errorData.message || `Token exchange failed: ${exchangeResponse.status}`);
+        try {
+          exchangeResponse = await fetch("/.netlify/functions/epic-token-exchange", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              code: code,
+              code_verifier: codeVerifier,
+            }),
+          });
+        } catch (fetchError) {
+          console.error("Failed to reach token exchange function:", fetchError);
+          throw new Error(
+            "Token exchange failed - server function not available. Try refreshing the page or try again in production."
+          );
         }
 
-        const tokenData = await exchangeResponse.json();
+        if (!exchangeResponse.ok) {
+          let errorMessage = `Token exchange failed: ${exchangeResponse.status}`;
+          try {
+            const errorData = await exchangeResponse.json();
+            errorMessage = errorData.message || errorMessage;
+          } catch {
+            const errorText = await exchangeResponse.text();
+            console.error("Token exchange error response:", errorText);
+            errorMessage = errorText || errorMessage;
+          }
+          throw new Error(errorMessage);
+        }
+
+        let tokenData: any;
+        try {
+          tokenData = await exchangeResponse.json();
+        } catch (parseError) {
+          console.error("Failed to parse token exchange response:", parseError);
+          const responseText = await exchangeResponse.text();
+          console.error("Response text:", responseText);
+          throw new Error(`Invalid response from token exchange: ${responseText.substring(0, 100)}`);
+        }
 
         // Save tokens and patient data
         localStorage.setItem(
