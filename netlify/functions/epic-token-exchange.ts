@@ -24,6 +24,7 @@ const handler: Handler = async (event) => {
   if (!code) {
     return {
       statusCode: 400,
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ error: "Missing authorization code" }),
     };
   }
@@ -35,6 +36,7 @@ const handler: Handler = async (event) => {
   if (!clientId || !fhirUrl || !redirectUri) {
     return {
       statusCode: 500,
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ error: "Missing EPIC configuration" }),
     };
   }
