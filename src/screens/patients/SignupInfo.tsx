@@ -132,7 +132,7 @@ export default function SignupInfo(): JSX.Element {
 
           <div className="rounded-2xl border bg-white p-5 shadow-sm space-y-5">
             <div>
-              <label className="block text-sm font-medium">Primary Condition(s)*</label>
+              <label className="block text-sm font-medium">Primary Condition(s)<span className="text-red-500">*</span></label>
               <p className="text-xs text-gray-600 mt-1">You can add as many as apply. If you’re unsure of the exact name, type what you know, we’ll help match it.</p>
               <input value={condition} onChange={(e)=>setCondition(e.target.value)} className="mt-2 w-full rounded-full border px-4 py-2" placeholder="Search medical condition or keyword" />
               <label className="mt-2 flex items-center gap-2 text-sm text-gray-700">
