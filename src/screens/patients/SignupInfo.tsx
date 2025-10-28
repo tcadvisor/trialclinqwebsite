@@ -47,12 +47,15 @@ export default function SignupInfo(): JSX.Element {
     return Array.from({ length: 80 }, (_, i) => String(now - i));
   }, []);
 
-  const canSubmit = agree1 && agree2;
+  const canSubmit = agree1 && agree2 && dob && age && weight && gender && race && language && zip && distance && (condition || healthy) && (year || healthy) && (meds || healthy);
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!canSubmit) return;
-    const profile = { condition, healthy, year, meds, dob, zip, distance, gender, race, language };
+    const profile = {
+      dob, age, weight, gender, race, language, zip, distance,
+      condition, healthy, year, meds
+    };
     try { localStorage.setItem("tc_eligibility_profile", JSON.stringify(profile)); } catch {}
     navigate(`/patients/check${nctParam ? `?nctId=${encodeURIComponent(nctParam)}` : ""}`);
   }
