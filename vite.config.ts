@@ -13,9 +13,18 @@ export default defineConfig({
       plugins: [tailwind()],
     },
   },
-  resolve: {  // Add this resolve configuration
+  resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+    },
+  },
+  server: {
+    proxy: {
+      "/.netlify/functions/epic-token-exchange": {
+        target: "http://localhost:3001",
+        changeOrigin: true,
+        rewrite: (path) => path,
+      },
     },
   },
 });
