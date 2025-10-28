@@ -181,37 +181,6 @@ export default function EhrDirectory(): JSX.Element {
           console.error("PKCE generation failed:", pkceError);
           throw new Error(`PKCE generation failed: ${pkceError instanceof Error ? pkceError.message : String(pkceError)}`);
         }
-
-        // Store for callback
-        sessionStorage.setItem("epic_code_verifier", codeVerifier);
-        sessionStorage.setItem("epic_state", Math.random().toString(36).substring(7));
-
-        const state = sessionStorage.getItem("epic_state") || "";
-        const aud = fhirUrl.replace(/\/$/, "");
-
-        const params = new URLSearchParams({
-          response_type: "code",
-          client_id: clientId,
-          redirect_uri: redirectUri,
-          scope: "openid fhirUser",
-          state: state,
-          aud: aud,
-          code_challenge: codeChallenge,
-          code_challenge_method: "S256",
-        });
-
-        const fullUrl = `${authEndpoint}?${params.toString()}`;
-        console.log("OAuth Request Parameters:", {
-          response_type: "code",
-          client_id: clientId,
-          redirect_uri: redirectUri,
-          scope: "openid fhirUser",
-          aud: aud,
-          code_challenge_method: "S256",
-        });
-        console.log("Redirecting to:", fullUrl);
-
-        window.location.href = fullUrl;
       } catch (error) {
         console.error("Failed to initiate EPIC connection:", error);
         const errorMsg = error instanceof Error ? error.message : String(error);
