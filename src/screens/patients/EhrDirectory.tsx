@@ -124,33 +124,54 @@ export default function EhrDirectory(): JSX.Element {
     if (item.isEpic) {
       try {
         setConnecting(true);
-        setPopupMessage("Opening EPIC authorization window...");
-        console.log("Initiating EPIC OAuth flow...");
+        setPopupMessage("Initializing EPIC connection...");
+
+        const step1 = "Step 1: Loading configuration";
+        console.log(`[EPIC] ${step1}`);
 
         const clientId = (import.meta as any).env?.VITE_EPIC_CLIENT_ID;
         const redirectUri = (import.meta as any).env?.VITE_EPIC_REDIRECT_URI;
         const fhirUrl = (import.meta as any).env?.VITE_EPIC_FHIR_URL;
 
+        console.log(`[EPIC] Configuration loaded:`, {
+          clientId: clientId ? `${clientId.substring(0, 8)}...` : "MISSING",
+          redirectUri: redirectUri ? `${redirectUri.substring(0, 40)}...` : "MISSING",
+          fhirUrl: fhirUrl ? `${fhirUrl.substring(0, 30)}...` : "MISSING",
+        });
+
         if (!clientId || !redirectUri || !fhirUrl) {
-          throw new Error("Missing EPIC configuration environment variables");
+          throw new Error(
+            `Configuration incomplete: clientId=${!!clientId}, redirectUri=${!!redirectUri}, fhirUrl=${!!fhirUrl}`
+          );
         }
 
-        console.log("Fetching EPIC SMART configuration...");
+        const step2 = "Step 2: Fetching EPIC SMART configuration";
+        console.log(`[EPIC] ${step2}`);
+        setPopupMessage(step2);
+
         const wellKnownUrl = `${fhirUrl}.well-known/smart-configuration`;
+        console.log(`[EPIC] Fetching from: ${wellKnownUrl}`);
+
         const configResponse = await fetch(wellKnownUrl);
 
         if (!configResponse.ok) {
-          throw new Error(`Failed to fetch EPIC SMART configuration: ${configResponse.status}`);
+          throw new Error(
+            `EPIC SMART config fetch failed with status ${configResponse.status}. URL: ${wellKnownUrl}`
+          );
         }
 
         const smartConfig = await configResponse.json();
         const authorizationEndpoint = smartConfig.authorization_endpoint;
 
         if (!authorizationEndpoint) {
-          throw new Error("EPIC SMART configuration missing authorization_endpoint");
+          throw new Error("EPIC SMART configuration missing authorization_endpoint. Response: " + JSON.stringify(smartConfig));
         }
 
-        console.log("Authorization endpoint:", authorizationEndpoint);
+        console.log(`[EPIC] Authorization endpoint: ${authorizationEndpoint}`);
+
+        const step3 = "Step 3: Generating PKCE challenge";
+        console.log(`[EPIC] ${step3}`);
+        setPopupMessage(step3);
 
         // Generate PKCE code verifier and challenge
         const randomBytes = crypto.getRandomValues(new Uint8Array(32));
@@ -169,17 +190,24 @@ export default function EhrDirectory(): JSX.Element {
           .replace(/\//g, "_")
           .replace(/=/g, "");
 
+        console.log(`[EPIC] PKCE challenge generated (verifier length: ${codeVerifier.length}, challenge length: ${codeChallenge.length})`);
+
         // Generate state for CSRF protection
         const state = crypto.getRandomValues(new Uint8Array(16));
         const stateString = Array.from(state)
           .map((b) => b.toString(16).padStart(2, "0"))
           .join("");
 
-        console.log("PKCE generated successfully");
+        console.log(`[EPIC] State generated: ${stateString}`);
 
         // Store PKCE and state for callback
         sessionStorage.setItem("epic_code_verifier", codeVerifier);
         sessionStorage.setItem("epic_state", stateString);
+        console.log(`[EPIC] Stored code_verifier and state in sessionStorage`);
+
+        const step4 = "Step 4: Building authorization URL";
+        console.log(`[EPIC] ${step4}`);
+        setPopupMessage(step4);
 
         // Build authorization URL
         const params = new URLSearchParams({
@@ -194,7 +222,11 @@ export default function EhrDirectory(): JSX.Element {
         });
 
         const authUrl = `${authorizationEndpoint}?${params.toString()}`;
-        console.log("Auth URL generated, opening popup...");
+        console.log(`[EPIC] Authorization URL: ${authUrl.substring(0, 100)}...`);
+
+        const step5 = "Step 5: Opening authorization popup window";
+        console.log(`[EPIC] ${step5}`);
+        setPopupMessage(step5);
 
         // Open EPIC auth in new window (bypasses iframe sandbox)
         const authWindow = window.open(authUrl, "epic_auth", "width=800,height=600");
@@ -203,11 +235,15 @@ export default function EhrDirectory(): JSX.Element {
           throw new Error("Failed to open authorization window. Please check your popup blocker settings.");
         }
 
-        setPopupMessage("Authorization window opened. Please complete the EPIC login and authorization process.");
+        console.log(`[EPIC] Popup window opened successfully`);
+        setPopupMessage(
+          "Authorization window opened. Please complete the EPIC login and authorization process. You will be redirected back automatically."
+        );
       } catch (error) {
-        console.error("Failed to initiate EPIC connection:", error);
+        console.error("[EPIC] Connection failed:", error);
         const errorMsg = error instanceof Error ? error.message : String(error);
-        alert(`Failed to connect to EPIC: ${errorMsg}`);
+        const fullError = `EPIC Connection Error:\n\n${errorMsg}\n\nCheck the browser console (F12 → Console) for detailed logs.`;
+        alert(fullError);
         setConnecting(false);
         setPopupMessage("");
       }
