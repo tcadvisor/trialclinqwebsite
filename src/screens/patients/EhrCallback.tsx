@@ -161,6 +161,11 @@ export default function EhrCallback(): JSX.Element {
           })
         );
 
+        // Clean up temporary PKCE values
+        localStorage.removeItem("epic_code_verifier");
+        localStorage.removeItem("epic_state");
+        console.log("[EPIC CALLBACK] Cleaned up temporary PKCE values from localStorage");
+
         if (tokenData.patientData) {
           console.log("[EPIC CALLBACK] Step 8: Saving patient data to localStorage...");
           localStorage.setItem(
