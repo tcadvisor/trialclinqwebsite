@@ -856,7 +856,10 @@ export default function HealthProfile(): JSX.Element {
               </div>
 
               <div>
-                <Section title="Allergies" right={<div className="flex items-center gap-2">{(profile.allergies || []).length === 0 && (<span className="text-red-600 text-xs">Required</span>)}</div>}>
+                <Section title="Allergies" right={<div className="flex items-center gap-2">
+                  {(profile.allergies || []).length === 0 && (<span className="text-red-600 text-xs">Required</span>)}
+                  {metadata.fieldSources.allergies?.syncedAt && <EpicBadge syncedAt={metadata.fieldSources.allergies.syncedAt} />}
+                </div>}>
                   <ul className="divide-y">
                     {profile.allergies.map((a, i) => (
                       <li key={i} className="py-3 flex items-start justify-between">
