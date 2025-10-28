@@ -1,13 +1,11 @@
 const express = require("express");
 const path = require("path");
-type Request = express.Request;
-type Response = express.Response;
 
 const app = express();
 app.use(express.json());
 
 // EPIC token exchange endpoint
-app.post("/api/epic/token-exchange", async (req: Request, res: Response) => {
+app.post("/api/epic/token-exchange", async (req: any, res: any) => {
   try {
     const { code, code_verifier } = req.body;
 
@@ -36,7 +34,7 @@ app.post("/api/epic/token-exchange", async (req: Request, res: Response) => {
       throw new Error(`Failed to fetch EPIC well-known config: ${configResponse.status}`);
     }
 
-    const config = await configResponse.json();
+    const config: any = await configResponse.json();
     const tokenEndpoint = config.token_endpoint;
 
     if (!tokenEndpoint) {
@@ -69,10 +67,10 @@ app.post("/api/epic/token-exchange", async (req: Request, res: Response) => {
       throw new Error(`Token exchange failed: ${tokenResponse.status} - ${errorText}`);
     }
 
-    const tokens = await tokenResponse.json();
+    const tokens: any = await tokenResponse.json();
 
     // Fetch patient data using the access token
-    let patientData = null;
+    let patientData: any = null;
     if (tokens.patient) {
       try {
         console.log("Fetching patient data for:", tokens.patient);
@@ -83,7 +81,7 @@ app.post("/api/epic/token-exchange", async (req: Request, res: Response) => {
         });
 
         if (patientRes.ok) {
-          const patient = await patientRes.json();
+          const patient: any = await patientRes.json();
 
           // Fetch allergies, medications, conditions in parallel
           const [allergiesRes, medicationsRes, conditionsRes] = await Promise.all([
@@ -138,7 +136,7 @@ const distPath = path.join(__dirname, "dist");
 app.use(express.static(distPath));
 
 // SPA routing: serve index.html for all non-API routes
-app.get("*", (req: Request, res: Response) => {
+app.get("*", (req: any, res: any) => {
   res.sendFile(path.join(distPath, "index.html"));
 });
 
