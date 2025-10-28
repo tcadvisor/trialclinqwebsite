@@ -121,26 +121,66 @@ export default function EhrDirectory(): JSX.Element {
 
         // Generate PKCE code verifier and challenge (per EPIC spec)
         console.log("Generating PKCE...");
-        const array = new Uint8Array(32);
-        for (let i = 0; i < array.length; i++) {
-          array[i] = Math.floor(Math.random() * 256);
+        try {
+          // Create a random string using a safer method
+          const randomBytes = crypto.getRandomValues(new Uint8Array(32));
+          const randomChars = Array.from(randomBytes)
+            .map((byte) => String.fromCharCode(byte))
+            .join("");
+          const codeVerifier = btoa(randomChars)
+            .replace(/\+/g, "-")
+            .replace(/\//g, "_")
+            .replace(/=/g, "");
+
+          // Calculate SHA256 hash of verifier
+          const encoder = new TextEncoder();
+          const data = encoder.encode(codeVerifier);
+          const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+          const hashArray = Array.from(new Uint8Array(hashBuffer));
+          const hashChars = Array.from(hashArray)
+            .map((byte) => String.fromCharCode(byte))
+            .join("");
+          const codeChallenge = btoa(hashChars)
+            .replace(/\+/g, "-")
+            .replace(/\//g, "_")
+            .replace(/=/g, "");
+
+          console.log("PKCE generated successfully");
+
+          // Store for callback
+          sessionStorage.setItem("epic_code_verifier", codeVerifier);
+          sessionStorage.setItem("epic_state", Math.random().toString(36).substring(7));
+
+          const state = sessionStorage.getItem("epic_state") || "";
+          const aud = fhirUrl.replace(/\/$/, "");
+
+          const params = new URLSearchParams({
+            response_type: "code",
+            client_id: clientId,
+            redirect_uri: redirectUri,
+            scope: "openid fhirUser",
+            state: state,
+            aud: aud,
+            code_challenge: codeChallenge,
+            code_challenge_method: "S256",
+          });
+
+          const fullUrl = `${authEndpoint}?${params.toString()}`;
+          console.log("OAuth Request Parameters:", {
+            response_type: "code",
+            client_id: clientId,
+            redirect_uri: redirectUri,
+            scope: "openid fhirUser",
+            aud: aud,
+            code_challenge_method: "S256",
+          });
+          console.log("Redirecting to:", fullUrl);
+
+          window.location.href = fullUrl;
+        } catch (pkceError) {
+          console.error("PKCE generation failed:", pkceError);
+          throw new Error(`PKCE generation failed: ${pkceError instanceof Error ? pkceError.message : String(pkceError)}`);
         }
-        const codeVerifier = btoa(String.fromCharCode.apply(null, Array.from(array)))
-          .replace(/\+/g, "-")
-          .replace(/\//g, "_")
-          .replace(/=/g, "");
-
-        // Calculate SHA256 hash of verifier
-        const encoder = new TextEncoder();
-        const data = encoder.encode(codeVerifier);
-        const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        const codeChallenge = btoa(String.fromCharCode.apply(null, hashArray))
-          .replace(/\+/g, "-")
-          .replace(/\//g, "_")
-          .replace(/=/g, "");
-
-        console.log("PKCE generated successfully");
 
         // Store for callback
         sessionStorage.setItem("epic_code_verifier", codeVerifier);
