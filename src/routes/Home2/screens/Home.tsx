@@ -441,7 +441,7 @@ export default function Home() {
               <button
                 onClick={() => {
                   setShowSignupModal(false);
-                  navigate("/patients/signup-info");
+                  navigate("/patients/volunteer");
                 }}
                 className="w-full rounded-full bg-blue-600 text-white px-4 py-3 font-medium hover:bg-blue-700 transition-colors"
               >
