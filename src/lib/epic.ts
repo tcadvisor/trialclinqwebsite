@@ -65,14 +65,12 @@ export function getEpicConfig(): EpicOAuthConfig {
 
 // Generate PKCE code challenge
 function generatePKCE(): { codeVerifier: string; codeChallenge: string } {
-  const codeVerifier = Array.from(crypto.getRandomValues(new Uint8Array(32)))
-    .map((b) => String.fromCharCode(b))
-    .join("");
-  const base64url = btoa(codeVerifier)
+  const randomBytes = crypto.getRandomValues(new Uint8Array(32));
+  const codeVerifier = btoa(String.fromCharCode.apply(null, Array.from(randomBytes)))
     .replace(/\+/g, "-")
     .replace(/\//g, "_")
     .replace(/=/g, "");
-  return { codeVerifier, codeChallenge: base64url };
+  return { codeVerifier, codeChallenge: codeVerifier };
 }
 
 export function getEpicAuthUrl(state?: string): string {
