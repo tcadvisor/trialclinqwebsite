@@ -46,7 +46,7 @@ export default function SignupInfo(): JSX.Element {
     return Array.from({ length: 80 }, (_, i) => String(now - i));
   }, []);
 
-  const canSubmit = agree1 && agree2 && dob && age && weight && gender && race && language && zip && distance && (condition || healthy) && (year || healthy) && (meds || healthy);
+  const canSubmit = agree1 && agree2 && dob && weight && gender && race && language && zip && distance && (condition || healthy) && (year || healthy) && (meds || healthy);
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
