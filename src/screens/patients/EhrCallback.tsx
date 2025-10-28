@@ -54,8 +54,9 @@ export default function EhrCallback(): JSX.Element {
         });
 
         if (!codeVerifier) {
-          const msg = "Missing code verifier in session storage. This means the popup window lost connection to the original window. Session may have expired or local storage was cleared.";
+          const msg = "Missing code verifier in local storage. Local storage may have been cleared, or the initial EPIC connection did not complete properly. Please try the connection again.";
           console.error(`[EPIC CALLBACK] ${msg}`);
+          console.log("[EPIC CALLBACK] localStorage contents:", Object.keys(localStorage));
           setError(msg);
           setStage("error");
           return;
