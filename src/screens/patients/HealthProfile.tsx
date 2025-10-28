@@ -1104,52 +1104,58 @@ export default function HealthProfile(): JSX.Element {
               </Section>
 
               {data.conditions && data.conditions.length > 0 && (
-                <Section title="Conditions" className="mt-4">
-                  <ul className="divide-y">
-                    {data.conditions.map((condition: any, i: number) => (
-                      <li key={i} className="py-3 flex items-start justify-between">
-                        <div>
-                          <div className="text-sm font-medium">{condition.display || condition.code}</div>
-                          {condition.status && <div className="text-xs text-gray-600 mt-1">{condition.status}</div>}
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </Section>
+                <div className="mt-4">
+                  <Section title="Conditions">
+                    <ul className="divide-y">
+                      {data.conditions.map((condition: any, i: number) => (
+                        <li key={i} className="py-3 flex items-start justify-between">
+                          <div>
+                            <div className="text-sm font-medium">{condition.display || condition.code}</div>
+                            {condition.status && <div className="text-xs text-gray-600 mt-1">{condition.status}</div>}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </Section>
+                </div>
               )}
 
               {data.medications && data.medications.length > 0 && (
-                <Section title="Medications" className="mt-4">
-                  <ul className="divide-y">
-                    {data.medications.map((med: any, i: number) => (
-                      <li key={i} className="py-3 flex items-start justify-between">
-                        <div>
-                          <div className="text-sm font-medium">{med.name}</div>
-                          {(med.dosage || med.status) && (
-                            <div className="text-xs text-gray-600 mt-1">{[med.dosage, med.status].filter(Boolean).join(" • ")}</div>
-                          )}
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </Section>
+                <div className="mt-4">
+                  <Section title="Medications">
+                    <ul className="divide-y">
+                      {data.medications.map((med: any, i: number) => (
+                        <li key={i} className="py-3 flex items-start justify-between">
+                          <div>
+                            <div className="text-sm font-medium">{med.name}</div>
+                            {(med.dosage || med.status) && (
+                              <div className="text-xs text-gray-600 mt-1">{[med.dosage, med.status].filter(Boolean).join(" • ")}</div>
+                            )}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </Section>
+                </div>
               )}
 
               {data.allergies && data.allergies.length > 0 && (
-                <Section title="Allergies" className="mt-4">
-                  <ul className="divide-y">
-                    {data.allergies.map((allergy: any, i: number) => (
-                      <li key={i} className="py-3 flex items-start justify-between">
-                        <div>
-                          <div className="text-sm font-medium">{allergy.substance}</div>
-                          {(allergy.reaction || allergy.severity) && (
-                            <div className="text-xs text-gray-600 mt-1">{[allergy.severity && `Severity: ${allergy.severity}`, allergy.reaction].filter(Boolean).join(" • ")}</div>
-                          )}
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </Section>
+                <div className="mt-4">
+                  <Section title="Allergies">
+                    <ul className="divide-y">
+                      {data.allergies.map((allergy: any, i: number) => (
+                        <li key={i} className="py-3 flex items-start justify-between">
+                          <div>
+                            <div className="text-sm font-medium">{allergy.substance}</div>
+                            {(allergy.reaction || allergy.severity) && (
+                              <div className="text-xs text-gray-600 mt-1">{[allergy.severity && `Severity: ${allergy.severity}`, allergy.reaction].filter(Boolean).join(" • ")}</div>
+                            )}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </Section>
+                </div>
               )}
 
               <div className="mt-6">
