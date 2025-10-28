@@ -181,10 +181,10 @@ export default function EhrDirectory(): JSX.Element {
 
         console.log(`[EPIC] State generated: ${stateString}`);
 
-        // Store PKCE and state for callback
-        sessionStorage.setItem("epic_code_verifier", codeVerifier);
-        sessionStorage.setItem("epic_state", stateString);
-        console.log(`[EPIC] Stored code_verifier and state in sessionStorage`);
+        // Store PKCE and state for callback (use localStorage because sessionStorage is cleared on full page navigation)
+        localStorage.setItem("epic_code_verifier", codeVerifier);
+        localStorage.setItem("epic_state", stateString);
+        console.log(`[EPIC] Stored code_verifier and state in localStorage`);
 
         const step4 = "Step 4: Building authorization URL";
         console.log(`[EPIC] ${step4}`);
