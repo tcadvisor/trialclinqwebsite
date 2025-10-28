@@ -6,9 +6,11 @@ import { useAuth } from "../../../lib/auth";
 
 export default function Home() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [query, setQuery] = useState("");
   const [location, setLocation] = useState("");
   const [showBanner, setShowBanner] = useState(true);
+  const [showSignupModal, setShowSignupModal] = useState(false);
   const faq = useMemo(
     () => [
       {
