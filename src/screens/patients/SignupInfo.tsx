@@ -66,17 +66,6 @@ export default function SignupInfo(): JSX.Element {
           <button className="inline-flex items-center gap-1 rounded-full border px-3 py-1 hover:bg-gray-50" type="button">Why are we asking this? <span className="text-gray-400">ⓘ</span></button>
         </div>
 
-        <div className="mt-6 rounded-2xl border bg-white p-4 shadow-sm">
-          <div className="flex items-start gap-3">
-            <div className="h-10 w-10 grid place-items-center rounded-lg bg-blue-50 text-blue-700">🔗</div>
-            <div className="flex-1">
-              <div className="font-medium">Match your Electronic Health Record (EHR) to trials</div>
-              <p className="text-sm text-gray-600">Import your EHR to browse trials that fit your medical history and lab results with your consent.</p>
-              <button type="button" onClick={()=>navigate("/patients/ehr")} className="mt-3 inline-flex items-center gap-2 rounded-full bg-gray-900 px-4 py-2 text-white text-sm hover:bg-black">Connect to Trial Portal →</button>
-            </div>
-          </div>
-        </div>
-
         <form onSubmit={onSubmit} className="mt-6 space-y-5">
           <div className="rounded-2xl border bg-white p-5 shadow-sm space-y-5">
             <div className="grid sm:grid-cols-2 gap-4">
