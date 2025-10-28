@@ -110,7 +110,51 @@ export default function SignupInfo(): JSX.Element {
             <div>
               <label className="block text-sm font-medium">Primary Condition(s)</label>
               <p className="text-xs text-gray-600 mt-1">You can add as many as apply. If you’re unsure of the exact name, type what you know, we’ll help match it.</p>
-              <input value={condition} onChange={(e)=>setCondition(e.target.value)} className="mt-2 w-full rounded-full border px-4 py-2" placeholder="Search medical condition or keyword" />
+              <div className="mt-2 flex gap-2">
+                <input
+                  value={conditionInput}
+                  onChange={(e)=>setConditionInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      if (conditionInput.trim()) {
+                        setConditions([...conditions, conditionInput.trim()]);
+                        setConditionInput("");
+                      }
+                    }
+                  }}
+                  className="flex-1 w-full rounded-full border px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Search medical condition or keyword"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (conditionInput.trim()) {
+                      setConditions([...conditions, conditionInput.trim()]);
+                      setConditionInput("");
+                    }
+                  }}
+                  className="rounded-full bg-blue-600 text-white px-4 py-2 text-sm font-medium hover:bg-blue-700 whitespace-nowrap"
+                >
+                  Add
+                </button>
+              </div>
+              {conditions.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  {conditions.map((cond, idx) => (
+                    <div key={idx} className="flex items-center justify-between gap-2 rounded-full bg-blue-50 px-3 py-2">
+                      <span className="text-sm text-gray-900">{cond}</span>
+                      <button
+                        type="button"
+                        onClick={() => setConditions(conditions.filter((_, i) => i !== idx))}
+                        className="text-gray-500 hover:text-red-600 font-bold"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
               <label className="mt-2 flex items-center gap-2 text-sm text-gray-700">
                 <input type="checkbox" checked={healthy} onChange={(e)=>setHealthy(e.target.checked)} className="rounded" /> I am a healthy volunteer
               </label>
