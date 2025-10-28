@@ -34,7 +34,7 @@ export default function SignupInfo(): JSX.Element {
     if (!canSubmit) return;
     const profile = {
       dob, weight, gender, race, language, zip, distance,
-      condition, healthy, year, meds
+      conditions, healthy, year, meds
     };
     try { localStorage.setItem("tc_eligibility_profile", JSON.stringify(profile)); } catch {}
     navigate(`/patients/check${nctParam ? `?nctId=${encodeURIComponent(nctParam)}` : ""}`);
