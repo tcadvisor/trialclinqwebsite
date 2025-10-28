@@ -155,7 +155,7 @@ export default function SignupInfo(): JSX.Element {
                   ))}
                 </div>
               )}
-              <label className="mt-2 flex items-center gap-2 text-sm text-gray-700">
+              <label className="mt-3 flex items-center gap-2 text-sm text-gray-700">
                 <input type="checkbox" checked={healthy} onChange={(e)=>setHealthy(e.target.checked)} className="rounded" /> I am a healthy volunteer
               </label>
             </div>
