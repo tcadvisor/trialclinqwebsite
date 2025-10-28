@@ -13,107 +13,138 @@ export default function EhrCallback(): JSX.Element {
   useEffect(() => {
     const handleCallback = async () => {
       try {
+        console.log("[EPIC CALLBACK] Starting OAuth callback handler...");
+
         const code = searchParams.get("code");
         const errorParam = searchParams.get("error");
         const errorDescription = searchParams.get("error_description");
 
-        console.log("EhrCallback: Processing OAuth callback...", {
-          hasCode: !!code,
-          hasError: !!errorParam,
+        console.log("[EPIC CALLBACK] URL Parameters:", {
+          code: code ? `${code.substring(0, 20)}...` : "NOT FOUND",
+          error: errorParam || "none",
+          errorDescription: errorDescription || "none",
         });
 
         if (errorParam) {
-          setError(`EPIC Authorization failed: ${errorParam} - ${errorDescription || ""}`);
+          const errorMsg = `EPIC Authorization failed: ${errorParam}${errorDescription ? ` - ${errorDescription}` : ""}`;
+          console.error(`[EPIC CALLBACK] ${errorMsg}`);
+          setError(errorMsg);
           setStage("error");
           return;
         }
 
         if (!code) {
-          setError("No authorization code received from EPIC");
+          const msg = "No authorization code received from EPIC. This typically means: 1) User denied authorization, 2) Redirect URI doesn't match EPIC settings, or 3) OAuth configuration is incorrect.";
+          console.error(`[EPIC CALLBACK] ${msg}`);
+          setError(msg);
           setStage("error");
           return;
         }
+
+        console.log("[EPIC CALLBACK] Step 1: Authorization code received successfully");
 
         // Get code_verifier from sessionStorage (set during authorization request)
         const codeVerifier = sessionStorage.getItem("epic_code_verifier");
+        const state = sessionStorage.getItem("epic_state");
+
+        console.log("[EPIC CALLBACK] Step 2: Checking session storage:", {
+          hasCodeVerifier: !!codeVerifier,
+          verifierLength: codeVerifier?.length || 0,
+          hasState: !!state,
+        });
 
         if (!codeVerifier) {
-          setError("Missing code verifier - session may have expired");
+          const msg = "Missing code verifier in session storage. This means the popup window lost connection to the original window. Session may have expired or local storage was cleared.";
+          console.error(`[EPIC CALLBACK] ${msg}`);
+          setError(msg);
           setStage("error");
           return;
         }
 
-        // Exchange code for token using Netlify function (server-side)
-        console.log("Exchanging authorization code for token...", {
-          codeLength: code.length,
-          verifierLength: codeVerifier.length,
-        });
+        console.log("[EPIC CALLBACK] Step 3: Exchanging authorization code for token...");
 
         let exchangeResponse: Response;
 
         try {
+          const requestBody = {
+            code: code,
+            code_verifier: codeVerifier,
+          };
+
+          console.log("[EPIC CALLBACK] Sending token exchange request to /.netlify/functions/epic-token-exchange");
+
           exchangeResponse = await fetch("/.netlify/functions/epic-token-exchange", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({
-              code: code,
-              code_verifier: codeVerifier,
-            }),
+            body: JSON.stringify(requestBody),
           });
 
-          console.log("Token exchange response received:", {
+          console.log("[EPIC CALLBACK] Step 4: Token exchange response received:", {
             status: exchangeResponse.status,
             statusText: exchangeResponse.statusText,
+            headers: {
+              contentType: exchangeResponse.headers.get("content-type"),
+              contentLength: exchangeResponse.headers.get("content-length"),
+            },
           });
         } catch (fetchError) {
-          console.error("Failed to reach token exchange function:", fetchError);
+          console.error("[EPIC CALLBACK] Step 4: Failed to reach token exchange function:", fetchError);
+          const msg = fetchError instanceof Error ? fetchError.message : String(fetchError);
           throw new Error(
-            "Could not connect to token exchange server. Please ensure the Netlify functions are deployed."
+            `Could not connect to token exchange server (/.netlify/functions/epic-token-exchange). Error: ${msg}. This means the Netlify serverless function is not deployed or accessible.`
           );
         }
 
         if (!exchangeResponse.ok) {
-          let errorMessage = `Token exchange failed: ${exchangeResponse.status}`;
+          console.log("[EPIC CALLBACK] Step 5: Token exchange returned error status");
+          let errorMessage = `Token exchange failed with status ${exchangeResponse.status} ${exchangeResponse.statusText}`;
           try {
             const contentType = exchangeResponse.headers.get("content-type");
-            console.log("Error response content-type:", contentType);
+            console.log("[EPIC CALLBACK] Error response content-type:", contentType);
 
             if (contentType && contentType.includes("application/json")) {
               const errorData = await exchangeResponse.json();
+              console.log("[EPIC CALLBACK] Error data:", errorData);
               errorMessage = errorData.message || errorData.error || errorMessage;
             } else {
               const errorText = await exchangeResponse.text();
-              console.error("Token exchange error response:", errorText.substring(0, 200));
-              errorMessage = errorText ? `Server error: ${errorText.substring(0, 100)}` : errorMessage;
+              console.error("[EPIC CALLBACK] Error response text:", errorText.substring(0, 300));
+              errorMessage = errorText ? `Server returned: ${errorText.substring(0, 150)}` : errorMessage;
             }
           } catch (e) {
-            console.error("Failed to parse error response:", e);
+            console.error("[EPIC CALLBACK] Failed to parse error response:", e);
           }
           throw new Error(errorMessage);
         }
 
+        console.log("[EPIC CALLBACK] Step 5: Token exchange successful, parsing response...");
+
         let tokenData: any;
         try {
           const contentType = exchangeResponse.headers.get("content-type");
-          console.log("Success response content-type:", contentType);
+          console.log("[EPIC CALLBACK] Success response content-type:", contentType);
 
           if (contentType && contentType.includes("application/json")) {
             tokenData = await exchangeResponse.json();
           } else {
             const responseText = await exchangeResponse.text();
-            console.error("Unexpected response type:", responseText.substring(0, 100));
-            throw new Error(`Expected JSON response, got: ${contentType}`);
+            console.error("[EPIC CALLBACK] Unexpected response type, got text:", responseText.substring(0, 200));
+            throw new Error(`Expected JSON response, got content-type: ${contentType}`);
           }
 
-          console.log("Token data parsed successfully", {
+          console.log("[EPIC CALLBACK] Step 6: Token data parsed successfully:", {
             hasAccessToken: !!tokenData.access_token,
             hasPatient: !!tokenData.patient,
+            hasRefreshToken: !!tokenData.refresh_token,
+            patientId: tokenData.patient,
           });
         } catch (parseError) {
-          console.error("Failed to parse token exchange response:", parseError);
-          throw new Error(`Invalid response from token exchange: ${parseError instanceof Error ? parseError.message : String(parseError)}`);
+          console.error("[EPIC CALLBACK] Failed to parse token exchange response:", parseError);
+          throw new Error(
+            `Failed to parse server response: ${parseError instanceof Error ? parseError.message : String(parseError)}`
+          );
         }
 
         // Save tokens and patient data
