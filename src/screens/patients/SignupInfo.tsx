@@ -52,7 +52,7 @@ export default function SignupInfo(): JSX.Element {
     e.preventDefault();
     if (!canSubmit) return;
     const profile = {
-      dob, age, weight, gender, race, language, zip, distance,
+      dob, weight, gender, race, language, zip, distance,
       condition, healthy, year, meds
     };
     try { localStorage.setItem("tc_eligibility_profile", JSON.stringify(profile)); } catch {}
