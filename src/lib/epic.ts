@@ -63,18 +63,6 @@ export function getEpicConfig(): EpicOAuthConfig {
   return { clientId, redirectUri, fhirUrl };
 }
 
-// Generate PKCE code challenge
-function generatePKCE(): { codeVerifier: string; codeChallenge: string } {
-  const codeVerifier = Array.from(crypto.getRandomValues(new Uint8Array(32)))
-    .map((b) => String.fromCharCode(b))
-    .join("");
-  const base64url = btoa(codeVerifier)
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=/g, "");
-  return { codeVerifier, codeChallenge: base64url };
-}
-
 
 export async function getEpicAuthorizationEndpoint(): Promise<string> {
   const config = getEpicConfig();
