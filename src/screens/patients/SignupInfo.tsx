@@ -77,10 +77,6 @@ export default function SignupInfo(): JSX.Element {
                 <input type="date" value={dob} onChange={(e)=>setDob(e.target.value)} className="mt-2 w-full rounded-full border px-4 py-2" required />
               </div>
               <div>
-                <label className="block text-sm font-medium">Age<span className="text-red-500">*</span></label>
-                <input inputMode="numeric" pattern="[0-9]*" value={age} onChange={(e)=>setAge(e.target.value)} className="mt-2 w-full rounded-full border px-4 py-2" placeholder="e.g. 34" required />
-              </div>
-              <div>
                 <label className="block text-sm font-medium">Weight (lbs)<span className="text-red-500">*</span></label>
                 <input inputMode="decimal" value={weight} onChange={(e)=>setWeight(e.target.value)} className="mt-2 w-full rounded-full border px-4 py-2" placeholder="e.g. 165" required />
               </div>
