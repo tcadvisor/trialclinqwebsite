@@ -75,23 +75,6 @@ function generatePKCE(): { codeVerifier: string; codeChallenge: string } {
   return { codeVerifier, codeChallenge: base64url };
 }
 
-export function getEpicAuthUrl(state?: string): string {
-  const config = getEpicConfig();
-  const { codeChallenge } = generatePKCE();
-
-  const params = new URLSearchParams({
-    response_type: "code",
-    client_id: config.clientId,
-    redirect_uri: config.redirectUri,
-    scope: "openid fhirUser patient/*.read",
-    state: state || Math.random().toString(36).substring(7),
-    aud: config.fhirUrl,
-    code_challenge: codeChallenge,
-    code_challenge_method: "S256",
-  });
-
-  return `${config.fhirUrl}..well-known/smart-configuration`;
-}
 
 export async function getEpicAuthorizationEndpoint(): Promise<string> {
   const config = getEpicConfig();
