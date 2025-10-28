@@ -194,11 +194,6 @@ export default function Dashboard(): JSX.Element {
                         {t.status === 'Now Recruiting' ? 'Recruiting' : t.status}
                       </span>
                     </td>
-                    <td className="px-4 py-3 align-top">
-                      <span className="inline-flex items-center rounded-full bg-violet-100 px-2 py-1 text-xs font-medium text-violet-700 whitespace-nowrap">
-                        {t.phase}
-                      </span>
-                    </td>
                     <td className="px-4 py-3 align-top min-w-[180px]">
                       <div className="flex items-center">
                         <span className="font-semibold text-gray-900">{t.aiScore}%</span>
