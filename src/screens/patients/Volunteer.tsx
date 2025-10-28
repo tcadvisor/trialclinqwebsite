@@ -28,7 +28,7 @@ export default function Volunteer(): JSX.Element {
 
     upsertAccount({ email, phone, firstName, lastName, password, ref, role: "patient" });
     signIn({ email, role: "patient", firstName, lastName });
-    navigate("/patients/signup-personal");
+    navigate("/patients/signup-info");
   }
 
   return (
