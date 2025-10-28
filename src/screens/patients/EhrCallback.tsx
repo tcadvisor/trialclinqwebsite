@@ -38,8 +38,18 @@ export default function EhrCallback(): JSX.Element {
           return;
         }
 
-        // Exchange code for token using server API
-        const exchangeResponse = await fetch("/api/epic/token-exchange", {
+        // Exchange code for token using Netlify function (server-side)
+        const tokenResponse = await fetch("/.netlify/functions/epic-token-exchange", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          // Pass code and code_verifier as query parameters
+          redirect: "follow",
+        });
+
+        // Actually, let's use POST instead for better practice
+        const exchangeResponse = await fetch("/.netlify/functions/epic-token-exchange", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
