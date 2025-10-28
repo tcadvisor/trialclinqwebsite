@@ -90,13 +90,22 @@ const Section: React.FC<{ title: string; children: React.ReactNode; right?: Reac
   </div>
 );
 
-const Row: React.FC<{ label: string; value: string; icon?: React.ReactNode; missing?: boolean }> = ({ label, value, icon, missing }) => (
+const Row: React.FC<{
+  label: string;
+  value: string;
+  icon?: React.ReactNode;
+  missing?: boolean;
+  epicSyncedAt?: string;
+}> = ({ label, value, icon, missing, epicSyncedAt }) => (
   <div className="flex items-center justify-between py-2">
     <div className="flex items-center gap-2 text-gray-600">
       {icon}
       <span className="text-sm">{label}</span>
     </div>
-    <div className={`text-sm ${missing ? "text-red-600" : "text-gray-900"}`}>{value || (missing ? "Required" : "")}</div>
+    <div className="flex items-center gap-2">
+      <div className={`text-sm ${missing ? "text-red-600" : "text-gray-900"}`}>{value || (missing ? "Required" : "")}</div>
+      {epicSyncedAt && <EpicBadge syncedAt={epicSyncedAt} />}
+    </div>
   </div>
 );
 
