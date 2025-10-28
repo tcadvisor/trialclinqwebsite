@@ -96,7 +96,8 @@ export function getEpicAuthUrl(state?: string): string {
 export async function getEpicAuthorizationEndpoint(): Promise<string> {
   const config = getEpicConfig();
   try {
-    const wellKnownUrl = `${config.fhirUrl}.well-known/smart-configuration`;
+    const fhirUrlBase = config.fhirUrl.replace(/\/api\/FHIR\/R4\/?$/, "");
+    const wellKnownUrl = `${fhirUrlBase}/.well-known/smart-configuration`;
     const response = await fetch(wellKnownUrl);
     if (!response.ok) throw new Error(`Failed to fetch SMART config: ${response.status}`);
     const data = await response.json();
@@ -110,7 +111,8 @@ export async function getEpicAuthorizationEndpoint(): Promise<string> {
 export async function exchangeCodeForToken(code: string, state?: string): Promise<EpicTokenResponse> {
   const config = getEpicConfig();
   try {
-    const wellKnownUrl = `${config.fhirUrl}.well-known/smart-configuration`;
+    const fhirUrlBase = config.fhirUrl.replace(/\/api\/FHIR\/R4\/?$/, "");
+    const wellKnownUrl = `${fhirUrlBase}/.well-known/smart-configuration`;
     const configResponse = await fetch(wellKnownUrl);
     if (!configResponse.ok) throw new Error(`Failed to fetch SMART config: ${configResponse.status}`);
     const smartConfig = await configResponse.json();
