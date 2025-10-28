@@ -92,12 +92,19 @@ export default function EhrCallback(): JSX.Element {
 
         setStage("success");
 
-        // Redirect to health profile after 2 seconds
-        setTimeout(() => {
-          navigate("/patients/health-profile", {
-            state: { epicConnected: true, patientData: tokenData.patientData },
-          });
-        }, 2000);
+        // Close popup window if opened from popup (window.opener exists)
+        if (window.opener) {
+          setTimeout(() => {
+            window.close();
+          }, 1500);
+        } else {
+          // If opened directly, redirect to health profile after 2 seconds
+          setTimeout(() => {
+            navigate("/patients/health-profile", {
+              state: { epicConnected: true, patientData: tokenData.patientData },
+            });
+          }, 2000);
+        }
       } catch (err) {
         const message = err instanceof Error ? err.message : "Unknown error occurred";
         setError(message);
