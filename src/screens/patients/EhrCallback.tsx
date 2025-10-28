@@ -43,11 +43,11 @@ export default function EhrCallback(): JSX.Element {
 
         console.log("[EPIC CALLBACK] Step 1: Authorization code received successfully");
 
-        // Get code_verifier from sessionStorage (set during authorization request)
-        const codeVerifier = sessionStorage.getItem("epic_code_verifier");
-        const state = sessionStorage.getItem("epic_state");
+        // Get code_verifier from localStorage (set during authorization request)
+        const codeVerifier = localStorage.getItem("epic_code_verifier");
+        const state = localStorage.getItem("epic_state");
 
-        console.log("[EPIC CALLBACK] Step 2: Checking session storage:", {
+        console.log("[EPIC CALLBACK] Step 2: Checking local storage:", {
           hasCodeVerifier: !!codeVerifier,
           verifierLength: codeVerifier?.length || 0,
           hasState: !!state,
