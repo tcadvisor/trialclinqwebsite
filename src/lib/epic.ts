@@ -63,16 +63,24 @@ export function getEpicConfig(): EpicOAuthConfig {
   return { clientId, redirectUri, fhirUrl };
 }
 
-// Generate PKCE code challenge
-function generatePKCE(): { codeVerifier: string; codeChallenge: string } {
-  const codeVerifier = Array.from(crypto.getRandomValues(new Uint8Array(32)))
-    .map((b) => String.fromCharCode(b))
-    .join("");
-  const base64url = btoa(codeVerifier)
+// Generate PKCE code challenge (not currently used - EhrDirectory handles this)
+async function generatePKCE(): Promise<{ codeVerifier: string; codeChallenge: string }> {
+  const array = crypto.getRandomValues(new Uint8Array(32));
+  const codeVerifier = btoa(String.fromCharCode.apply(null, Array.from(array)))
     .replace(/\+/g, "-")
     .replace(/\//g, "_")
     .replace(/=/g, "");
-  return { codeVerifier, codeChallenge: base64url };
+
+  const encoder = new TextEncoder();
+  const data = encoder.encode(codeVerifier);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const codeChallenge = btoa(String.fromCharCode.apply(null, hashArray))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=/g, "");
+
+  return { codeVerifier, codeChallenge };
 }
 
 export function getEpicAuthUrl(state?: string): string {

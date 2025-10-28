@@ -18,10 +18,16 @@ import { useAuth } from "../../lib/auth";
 import PatientHeader from "../../components/PatientHeader";
 import { findAccountByEmail } from "../../lib/accountStore";
 
+// Field source tracking
+type FieldSource = {
+  value: any;
+  source: 'epic' | 'manual';
+  syncedAt?: string; // ISO string or display string
+};
+
 // Editable profile types
 type Allergy = { name: string; reaction?: string; severity?: "Mild" | "Moderate" | "Severe"; note?: string };
 type Medication = { name: string; dose?: string; amountDaily?: string; schedule?: string };
-
 type PriorTherapy = { name: string; date?: string };
 
 type HealthProfileData = {
@@ -56,7 +62,23 @@ type HealthProfileData = {
   infectionHCV?: boolean;
 };
 
+type HealthProfileMetadata = {
+  fieldSources: Record<string, FieldSource>;
+};
+
 const PROFILE_KEY = "tc_health_profile_v1";
+const PROFILE_METADATA_KEY = "tc_health_profile_metadata_v1";
+
+// Component to display EPIC sync badge
+const EpicBadge: React.FC<{ syncedAt?: string }> = ({ syncedAt }) => {
+  if (!syncedAt) return null;
+  return (
+    <span className="inline-flex items-center gap-1 ml-2 px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs">
+      <span>Synced from EPIC</span>
+      {syncedAt && <span className="text-blue-600">— {syncedAt}</span>}
+    </span>
+  );
+};
 
 const Section: React.FC<{ title: string; children: React.ReactNode; right?: React.ReactNode }> = ({ title, children, right }) => (
   <div className="rounded-xl border bg-white">
@@ -68,13 +90,22 @@ const Section: React.FC<{ title: string; children: React.ReactNode; right?: Reac
   </div>
 );
 
-const Row: React.FC<{ label: string; value: string; icon?: React.ReactNode; missing?: boolean }> = ({ label, value, icon, missing }) => (
+const Row: React.FC<{
+  label: string;
+  value: string;
+  icon?: React.ReactNode;
+  missing?: boolean;
+  epicSyncedAt?: string;
+}> = ({ label, value, icon, missing, epicSyncedAt }) => (
   <div className="flex items-center justify-between py-2">
     <div className="flex items-center gap-2 text-gray-600">
       {icon}
       <span className="text-sm">{label}</span>
     </div>
-    <div className={`text-sm ${missing ? "text-red-600" : "text-gray-900"}`}>{value || (missing ? "Required" : "")}</div>
+    <div className="flex items-center gap-2">
+      <div className={`text-sm ${missing ? "text-red-600" : "text-gray-900"}`}>{value || (missing ? "Required" : "")}</div>
+      {epicSyncedAt && <EpicBadge syncedAt={epicSyncedAt} />}
+    </div>
   </div>
 );
 
@@ -409,6 +440,14 @@ export default function HealthProfile(): JSX.Element {
     try { return !localStorage.getItem(PROFILE_KEY); } catch { return true; }
   });
 
+  const [metadata, setMetadata] = useState<HealthProfileMetadata>(() => {
+    try {
+      const raw = localStorage.getItem(PROFILE_METADATA_KEY);
+      if (raw) return JSON.parse(raw) as HealthProfileMetadata;
+    } catch {}
+    return { fieldSources: {} };
+  });
+
   const [profile, setProfile] = useState<HealthProfileData>(() => {
     try {
       const raw = localStorage.getItem(PROFILE_KEY);
@@ -446,6 +485,80 @@ export default function HealthProfile(): JSX.Element {
       infectionHCV: false,
     };
   });
+
+  // Load and auto-fill from EPIC data on mount
+  useEffect(() => {
+    try {
+      const epicRaw = localStorage.getItem("epic:patient:v1");
+      if (!epicRaw) return;
+
+      const epicData = JSON.parse(epicRaw) as any;
+      const profileData = epicData.profileData as Record<string, any>;
+
+      if (!profileData) return;
+
+      const newFieldSources: Record<string, FieldSource> = { ...metadata.fieldSources };
+      const updates: Partial<HealthProfileData> = {};
+
+      // Auto-fill age if not already set
+      if (profileData.age && !profile.age) {
+        updates.age = profileData.age.value;
+        newFieldSources.age = {
+          value: profileData.age.value,
+          source: 'epic',
+          syncedAt: profileData.age.syncedAt
+        };
+      }
+
+      // Auto-fill gender if not already set
+      if (profileData.gender && !profile.gender) {
+        updates.gender = profileData.gender.value;
+        newFieldSources.gender = {
+          value: profileData.gender.value,
+          source: 'epic',
+          syncedAt: profileData.gender.syncedAt
+        };
+      }
+
+      // Auto-fill primary condition if not already set
+      if (profileData.primaryCondition && !profile.primaryCondition) {
+        updates.primaryCondition = profileData.primaryCondition.value;
+        newFieldSources.primaryCondition = {
+          value: profileData.primaryCondition.value,
+          source: 'epic',
+          syncedAt: profileData.primaryCondition.syncedAt
+        };
+      }
+
+      // Auto-fill medications if not already set
+      if (profileData.medications && (!profile.medications || profile.medications.length === 0)) {
+        updates.medications = profileData.medications.value;
+        newFieldSources.medications = {
+          value: profileData.medications.value,
+          source: 'epic',
+          syncedAt: profileData.medications.syncedAt
+        };
+      }
+
+      // Auto-fill allergies if not already set
+      if (profileData.allergies && (!profile.allergies || profile.allergies.length === 0)) {
+        updates.allergies = profileData.allergies.value;
+        newFieldSources.allergies = {
+          value: profileData.allergies.value,
+          source: 'epic',
+          syncedAt: profileData.allergies.syncedAt
+        };
+      }
+
+      if (Object.keys(updates).length > 0) {
+        setProfile(p => ({ ...p, ...updates }));
+        setMetadata({ fieldSources: newFieldSources });
+        console.log('[HealthProfile] Auto-filled from EPIC data:', updates);
+      }
+    } catch (error) {
+      console.error('[HealthProfile] Error loading EPIC data:', error);
+    }
+  }, []); // Only run once on mount
 
   // Bootstrap from auth/account and eligibility profile
   useEffect(() => {
@@ -504,9 +617,10 @@ export default function HealthProfile(): JSX.Element {
   // Persist changes
   useEffect(() => {
     try { localStorage.setItem(PROFILE_KEY, JSON.stringify(profile)); } catch {}
+    try { localStorage.setItem(PROFILE_METADATA_KEY, JSON.stringify(metadata)); } catch {}
     try { window.dispatchEvent(new Event('storage')); } catch {}
     try { window.dispatchEvent(new CustomEvent('tc_profile_updated', { detail: { source: 'HealthProfile' } })); } catch {}
-  }, [profile]);
+  }, [profile, metadata]);
 
   // Refresh from storage when uploader saves
   useEffect(() => {
@@ -718,7 +832,7 @@ export default function HealthProfile(): JSX.Element {
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
-                      <Row label="Patient ID" value={profile.patientId} icon={<UserIcon className="w-4 h-4" />} />
+                      <Row label="Patient ID" value={profile.patientId} icon={<UserIcon className="w-4 h-4" />} epicSyncedAt={metadata.fieldSources.patientId?.syncedAt} />
                       <div className="flex items-center justify-between py-2">
                         <div className="flex items-center gap-2 text-gray-600">
                           <MailIcon className="w-4 h-4" />
@@ -730,19 +844,22 @@ export default function HealthProfile(): JSX.Element {
                           {!profile.emailVerified && <button onClick={()=>setProfile(p=>({...p, emailVerified:true}))} className="text-[#1033e5] text-xs underline">Verify Now</button>}
                         </div>
                       </div>
-                      <Row label="Age" value={profile.age} icon={<CalendarIcon className="w-4 h-4" />} missing={!profile.age} />
-                      <Row label="Weight" value={profile.weight} icon={<WeightIcon className="w-4 h-4" />} missing={!profile.weight} />
-                      <Row label="Phone Number" value={profile.phone} icon={<PhoneIcon className="w-4 h-4" />} missing={!profile.phone} />
-                      <Row label="Gender" value={profile.gender} icon={<UserIcon className="w-4 h-4" />} missing={!profile.gender} />
-                      <Row label="Race" value={profile.race} missing={!profile.race} />
-                      <Row label="Language Preference" value={profile.language} missing={!profile.language} />
+                      <Row label="Age" value={profile.age} icon={<CalendarIcon className="w-4 h-4" />} missing={!profile.age} epicSyncedAt={metadata.fieldSources.age?.syncedAt} />
+                      <Row label="Weight" value={profile.weight} icon={<WeightIcon className="w-4 h-4" />} missing={!profile.weight} epicSyncedAt={metadata.fieldSources.weight?.syncedAt} />
+                      <Row label="Phone Number" value={profile.phone} icon={<PhoneIcon className="w-4 h-4" />} missing={!profile.phone} epicSyncedAt={metadata.fieldSources.phone?.syncedAt} />
+                      <Row label="Gender" value={profile.gender} icon={<UserIcon className="w-4 h-4" />} missing={!profile.gender} epicSyncedAt={metadata.fieldSources.gender?.syncedAt} />
+                      <Row label="Race" value={profile.race} missing={!profile.race} epicSyncedAt={metadata.fieldSources.race?.syncedAt} />
+                      <Row label="Language Preference" value={profile.language} missing={!profile.language} epicSyncedAt={metadata.fieldSources.language?.syncedAt} />
                     </div>
                   )}
                 </Section>
               </div>
 
               <div>
-                <Section title="Allergies" right={<div className="flex items-center gap-2">{(profile.allergies || []).length === 0 && (<span className="text-red-600 text-xs">Required</span>)}</div>}>
+                <Section title="Allergies" right={<div className="flex items-center gap-2">
+                  {(profile.allergies || []).length === 0 && (<span className="text-red-600 text-xs">Required</span>)}
+                  {metadata.fieldSources.allergies?.syncedAt && <EpicBadge syncedAt={metadata.fieldSources.allergies.syncedAt} />}
+                </div>}>
                   <ul className="divide-y">
                     {profile.allergies.map((a, i) => (
                       <li key={i} className="py-3 flex items-start justify-between">
@@ -821,7 +938,10 @@ export default function HealthProfile(): JSX.Element {
                   </div>
                 </Section>
 
-                <Section title="Medications" right={<div>{(profile.medications || []).length === 0 && (<span className="text-red-600 text-xs">Required</span>)}</div>}>
+                <Section title="Medications" right={<div className="flex items-center gap-2">
+                  {(profile.medications || []).length === 0 && (<span className="text-red-600 text-xs">Required</span>)}
+                  {metadata.fieldSources.medications?.syncedAt && <EpicBadge syncedAt={metadata.fieldSources.medications.syncedAt} />}
+                </div>}>
                   <ul className="divide-y">
                     {profile.medications.map((m, i) => (
                       <li key={i} className="py-3 flex items-start justify-between">
@@ -911,12 +1031,12 @@ export default function HealthProfile(): JSX.Element {
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
-                      <Row label="Blood Group" value={profile.bloodGroup} missing={!profile.bloodGroup} />
-                      <Row label="Genotype" value={profile.genotype} missing={!profile.genotype} />
-                      <Row label="Hearing Impaired" value={profile.hearingImpaired ? 'Yes' : 'No'} />
-                      <Row label="Vision Impaired" value={profile.visionImpaired ? 'Yes' : 'No'} />
-                      <Row label="Primary Condition" value={profile.primaryCondition} missing={!profile.primaryCondition} />
-                      <Row label="Diagnosed" value={profile.diagnosed} missing={!profile.diagnosed} />
+                      <Row label="Blood Group" value={profile.bloodGroup} missing={!profile.bloodGroup} epicSyncedAt={metadata.fieldSources.bloodGroup?.syncedAt} />
+                      <Row label="Genotype" value={profile.genotype} missing={!profile.genotype} epicSyncedAt={metadata.fieldSources.genotype?.syncedAt} />
+                      <Row label="Hearing Impaired" value={profile.hearingImpaired ? 'Yes' : 'No'} epicSyncedAt={metadata.fieldSources.hearingImpaired?.syncedAt} />
+                      <Row label="Vision Impaired" value={profile.visionImpaired ? 'Yes' : 'No'} epicSyncedAt={metadata.fieldSources.visionImpaired?.syncedAt} />
+                      <Row label="Primary Condition" value={profile.primaryCondition} missing={!profile.primaryCondition} epicSyncedAt={metadata.fieldSources.primaryCondition?.syncedAt} />
+                      <Row label="Diagnosed" value={profile.diagnosed} missing={!profile.diagnosed} epicSyncedAt={metadata.fieldSources.diagnosed?.syncedAt} />
                     </div>
                   )}
                 </Section>
@@ -968,11 +1088,11 @@ export default function HealthProfile(): JSX.Element {
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
-                      <Row label="ECOG" value={profile.ecog} missing={!profile.ecog} />
-                      <Row label="Disease Stage/Subtype" value={profile.diseaseStage} missing={!profile.diseaseStage} />
-                      <Row label="Key Biomarkers" value={profile.biomarkers} missing={!profile.biomarkers} />
-                      <Row label="Comorbidities" value={[profile.comorbidityCardiac&&'Cardiac',profile.comorbidityRenal&&'Renal',profile.comorbidityHepatic&&'Hepatic',profile.comorbidityAutoimmune&&'Autoimmune'].filter(Boolean).join(', ')} />
-                      <Row label="Infections" value={[profile.infectionHIV&&'HIV',profile.infectionHBV&&'HBV',profile.infectionHCV&&'HCV'].filter(Boolean).join(', ')} />
+                      <Row label="ECOG" value={profile.ecog} missing={!profile.ecog} epicSyncedAt={metadata.fieldSources.ecog?.syncedAt} />
+                      <Row label="Disease Stage/Subtype" value={profile.diseaseStage} missing={!profile.diseaseStage} epicSyncedAt={metadata.fieldSources.diseaseStage?.syncedAt} />
+                      <Row label="Key Biomarkers" value={profile.biomarkers} missing={!profile.biomarkers} epicSyncedAt={metadata.fieldSources.biomarkers?.syncedAt} />
+                      <Row label="Comorbidities" value={[profile.comorbidityCardiac&&'Cardiac',profile.comorbidityRenal&&'Renal',profile.comorbidityHepatic&&'Hepatic',profile.comorbidityAutoimmune&&'Autoimmune'].filter(Boolean).join(', ')} epicSyncedAt={metadata.fieldSources.comorbidity?.syncedAt} />
+                      <Row label="Infections" value={[profile.infectionHIV&&'HIV',profile.infectionHBV&&'HBV',profile.infectionHCV&&'HCV'].filter(Boolean).join(', ')} epicSyncedAt={metadata.fieldSources.infection?.syncedAt} />
                     </div>
                   )}
                 </Section>

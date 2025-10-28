@@ -13,61 +13,144 @@ export default function EhrCallback(): JSX.Element {
   useEffect(() => {
     const handleCallback = async () => {
       try {
+        console.log("[EPIC CALLBACK] Starting OAuth callback handler...");
+
         const code = searchParams.get("code");
         const errorParam = searchParams.get("error");
         const errorDescription = searchParams.get("error_description");
 
+        console.log("[EPIC CALLBACK] URL Parameters:", {
+          code: code ? `${code.substring(0, 20)}...` : "NOT FOUND",
+          error: errorParam || "none",
+          errorDescription: errorDescription || "none",
+        });
+
         if (errorParam) {
-          setError(`EPIC Authorization failed: ${errorParam} - ${errorDescription || ""}`);
+          const errorMsg = `EPIC Authorization failed: ${errorParam}${errorDescription ? ` - ${errorDescription}` : ""}`;
+          console.error(`[EPIC CALLBACK] ${errorMsg}`);
+          setError(errorMsg);
           setStage("error");
           return;
         }
 
         if (!code) {
-          setError("No authorization code received from EPIC");
+          const msg = "No authorization code received from EPIC. This typically means: 1) User denied authorization, 2) Redirect URI doesn't match EPIC settings, or 3) OAuth configuration is incorrect.";
+          console.error(`[EPIC CALLBACK] ${msg}`);
+          setError(msg);
           setStage("error");
           return;
         }
 
-        // Get code_verifier from sessionStorage (set during authorization request)
-        const codeVerifier = sessionStorage.getItem("epic_code_verifier");
+        console.log("[EPIC CALLBACK] Step 1: Authorization code received successfully");
+
+        // Get code_verifier from localStorage (set during authorization request)
+        const codeVerifier = localStorage.getItem("epic_code_verifier");
+        const state = localStorage.getItem("epic_state");
+
+        console.log("[EPIC CALLBACK] Step 2: Checking local storage:", {
+          hasCodeVerifier: !!codeVerifier,
+          verifierLength: codeVerifier?.length || 0,
+          hasState: !!state,
+        });
 
         if (!codeVerifier) {
-          setError("Missing code verifier - session may have expired");
+          const msg = "Missing code verifier in local storage. Local storage may have been cleared, or the initial EPIC connection did not complete properly. Please try the connection again.";
+          console.error(`[EPIC CALLBACK] ${msg}`);
+          console.log("[EPIC CALLBACK] localStorage contents:", Object.keys(localStorage));
+          setError(msg);
           setStage("error");
           return;
         }
 
-        // Exchange code for token using Netlify function (server-side)
-        const tokenResponse = await fetch("/.netlify/functions/epic-token-exchange", {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          // Pass code and code_verifier as query parameters
-          redirect: "follow",
-        });
+        console.log("[EPIC CALLBACK] Step 3: Exchanging authorization code for token...");
 
-        // Actually, let's use POST instead for better practice
-        const exchangeResponse = await fetch("/.netlify/functions/epic-token-exchange", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
+        let exchangeResponse: Response;
+
+        try {
+          const requestBody = {
             code: code,
             code_verifier: codeVerifier,
-          }),
-        });
+          };
 
-        if (!exchangeResponse.ok) {
-          const errorData = await exchangeResponse.json();
-          throw new Error(errorData.message || `Token exchange failed: ${exchangeResponse.status}`);
+          console.log("[EPIC CALLBACK] Sending token exchange request to /.netlify/functions/epic-token-exchange");
+
+          exchangeResponse = await fetch("/.netlify/functions/epic-token-exchange", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(requestBody),
+          });
+
+          console.log("[EPIC CALLBACK] Step 4: Token exchange response received:", {
+            status: exchangeResponse.status,
+            statusText: exchangeResponse.statusText,
+            headers: {
+              contentType: exchangeResponse.headers.get("content-type"),
+              contentLength: exchangeResponse.headers.get("content-length"),
+            },
+          });
+        } catch (fetchError) {
+          console.error("[EPIC CALLBACK] Step 4: Failed to reach token exchange function:", fetchError);
+          const msg = fetchError instanceof Error ? fetchError.message : String(fetchError);
+          throw new Error(
+            `Could not connect to token exchange server (/.netlify/functions/epic-token-exchange). Error: ${msg}. This means the Netlify serverless function is not deployed or accessible.`
+          );
         }
 
-        const tokenData = await exchangeResponse.json();
+        if (!exchangeResponse.ok) {
+          console.log("[EPIC CALLBACK] Step 5: Token exchange returned error status");
+          let errorMessage = `Token exchange failed with status ${exchangeResponse.status} ${exchangeResponse.statusText}`;
+          try {
+            const contentType = exchangeResponse.headers.get("content-type");
+            console.log("[EPIC CALLBACK] Error response content-type:", contentType);
+
+            if (contentType && contentType.includes("application/json")) {
+              const errorData = await exchangeResponse.json();
+              console.log("[EPIC CALLBACK] Error data:", errorData);
+              errorMessage = errorData.message || errorData.error || errorMessage;
+            } else {
+              const errorText = await exchangeResponse.text();
+              console.error("[EPIC CALLBACK] Error response text:", errorText.substring(0, 300));
+              errorMessage = errorText ? `Server returned: ${errorText.substring(0, 150)}` : errorMessage;
+            }
+          } catch (e) {
+            console.error("[EPIC CALLBACK] Failed to parse error response:", e);
+          }
+          throw new Error(errorMessage);
+        }
+
+        console.log("[EPIC CALLBACK] Step 5: Token exchange successful, parsing response...");
+
+        let tokenData: any;
+        try {
+          const contentType = exchangeResponse.headers.get("content-type");
+          console.log("[EPIC CALLBACK] Success response content-type:", contentType);
+
+          if (contentType && contentType.includes("application/json")) {
+            tokenData = await exchangeResponse.json();
+          } else {
+            const responseText = await exchangeResponse.text();
+            console.error("[EPIC CALLBACK] Unexpected response type, got text:", responseText.substring(0, 200));
+            throw new Error(`Expected JSON response, got content-type: ${contentType}`);
+          }
+
+          console.log("[EPIC CALLBACK] Step 6: Token data parsed successfully:", {
+            hasAccessToken: !!tokenData.access_token,
+            hasPatient: !!tokenData.patient,
+            hasRefreshToken: !!tokenData.refresh_token,
+            patientId: tokenData.patient,
+          });
+        } catch (parseError) {
+          console.error("[EPIC CALLBACK] Failed to parse token exchange response:", parseError);
+          throw new Error(
+            `Failed to parse server response: ${parseError instanceof Error ? parseError.message : String(parseError)}`
+          );
+        }
 
         // Save tokens and patient data
+        console.log("[EPIC CALLBACK] Step 7: Saving tokens to localStorage...");
+
         localStorage.setItem(
           "epic:tokens:v1",
           JSON.stringify({
@@ -79,30 +162,141 @@ export default function EhrCallback(): JSX.Element {
           })
         );
 
+        // Clean up temporary PKCE values
+        localStorage.removeItem("epic_code_verifier");
+        localStorage.removeItem("epic_state");
+        console.log("[EPIC CALLBACK] Cleaned up temporary PKCE values from localStorage");
+
         if (tokenData.patientData) {
+          console.log("[EPIC CALLBACK] Step 8: Saving patient data to localStorage...");
+
+          // Extract and normalize EPIC patient data for profile autofill
+          const epicData = tokenData.patientData;
+          const syncedAt = new Date().toISOString();
+          const syncedAtDisplay = new Date().toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+
+          // Build profile fields from EPIC data with source tracking
+          const epicProfileData: Record<string, { value: any; source: string; syncedAt: string }> = {};
+
+          // Autofill basic demographics
+          if (epicData.name) {
+            epicProfileData.name = { value: epicData.name, source: 'epic', syncedAt };
+          }
+          if (epicData.gender) {
+            const genderMap: Record<string, string> = {
+              'male': 'Male',
+              'female': 'Female',
+              'other': 'Non-binary',
+            };
+            const normalizedGender = genderMap[epicData.gender.toLowerCase()] || epicData.gender;
+            epicProfileData.gender = { value: normalizedGender, source: 'epic', syncedAt };
+          }
+          if (epicData.birthDate) {
+            const birthDate = new Date(epicData.birthDate);
+            const today = new Date();
+            let age = today.getFullYear() - birthDate.getFullYear();
+            const m = today.getMonth() - birthDate.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+            epicProfileData.age = { value: String(age), source: 'epic', syncedAt };
+          }
+
+          // Medications
+          if (epicData.medications && Array.isArray(epicData.medications.entry)) {
+            const medications = epicData.medications.entry.map((entry: any) => {
+              const resource = entry.resource || {};
+              return {
+                name: resource.medicationCodeableConcept?.text || resource.medicationReference?.display || 'Unknown Medication',
+                dose: resource.dosageInstruction?.[0]?.doseAndRate?.[0]?.doseQuantity?.value
+                  ? `${resource.dosageInstruction[0].doseAndRate[0].doseQuantity.value} ${resource.dosageInstruction[0].doseAndRate[0].doseQuantity.unit || ''}`
+                  : undefined,
+                schedule: resource.dosageInstruction?.[0]?.timing?.repeat?.frequency
+                  ? `${resource.dosageInstruction[0].timing.repeat.frequency}x daily`
+                  : undefined,
+              };
+            });
+            if (medications.length > 0) {
+              epicProfileData.medications = { value: medications, source: 'epic', syncedAt };
+            }
+          }
+
+          // Allergies
+          if (epicData.allergies && Array.isArray(epicData.allergies.entry)) {
+            const allergies = epicData.allergies.entry.map((entry: any) => {
+              const resource = entry.resource || {};
+              return {
+                name: resource.code?.text || resource.code?.coding?.[0]?.display || 'Unknown Allergy',
+                reaction: resource.reaction?.[0]?.manifestation?.[0]?.text || undefined,
+                severity: resource.reaction?.[0]?.severity || undefined,
+              };
+            });
+            if (allergies.length > 0) {
+              epicProfileData.allergies = { value: allergies, source: 'epic', syncedAt };
+            }
+          }
+
+          // Conditions
+          if (epicData.conditions && Array.isArray(epicData.conditions.entry)) {
+            const conditions = epicData.conditions.entry.map((entry: any) => {
+              const resource = entry.resource || {};
+              return resource.code?.text || resource.code?.coding?.[0]?.display || 'Unknown Condition';
+            });
+            if (conditions.length > 0) {
+              const primaryCondition = conditions[0];
+              epicProfileData.primaryCondition = { value: primaryCondition, source: 'epic', syncedAt };
+            }
+          }
+
           localStorage.setItem(
             "epic:patient:v1",
             JSON.stringify({
               patientId: tokenData.patient,
               patientData: tokenData.patientData,
-              connectedAt: new Date().toISOString(),
+              profileData: epicProfileData,
+              syncedAt: syncedAt,
+              syncedAtDisplay: syncedAtDisplay,
             })
           );
+
+          console.log("[EPIC CALLBACK] EPIC patient data saved with profile autofill data");
         }
 
+        console.log("[EPIC CALLBACK] SUCCESS: All tokens and data saved. Authorization complete!");
         setStage("success");
 
-        // Redirect to health profile after 2 seconds
-        setTimeout(() => {
-          navigate("/patients/health-profile", {
-            state: { epicConnected: true, patientData: tokenData.patientData },
-          });
-        }, 2000);
+        // Close popup window if opened from popup (window.opener exists)
+        if (window.opener) {
+          console.log("[EPIC CALLBACK] Closing popup window (opened from popup)");
+          setTimeout(() => {
+            window.close();
+          }, 1500);
+        } else {
+          // If opened directly, redirect to health profile after 2 seconds
+          console.log("[EPIC CALLBACK] Redirecting to health profile (direct navigation)");
+          setTimeout(() => {
+            navigate("/patients/health-profile", {
+              state: { epicConnected: true, patientData: tokenData.patientData },
+            });
+          }, 2000);
+        }
       } catch (err) {
         const message = err instanceof Error ? err.message : "Unknown error occurred";
-        setError(message);
+        const fullError = `OAuth Callback Error:\n\n${message}\n\nFor debugging, check the browser console (F12 → Console) for detailed step-by-step logs marked with [EPIC CALLBACK].`;
+
+        console.error("[EPIC CALLBACK] FATAL ERROR:", err);
+        console.error("[EPIC CALLBACK] Full error context:", {
+          errorMessage: message,
+          errorType: err instanceof Error ? err.constructor.name : typeof err,
+          timestamp: new Date().toISOString(),
+        });
+
+        setError(fullError);
         setStage("error");
-        console.error("Callback error:", err);
       }
     };
 
@@ -143,12 +337,24 @@ export default function EhrCallback(): JSX.Element {
               </svg>
             </div>
             <h1 className="mt-6 text-2xl font-semibold">Connection Failed</h1>
-            <p className="mt-2 text-gray-600">{error}</p>
+            <div className="mt-4 text-left bg-gray-50 border border-gray-200 rounded-lg p-4 max-w-lg mx-auto">
+              <p className="text-sm text-gray-700 whitespace-pre-wrap font-mono">{error}</p>
+            </div>
+            <div className="mt-4 text-left bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-lg mx-auto">
+              <p className="text-xs text-blue-900 font-semibold mb-2">💡 Troubleshooting Tips:</p>
+              <ul className="text-xs text-blue-800 space-y-1 list-disc list-inside">
+                <li>Open Developer Tools (F12) and go to the Console tab</li>
+                <li>Look for logs starting with [EPIC] or [EPIC CALLBACK]</li>
+                <li>Check the "Network" tab to see the actual HTTP requests and responses</li>
+                <li>Verify your redirect URI matches what's configured in the EPIC developer portal</li>
+                <li>Ensure environment variables are set: VITE_EPIC_CLIENT_ID, VITE_EPIC_REDIRECT_URI, VITE_EPIC_FHIR_URL</li>
+              </ul>
+            </div>
             <button
               onClick={() => navigate("/patients/ehr")}
               className="mt-6 inline-block px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
-              Try Again
+              Go Back
             </button>
           </div>
         )}
