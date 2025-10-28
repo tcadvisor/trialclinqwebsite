@@ -40,21 +40,9 @@ const handler: Handler = async (event) => {
   }
 
   try {
-    // Get the OAuth 2.0 token endpoint from EPIC's well-known configuration
+    // Construct token endpoint URL for EPIC
     const fhirUrlBase = fhirUrl.replace(/\/api\/FHIR\/R4\/?$/, "");
-    const wellKnownUrl = `${fhirUrlBase}/.well-known/smart-configuration`;
-    const configResponse = await fetch(wellKnownUrl);
-
-    if (!configResponse.ok) {
-      throw new Error(`Failed to fetch EPIC well-known config: ${configResponse.status}`);
-    }
-
-    const config = await configResponse.json();
-    const tokenEndpoint = config.token_endpoint;
-
-    if (!tokenEndpoint) {
-      throw new Error("No token_endpoint in EPIC SMART configuration");
-    }
+    const tokenEndpoint = `${fhirUrlBase}/oauth/token`;
 
     // Exchange authorization code for access token (server-side)
     const tokenBody = new URLSearchParams({
