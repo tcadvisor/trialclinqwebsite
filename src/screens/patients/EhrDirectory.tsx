@@ -113,7 +113,7 @@ export default function EhrDirectory(): JSX.Element {
           throw new Error("Missing EPIC configuration");
         }
 
-        const authEndpoint = getEpicAuthorizationEndpoint();
+        const authEndpoint = await getEpicAuthorizationEndpoint();
 
         // Generate PKCE code verifier and challenge (per EPIC spec)
         const array = new Uint8Array(32);

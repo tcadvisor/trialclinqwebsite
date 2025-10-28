@@ -63,18 +63,60 @@ export function getEpicConfig(): EpicOAuthConfig {
   return { clientId, redirectUri, fhirUrl };
 }
 
+// Generate PKCE code challenge
+function generatePKCE(): { codeVerifier: string; codeChallenge: string } {
+  const codeVerifier = Array.from(crypto.getRandomValues(new Uint8Array(32)))
+    .map((b) => String.fromCharCode(b))
+    .join("");
+  const base64url = btoa(codeVerifier)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=/g, "");
+  return { codeVerifier, codeChallenge: base64url };
+}
 
-export function getEpicAuthorizationEndpoint(): string {
+export function getEpicAuthUrl(state?: string): string {
   const config = getEpicConfig();
-  const baseUrl = config.fhirUrl.replace(/\/api\/FHIR\/R4\/?$/, "");
-  return `${baseUrl}/oauth/authorize`;
+  const { codeChallenge } = generatePKCE();
+
+  const params = new URLSearchParams({
+    response_type: "code",
+    client_id: config.clientId,
+    redirect_uri: config.redirectUri,
+    scope: "openid fhirUser patient/*.read",
+    state: state || Math.random().toString(36).substring(7),
+    aud: config.fhirUrl,
+    code_challenge: codeChallenge,
+    code_challenge_method: "S256",
+  });
+
+  return `${config.fhirUrl}.well-known/smart-configuration`;
+}
+
+export async function getEpicAuthorizationEndpoint(): Promise<string> {
+  const config = getEpicConfig();
+  try {
+    const wellKnownUrl = `${config.fhirUrl}.well-known/smart-configuration`;
+    const response = await fetch(wellKnownUrl);
+    if (!response.ok) throw new Error(`Failed to fetch SMART config: ${response.status}`);
+    const data = await response.json();
+    return data.authorization_endpoint;
+  } catch (error) {
+    console.error("Failed to get EPIC authorization endpoint:", error);
+    throw error;
+  }
 }
 
 export async function exchangeCodeForToken(code: string, state?: string): Promise<EpicTokenResponse> {
   const config = getEpicConfig();
   try {
-    const baseUrl = config.fhirUrl.replace(/\/api\/FHIR\/R4\/?$/, "");
-    const tokenEndpoint = `${baseUrl}/oauth/token`;
+    const wellKnownUrl = `${config.fhirUrl}.well-known/smart-configuration`;
+    const configResponse = await fetch(wellKnownUrl);
+    if (!configResponse.ok) throw new Error(`Failed to fetch SMART config: ${configResponse.status}`);
+    const smartConfig = await configResponse.json();
+
+    const tokenEndpoint = smartConfig.token_endpoint;
+    if (!tokenEndpoint) throw new Error("No token_endpoint in SMART configuration");
 
     const body = new URLSearchParams({
       grant_type: "authorization_code",
