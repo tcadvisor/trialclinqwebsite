@@ -167,6 +167,21 @@ export default function EhrDirectory(): JSX.Element {
   return (
     <div className="min-h-screen bg-white text-gray-900">
       <SiteHeader />
+      {popupMessage && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0">
+                <div className="animate-spin rounded-full h-6 w-6 border-2 border-blue-200 border-t-blue-600"></div>
+              </div>
+              <div className="flex-1">
+                <h2 className="font-semibold text-gray-900">Connecting to EPIC</h2>
+                <p className="text-sm text-gray-600 mt-2">{popupMessage}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       <main className="max-w-6xl mx-auto px-4 py-10">
         <h1 className="text-xl font-semibold">Available EMR/EHRs</h1>
         <p className="text-sm text-gray-600 mt-1">
