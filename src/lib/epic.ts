@@ -64,19 +64,10 @@ export function getEpicConfig(): EpicOAuthConfig {
 }
 
 
-export async function getEpicAuthorizationEndpoint(): Promise<string> {
+export function getEpicAuthorizationEndpoint(): string {
   const config = getEpicConfig();
-  try {
-    const fhirUrlBase = config.fhirUrl.replace(/\/api\/FHIR\/R4\/?$/, "");
-    const wellKnownUrl = `${fhirUrlBase}/.well-known/smart-configuration`;
-    const response = await fetch(wellKnownUrl);
-    if (!response.ok) throw new Error(`Failed to fetch SMART config: ${response.status}`);
-    const data = await response.json();
-    return data.authorization_endpoint;
-  } catch (error) {
-    console.error("Failed to get EPIC authorization endpoint:", error);
-    throw error;
-  }
+  const baseUrl = config.fhirUrl.replace(/\/api\/FHIR\/R4\/?$/, "");
+  return `${baseUrl}/oauth/authorize`;
 }
 
 export async function exchangeCodeForToken(code: string, state?: string): Promise<EpicTokenResponse> {
