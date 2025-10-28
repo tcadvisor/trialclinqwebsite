@@ -190,7 +190,7 @@ export default function Dashboard(): JSX.Element {
                     </td>
                     <td className="px-4 py-3 text-gray-500 align-top whitespace-nowrap">{t.nctId}</td>
                     <td className="px-4 py-3 align-top">
-                      <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${t.status === 'Now Recruiting' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
+                      <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${t.status === 'Now Recruiting' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>
                         {t.status === 'Now Recruiting' ? 'Recruiting' : t.status}
                       </span>
                     </td>
