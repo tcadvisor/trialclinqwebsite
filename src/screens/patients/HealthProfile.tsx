@@ -67,6 +67,18 @@ type HealthProfileMetadata = {
 };
 
 const PROFILE_KEY = "tc_health_profile_v1";
+const PROFILE_METADATA_KEY = "tc_health_profile_metadata_v1";
+
+// Component to display EPIC sync badge
+const EpicBadge: React.FC<{ syncedAt?: string }> = ({ syncedAt }) => {
+  if (!syncedAt) return null;
+  return (
+    <span className="inline-flex items-center gap-1 ml-2 px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs">
+      <span>Synced from EPIC</span>
+      {syncedAt && <span className="text-blue-600">�� {syncedAt}</span>}
+    </span>
+  );
+};
 
 const Section: React.FC<{ title: string; children: React.ReactNode; right?: React.ReactNode }> = ({ title, children, right }) => (
   <div className="rounded-xl border bg-white">
