@@ -171,7 +171,6 @@ export default function Dashboard(): JSX.Element {
                   <th className="px-4 py-3 font-medium">Trial Title</th>
                   <th className="px-4 py-3 font-medium">Trial ID</th>
                   <th className="px-4 py-3 font-medium">Trial Status</th>
-                  <th className="px-4 py-3 font-medium">Trial Phase</th>
                   <th className="px-4 py-3 font-medium">Compatibility Score</th>
                   <th className="px-4 py-3 font-medium">Interventions</th>
                   <th className="px-4 py-3 font-medium">Actions</th>
