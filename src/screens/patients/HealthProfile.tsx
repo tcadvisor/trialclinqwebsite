@@ -1031,12 +1031,12 @@ export default function HealthProfile(): JSX.Element {
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
-                      <Row label="Blood Group" value={profile.bloodGroup} missing={!profile.bloodGroup} />
-                      <Row label="Genotype" value={profile.genotype} missing={!profile.genotype} />
-                      <Row label="Hearing Impaired" value={profile.hearingImpaired ? 'Yes' : 'No'} />
-                      <Row label="Vision Impaired" value={profile.visionImpaired ? 'Yes' : 'No'} />
-                      <Row label="Primary Condition" value={profile.primaryCondition} missing={!profile.primaryCondition} />
-                      <Row label="Diagnosed" value={profile.diagnosed} missing={!profile.diagnosed} />
+                      <Row label="Blood Group" value={profile.bloodGroup} missing={!profile.bloodGroup} epicSyncedAt={metadata.fieldSources.bloodGroup?.syncedAt} />
+                      <Row label="Genotype" value={profile.genotype} missing={!profile.genotype} epicSyncedAt={metadata.fieldSources.genotype?.syncedAt} />
+                      <Row label="Hearing Impaired" value={profile.hearingImpaired ? 'Yes' : 'No'} epicSyncedAt={metadata.fieldSources.hearingImpaired?.syncedAt} />
+                      <Row label="Vision Impaired" value={profile.visionImpaired ? 'Yes' : 'No'} epicSyncedAt={metadata.fieldSources.visionImpaired?.syncedAt} />
+                      <Row label="Primary Condition" value={profile.primaryCondition} missing={!profile.primaryCondition} epicSyncedAt={metadata.fieldSources.primaryCondition?.syncedAt} />
+                      <Row label="Diagnosed" value={profile.diagnosed} missing={!profile.diagnosed} epicSyncedAt={metadata.fieldSources.diagnosed?.syncedAt} />
                     </div>
                   )}
                 </Section>
