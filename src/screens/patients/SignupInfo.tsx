@@ -159,16 +159,22 @@ export default function SignupInfo(): JSX.Element {
                 <input type="checkbox" checked={healthy} onChange={(e)=>setHealthy(e.target.checked)} className="rounded" /> I am a healthy volunteer
               </label>
             </div>
-            {!healthy && (
+            {conditions.length > 0 && !healthy && (
               <>
-                <div>
-                  <label className="block text-sm font-medium">When were you diagnosed?<span className="text-red-500">*</span></label>
-                  <select value={year} onChange={(e)=>setYear(e.target.value)} className="mt-2 w-full rounded-full border px-4 py-2 text-gray-700" required={!healthy}>
-                    <option value="">Select year</option>
-                    {years.map((y)=> (<option key={y} value={y}>{y}</option>))}
-                  </select>
-                  <p className="text-xs text-gray-600 mt-1">This can help match you to trials requiring recent or long-term diagnoses.</p>
-                </div>
+                {conditions.map((cond) => (
+                  <div key={cond}>
+                    <label className="block text-sm font-medium">When were you diagnosed with {cond}?<span className="text-red-500">*</span></label>
+                    <select
+                      value={diagnosisYears[cond] || ""}
+                      onChange={(e) => setDiagnosisYears({...diagnosisYears, [cond]: e.target.value})}
+                      className="mt-2 w-full rounded-full border px-4 py-2 text-gray-700"
+                      required
+                    >
+                      <option value="">Select year</option>
+                      {years.map((y)=> (<option key={y} value={y}>{y}</option>))}
+                    </select>
+                  </div>
+                ))}
                 <div>
                   <label className="block text-sm font-medium">Your Current Medications</label>
                   <p className="text-xs text-gray-600 mt-1">Include prescription, over-the-counter, or supplements you take regularly. Add as many as apply.</p>
