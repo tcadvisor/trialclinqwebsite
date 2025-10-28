@@ -1,5 +1,5 @@
 import { Handler } from "@netlify/functions";
-import crypto from "crypto";
+import { randomBytes, createHash } from "crypto";
 
 const handler: Handler = async (event) => {
   try {
@@ -7,9 +7,16 @@ const handler: Handler = async (event) => {
     const redirectUri = process.env.VITE_EPIC_REDIRECT_URI;
     const fhirUrl = process.env.VITE_EPIC_FHIR_URL;
 
+    console.log("Epic Auth URL - Config check:", {
+      hasClientId: !!clientId,
+      hasRedirectUri: !!redirectUri,
+      hasFhirUrl: !!fhirUrl,
+    });
+
     if (!clientId || !redirectUri || !fhirUrl) {
       return {
         statusCode: 500,
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           error: "Missing EPIC configuration",
           message: "VITE_EPIC_CLIENT_ID, VITE_EPIC_REDIRECT_URI, or VITE_EPIC_FHIR_URL not set",
@@ -17,13 +24,17 @@ const handler: Handler = async (event) => {
       };
     }
 
+    console.log("Fetching EPIC SMART configuration...");
     // Fetch EPIC's SMART configuration to get authorization endpoint
     const wellKnownUrl = `${fhirUrl}.well-known/smart-configuration`;
     const configResponse = await fetch(wellKnownUrl);
 
     if (!configResponse.ok) {
+      const errorText = await configResponse.text();
+      console.error("EPIC config fetch failed:", errorText);
       return {
         statusCode: 500,
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           error: "Failed to fetch EPIC configuration",
           message: `EPIC SMART config returned ${configResponse.status}`,
@@ -37,30 +48,34 @@ const handler: Handler = async (event) => {
     if (!authorizationEndpoint) {
       return {
         statusCode: 500,
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           error: "EPIC configuration missing authorization_endpoint",
         }),
       };
     }
 
+    console.log("Authorization endpoint:", authorizationEndpoint);
+
     // Generate PKCE code verifier and challenge
-    const randomBytes = crypto.randomBytes(32);
-    const codeVerifier = randomBytes
+    const randomBuffer = randomBytes(32);
+    const codeVerifier = randomBuffer
       .toString("base64")
       .replace(/\+/g, "-")
       .replace(/\//g, "_")
       .replace(/=/g, "");
 
-    const codeChallenge = crypto
-      .createHash("sha256")
-      .update(codeVerifier)
+    const hash = createHash("sha256");
+    hash.update(codeVerifier);
+    const codeChallenge = hash
       .digest("base64")
       .replace(/\+/g, "-")
       .replace(/\//g, "_")
       .replace(/=/g, "");
 
     // Generate state for CSRF protection
-    const state = crypto.randomBytes(16).toString("hex");
+    const stateBuffer = randomBytes(16);
+    const state = stateBuffer.toString("hex");
 
     // Build authorization URL
     const params = new URLSearchParams({
@@ -75,6 +90,8 @@ const handler: Handler = async (event) => {
     });
 
     const authUrl = `${authorizationEndpoint}?${params.toString()}`;
+
+    console.log("Auth URL generated successfully");
 
     return {
       statusCode: 200,
@@ -93,6 +110,7 @@ const handler: Handler = async (event) => {
 
     return {
       statusCode: 500,
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         error: "auth_url_generation_failed",
         message: message,
