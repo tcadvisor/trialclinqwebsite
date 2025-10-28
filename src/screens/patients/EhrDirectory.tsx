@@ -124,6 +124,7 @@ export default function EhrDirectory(): JSX.Element {
     if (item.isEpic) {
       try {
         setConnecting(true);
+        setPopupMessage("Opening EPIC authorization window...");
         console.log("Requesting EPIC authorization URL from server...");
 
         // Get auth URL from server-side function
@@ -152,12 +153,13 @@ export default function EhrDirectory(): JSX.Element {
           throw new Error("Failed to open authorization window. Please check your popup blocker settings.");
         }
 
-        setConnecting(false);
+        setPopupMessage("Authorization window opened. Please complete the EPIC login and authorization process.");
       } catch (error) {
         console.error("Failed to initiate EPIC connection:", error);
         const errorMsg = error instanceof Error ? error.message : String(error);
         alert(`Failed to connect to EPIC: ${errorMsg}`);
         setConnecting(false);
+        setPopupMessage("");
       }
     }
   };
