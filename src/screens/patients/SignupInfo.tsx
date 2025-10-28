@@ -27,7 +27,6 @@ export default function SignupInfo(): JSX.Element {
   const nctParam = React.useMemo(() => new URLSearchParams(search).get("nctId") || "", [search]);
   // Profile fields
   const [dob, setDob] = React.useState("");
-  const [age, setAge] = React.useState("");
   const [weight, setWeight] = React.useState("");
   const [zip, setZip] = React.useState("");
   const [distance, setDistance] = React.useState("");
