@@ -2,25 +2,6 @@ import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import SiteHeader from "../../components/SiteHeader";
 
-function UploadBox({ onFiles }: { onFiles: (files: FileList | null) => void }) {
-  const inputRef = React.useRef<HTMLInputElement | null>(null);
-  return (
-    <div className="rounded-xl border p-4 bg-white">
-      <div className="flex items-start gap-3">
-        <div className="h-10 w-10 grid place-items-center rounded-lg bg-gray-100 text-gray-600">⬆️</div>
-        <div className="flex-1">
-          <div className="font-medium">Upload Medical Documents</div>
-          <p className="text-sm text-gray-600">Help us match you to the right clinical trials by sharing relevant medical documents. Our AI will securely scan and extract information from your documents to improve trial matching.</p>
-          <div className="mt-3">
-            <button onClick={() => inputRef.current?.click()} type="button" className="rounded-full border px-4 py-2 text-sm hover:bg-gray-50">Upload</button>
-            <input ref={inputRef} type="file" multiple className="hidden" onChange={(e)=>onFiles(e.target.files)} />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function SignupInfo(): JSX.Element {
   const navigate = useNavigate();
   const { search } = useLocation();
