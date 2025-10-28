@@ -179,7 +179,51 @@ export default function SignupInfo(): JSX.Element {
                 <div>
                   <label className="block text-sm font-medium">Your Current Medications</label>
                   <p className="text-xs text-gray-600 mt-1">Include prescription, over-the-counter, or supplements you take regularly. Add as many as apply.</p>
-                  <input value={meds} onChange={(e)=>setMeds(e.target.value)} className="mt-2 w-full rounded-full border px-4 py-2" placeholder="Start typing a medication name (e.g. Metformin, Lis...)" />
+                  <div className="mt-2 flex gap-2">
+                    <input
+                      value={medInput}
+                      onChange={(e)=>setMedInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          if (medInput.trim()) {
+                            setMedications([...medications, medInput.trim()]);
+                            setMedInput("");
+                          }
+                        }
+                      }}
+                      className="flex-1 w-full rounded-full border px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Start typing a medication name (e.g. Metformin, Lis...)"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (medInput.trim()) {
+                          setMedications([...medications, medInput.trim()]);
+                          setMedInput("");
+                        }
+                      }}
+                      className="rounded-full bg-blue-600 text-white px-4 py-2 text-sm font-medium hover:bg-blue-700 whitespace-nowrap"
+                    >
+                      Add
+                    </button>
+                  </div>
+                  {medications.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      {medications.map((med, idx) => (
+                        <div key={idx} className="flex items-center justify-between gap-2 rounded-full bg-blue-50 px-3 py-2">
+                          <span className="text-sm text-gray-900">{med}</span>
+                          <button
+                            type="button"
+                            onClick={() => setMedications(medications.filter((_, i) => i !== idx))}
+                            className="text-gray-500 hover:text-red-600 font-bold"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </>
             )}
