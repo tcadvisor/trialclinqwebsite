@@ -167,11 +167,17 @@ export default function EhrCallback(): JSX.Element {
             </div>
             <h1 className="mt-6 text-2xl font-semibold">Connection Failed</h1>
             <p className="mt-2 text-gray-600">{error}</p>
+            {error.includes("server function not available") && (
+              <p className="mt-2 text-sm text-gray-500">
+                Note: Token exchange requires the production deployment. In development, please test on the deployed
+                version.
+              </p>
+            )}
             <button
               onClick={() => navigate("/patients/ehr")}
               className="mt-6 inline-block px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
-              Try Again
+              Go Back
             </button>
           </div>
         )}
