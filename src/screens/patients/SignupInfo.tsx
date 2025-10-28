@@ -25,19 +25,20 @@ export default function SignupInfo(): JSX.Element {
   const navigate = useNavigate();
   const { search } = useLocation();
   const nctParam = React.useMemo(() => new URLSearchParams(search).get("nctId") || "", [search]);
-  // Existing state
+  // Profile fields
+  const [dob, setDob] = React.useState("");
+  const [age, setAge] = React.useState("");
+  const [weight, setWeight] = React.useState("");
+  const [zip, setZip] = React.useState("");
+  const [distance, setDistance] = React.useState("");
+  const [gender, setGender] = React.useState("");
+  const [race, setRace] = React.useState("");
+  const [language, setLanguage] = React.useState("");
   const [condition, setCondition] = React.useState("");
   const [healthy, setHealthy] = React.useState(false);
   const [year, setYear] = React.useState("");
   const [meds, setMeds] = React.useState("");
   const [docCount, setDocCount] = React.useState(0);
-  // New profile fields
-  const [dob, setDob] = React.useState("");
-  const [zip, setZip] = React.useState("");
-  const [distance, setDistance] = React.useState("");
-  const [gender, setGender] = React.useState<"Male" | "Female" | "">("");
-  const [race, setRace] = React.useState("");
-  const [language, setLanguage] = React.useState("");
   const [agree1, setAgree1] = React.useState(false);
   const [agree2, setAgree2] = React.useState(false);
 
