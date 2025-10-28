@@ -90,7 +90,7 @@ export function getEpicAuthUrl(state?: string): string {
     code_challenge_method: "S256",
   });
 
-  return `${config.fhirUrl}..well-known/smart-configuration`;
+  return `${config.fhirUrl}.well-known/smart-configuration`;
 }
 
 export async function getEpicAuthorizationEndpoint(): Promise<string> {
