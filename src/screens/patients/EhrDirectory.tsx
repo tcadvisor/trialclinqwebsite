@@ -110,12 +110,17 @@ export default function EhrDirectory(): JSX.Element {
         const fhirUrl = (import.meta as any).env?.VITE_EPIC_FHIR_URL;
 
         if (!clientId || !redirectUri || !fhirUrl) {
-          throw new Error("Missing EPIC configuration");
+          throw new Error(
+            "Missing EPIC configuration. Please ensure VITE_EPIC_CLIENT_ID, VITE_EPIC_REDIRECT_URI, and VITE_EPIC_FHIR_URL are set."
+          );
         }
 
+        console.log("Fetching EPIC authorization endpoint...");
         const authEndpoint = await getEpicAuthorizationEndpoint();
+        console.log("Authorization endpoint:", authEndpoint);
 
         // Generate PKCE code verifier and challenge (per EPIC spec)
+        console.log("Generating PKCE...");
         const array = new Uint8Array(32);
         for (let i = 0; i < array.length; i++) {
           array[i] = Math.floor(Math.random() * 256);
@@ -134,6 +139,8 @@ export default function EhrDirectory(): JSX.Element {
           .replace(/\+/g, "-")
           .replace(/\//g, "_")
           .replace(/=/g, "");
+
+        console.log("PKCE generated successfully");
 
         // Store for callback
         sessionStorage.setItem("epic_code_verifier", codeVerifier);
@@ -162,6 +169,7 @@ export default function EhrDirectory(): JSX.Element {
           aud: aud,
           code_challenge_method: "S256",
         });
+        console.log("Redirecting to:", fullUrl);
 
         window.location.href = fullUrl;
       } catch (error) {
