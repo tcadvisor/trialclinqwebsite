@@ -171,7 +171,6 @@ export default function Dashboard(): JSX.Element {
                   <th className="px-4 py-3 font-medium">Trial Title</th>
                   <th className="px-4 py-3 font-medium">Trial ID</th>
                   <th className="px-4 py-3 font-medium">Trial Status</th>
-                  <th className="px-4 py-3 font-medium">Trial Phase</th>
                   <th className="px-4 py-3 font-medium">Compatibility Score</th>
                   <th className="px-4 py-3 font-medium">Interventions</th>
                   <th className="px-4 py-3 font-medium">Actions</th>
@@ -191,13 +190,8 @@ export default function Dashboard(): JSX.Element {
                     </td>
                     <td className="px-4 py-3 text-gray-500 align-top whitespace-nowrap">{t.nctId}</td>
                     <td className="px-4 py-3 align-top">
-                      <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${t.status === 'Now Recruiting' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
+                      <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${t.status?.includes('Recruiting') ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>
                         {t.status === 'Now Recruiting' ? 'Recruiting' : t.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 align-top">
-                      <span className="inline-flex items-center rounded-full bg-violet-100 px-2 py-1 text-xs font-medium text-violet-700 whitespace-nowrap">
-                        {t.phase}
                       </span>
                     </td>
                     <td className="px-4 py-3 align-top min-w-[180px]">

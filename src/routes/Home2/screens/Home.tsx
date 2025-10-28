@@ -2,12 +2,15 @@ import React, { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Search, CheckCircle2, Shield, UserRound, ArrowRight } from "lucide-react";
 import HomeHeader from "../../../components/HomeHeader";
+import { useAuth } from "../../../lib/auth";
 
 export default function Home() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [query, setQuery] = useState("");
   const [location, setLocation] = useState("");
   const [showBanner, setShowBanner] = useState(true);
+  const [showSignupModal, setShowSignupModal] = useState(false);
   const faq = useMemo(
     () => [
       {
@@ -110,10 +113,20 @@ export default function Home() {
                 <div className="font-semibold">Match your Electronic Health Record (EHR) to trials</div>
                 <div className="text-gray-600">Import your EHR to browse trials that fit your medical history and lab results — securely and with your consent.</div>
               </div>
-              <Link to="/patients/ehr" className="ml-auto inline-flex items-center gap-2 rounded-full bg-gray-900 px-4 py-2 text-white text-sm hover:bg-black">
-                Connect to Trial Portal
-                <ArrowRight className="h-4 w-4" />
-              </Link>
+              {user ? (
+                <Link to="/patients/ehr" className="ml-auto inline-flex items-center gap-2 rounded-full bg-gray-900 px-4 py-2 text-white text-sm hover:bg-black">
+                  Connect to Trial Portal
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              ) : (
+                <button
+                  onClick={() => setShowSignupModal(true)}
+                  className="ml-auto inline-flex items-center gap-2 rounded-full bg-gray-900 px-4 py-2 text-white text-sm hover:bg-black"
+                >
+                  Connect to Trial Portal
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -405,6 +418,48 @@ export default function Home() {
           </div>
         </div>
       </footer>
+
+      {/* Sign Up Modal */}
+      {showSignupModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setShowSignupModal(false)} />
+          <div className="relative z-10 w-full max-w-md rounded-xl border bg-white p-6 shadow-lg">
+            <div className="flex items-start justify-between mb-4">
+              <h2 className="text-2xl font-semibold text-gray-900">Sign Up to TrialCliniq</h2>
+              <button
+                onClick={() => setShowSignupModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+            <p className="text-gray-600 mb-6">
+              To connect your electronic health record and find clinical trials tailored to you, you'll need to create an account with TrialCliniq.
+            </p>
+            <div className="space-y-3">
+              <button
+                onClick={() => {
+                  setShowSignupModal(false);
+                  navigate("/patients/volunteer");
+                }}
+                className="w-full rounded-full bg-blue-600 text-white px-4 py-3 font-medium hover:bg-blue-700 transition-colors"
+              >
+                Create Account
+              </button>
+              <button
+                onClick={() => {
+                  setShowSignupModal(false);
+                  navigate("/patients/login");
+                }}
+                className="w-full rounded-full border border-gray-300 text-gray-900 px-4 py-3 font-medium hover:bg-gray-50 transition-colors"
+              >
+                Sign In
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

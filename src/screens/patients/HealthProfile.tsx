@@ -1179,9 +1179,117 @@ export default function HealthProfile(): JSX.Element {
 
         {activeTab === "documents" && <Documents onCountChange={setDocCount} />}
 
-        {activeTab === "ehr" && (
-          <div className="mt-6 rounded-xl border bg-white p-4 text-sm text-gray-600">Connect your EHR/EMR provider to sync medical records.</div>
-        )}
+        {activeTab === "ehr" && (() => {
+          const epicData = (() => {
+            try {
+              const raw = localStorage.getItem("epic:patient:v1");
+              if (raw) return JSON.parse(raw);
+            } catch {}
+            return null;
+          })();
+
+          if (!epicData?.patientData) {
+            return (
+              <div className="mt-6 rounded-xl border bg-white p-4 text-sm text-gray-600">
+                <p>No EHR/EMR connected yet.</p>
+                <Link to="/patients/ehr" className="mt-4 inline-flex items-center gap-2 rounded-lg bg-blue-600 text-white px-4 py-2 text-sm hover:bg-blue-700">
+                  Connect EHR/EMR Provider
+                </Link>
+              </div>
+            );
+          }
+
+          const data = epicData.patientData;
+          return (
+            <div className="mt-6">
+              <Section title="Connected Patient Information">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div>
+                    <div className="text-sm text-gray-600">Name</div>
+                    <div className="text-lg font-medium text-gray-900 mt-1">{data.name || "N/A"}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-600">Patient ID</div>
+                    <div className="text-lg font-medium text-gray-900 mt-1">{data.id || "N/A"}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-600">Birth Date</div>
+                    <div className="text-lg font-medium text-gray-900 mt-1">{data.birthDate || "N/A"}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-600">Gender</div>
+                    <div className="text-lg font-medium text-gray-900 mt-1">{data.gender || "N/A"}</div>
+                  </div>
+                </div>
+              </Section>
+
+              {data.conditions && data.conditions.length > 0 && (
+                <div className="mt-4">
+                  <Section title="Conditions">
+                    <ul className="divide-y">
+                      {data.conditions.map((condition: any, i: number) => (
+                        <li key={i} className="py-3 flex items-start justify-between">
+                          <div>
+                            <div className="text-sm font-medium">{condition.display || condition.code}</div>
+                            {condition.status && <div className="text-xs text-gray-600 mt-1">{condition.status}</div>}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </Section>
+                </div>
+              )}
+
+              {data.medications && data.medications.length > 0 && (
+                <div className="mt-4">
+                  <Section title="Medications">
+                    <ul className="divide-y">
+                      {data.medications.map((med: any, i: number) => (
+                        <li key={i} className="py-3 flex items-start justify-between">
+                          <div>
+                            <div className="text-sm font-medium">{med.name}</div>
+                            {(med.dosage || med.status) && (
+                              <div className="text-xs text-gray-600 mt-1">{[med.dosage, med.status].filter(Boolean).join(" • ")}</div>
+                            )}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </Section>
+                </div>
+              )}
+
+              {data.allergies && data.allergies.length > 0 && (
+                <div className="mt-4">
+                  <Section title="Allergies">
+                    <ul className="divide-y">
+                      {data.allergies.map((allergy: any, i: number) => (
+                        <li key={i} className="py-3 flex items-start justify-between">
+                          <div>
+                            <div className="text-sm font-medium">{allergy.substance}</div>
+                            {(allergy.reaction || allergy.severity) && (
+                              <div className="text-xs text-gray-600 mt-1">{[allergy.severity && `Severity: ${allergy.severity}`, allergy.reaction].filter(Boolean).join(" • ")}</div>
+                            )}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </Section>
+                </div>
+              )}
+
+              <div className="mt-6">
+                <button onClick={() => {
+                  localStorage.removeItem("epic:tokens:v1");
+                  localStorage.removeItem("epic:patient:v1");
+                  window.location.reload();
+                }} className="inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm text-red-600 hover:bg-red-50">
+                  Disconnect EHR
+                </button>
+              </div>
+            </div>
+          );
+        })()}
       </main>
 
       <footer className="w-full border-t mt-16">
