@@ -1,7 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import SiteHeader from "../../components/SiteHeader";
-import { getEpicAuthorizationEndpoint } from "../../lib/epic";
 
 export type EhrItem = {
   id: string;
