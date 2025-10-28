@@ -17,6 +17,11 @@ export default function EhrCallback(): JSX.Element {
         const errorParam = searchParams.get("error");
         const errorDescription = searchParams.get("error_description");
 
+        console.log("EhrCallback: Processing OAuth callback...", {
+          hasCode: !!code,
+          hasError: !!errorParam,
+        });
+
         if (errorParam) {
           setError(`EPIC Authorization failed: ${errorParam} - ${errorDescription || ""}`);
           setStage("error");
@@ -39,7 +44,11 @@ export default function EhrCallback(): JSX.Element {
         }
 
         // Exchange code for token using Netlify function (server-side)
-        console.log("Exchanging authorization code for token...");
+        console.log("Exchanging authorization code for token...", {
+          codeLength: code.length,
+          verifierLength: codeVerifier.length,
+        });
+
         let exchangeResponse: Response;
 
         try {
@@ -53,34 +62,58 @@ export default function EhrCallback(): JSX.Element {
               code_verifier: codeVerifier,
             }),
           });
+
+          console.log("Token exchange response received:", {
+            status: exchangeResponse.status,
+            statusText: exchangeResponse.statusText,
+          });
         } catch (fetchError) {
           console.error("Failed to reach token exchange function:", fetchError);
           throw new Error(
-            "Token exchange failed - server function not available. Try refreshing the page or try again in production."
+            "Could not connect to token exchange server. Please ensure the Netlify functions are deployed."
           );
         }
 
         if (!exchangeResponse.ok) {
           let errorMessage = `Token exchange failed: ${exchangeResponse.status}`;
           try {
-            const errorData = await exchangeResponse.json();
-            errorMessage = errorData.message || errorMessage;
-          } catch {
-            const errorText = await exchangeResponse.text();
-            console.error("Token exchange error response:", errorText);
-            errorMessage = errorText || errorMessage;
+            const contentType = exchangeResponse.headers.get("content-type");
+            console.log("Error response content-type:", contentType);
+
+            if (contentType && contentType.includes("application/json")) {
+              const errorData = await exchangeResponse.json();
+              errorMessage = errorData.message || errorData.error || errorMessage;
+            } else {
+              const errorText = await exchangeResponse.text();
+              console.error("Token exchange error response:", errorText.substring(0, 200));
+              errorMessage = errorText ? `Server error: ${errorText.substring(0, 100)}` : errorMessage;
+            }
+          } catch (e) {
+            console.error("Failed to parse error response:", e);
           }
           throw new Error(errorMessage);
         }
 
         let tokenData: any;
         try {
-          tokenData = await exchangeResponse.json();
+          const contentType = exchangeResponse.headers.get("content-type");
+          console.log("Success response content-type:", contentType);
+
+          if (contentType && contentType.includes("application/json")) {
+            tokenData = await exchangeResponse.json();
+          } else {
+            const responseText = await exchangeResponse.text();
+            console.error("Unexpected response type:", responseText.substring(0, 100));
+            throw new Error(`Expected JSON response, got: ${contentType}`);
+          }
+
+          console.log("Token data parsed successfully", {
+            hasAccessToken: !!tokenData.access_token,
+            hasPatient: !!tokenData.patient,
+          });
         } catch (parseError) {
           console.error("Failed to parse token exchange response:", parseError);
-          const responseText = await exchangeResponse.text();
-          console.error("Response text:", responseText);
-          throw new Error(`Invalid response from token exchange: ${responseText.substring(0, 100)}`);
+          throw new Error(`Invalid response from token exchange: ${parseError instanceof Error ? parseError.message : String(parseError)}`);
         }
 
         // Save tokens and patient data
