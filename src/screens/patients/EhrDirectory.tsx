@@ -125,26 +125,76 @@ export default function EhrDirectory(): JSX.Element {
       try {
         setConnecting(true);
         setPopupMessage("Opening EPIC authorization window...");
-        console.log("Requesting EPIC authorization URL from server...");
+        console.log("Initiating EPIC OAuth flow...");
 
-        // Get auth URL from server-side function
-        const response = await fetch("/.netlify/functions/epic-auth-url", {
-          method: "GET",
-        });
+        const clientId = (import.meta as any).env?.VITE_EPIC_CLIENT_ID;
+        const redirectUri = (import.meta as any).env?.VITE_EPIC_REDIRECT_URI;
+        const fhirUrl = (import.meta as any).env?.VITE_EPIC_FHIR_URL;
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || `Failed to generate auth URL: ${response.status}`);
+        if (!clientId || !redirectUri || !fhirUrl) {
+          throw new Error("Missing EPIC configuration environment variables");
         }
 
-        const data = await response.json();
-        const { authUrl, codeVerifier, state } = data;
+        console.log("Fetching EPIC SMART configuration...");
+        const wellKnownUrl = `${fhirUrl}.well-known/smart-configuration`;
+        const configResponse = await fetch(wellKnownUrl);
 
-        console.log("Received auth URL from server");
+        if (!configResponse.ok) {
+          throw new Error(`Failed to fetch EPIC SMART configuration: ${configResponse.status}`);
+        }
+
+        const smartConfig = await configResponse.json();
+        const authorizationEndpoint = smartConfig.authorization_endpoint;
+
+        if (!authorizationEndpoint) {
+          throw new Error("EPIC SMART configuration missing authorization_endpoint");
+        }
+
+        console.log("Authorization endpoint:", authorizationEndpoint);
+
+        // Generate PKCE code verifier and challenge
+        const randomBytes = crypto.getRandomValues(new Uint8Array(32));
+        const codeVerifier = btoa(String.fromCharCode.apply(null, Array.from(randomBytes)))
+          .replace(/\+/g, "-")
+          .replace(/\//g, "_")
+          .replace(/=/g, "");
+
+        // Calculate SHA256 hash of verifier
+        const encoder = new TextEncoder();
+        const data = encoder.encode(codeVerifier);
+        const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const codeChallenge = btoa(String.fromCharCode.apply(null, hashArray))
+          .replace(/\+/g, "-")
+          .replace(/\//g, "_")
+          .replace(/=/g, "");
+
+        // Generate state for CSRF protection
+        const state = crypto.getRandomValues(new Uint8Array(16));
+        const stateString = Array.from(state)
+          .map((b) => b.toString(16).padStart(2, "0"))
+          .join("");
+
+        console.log("PKCE generated successfully");
 
         // Store PKCE and state for callback
         sessionStorage.setItem("epic_code_verifier", codeVerifier);
-        sessionStorage.setItem("epic_state", state);
+        sessionStorage.setItem("epic_state", stateString);
+
+        // Build authorization URL
+        const params = new URLSearchParams({
+          response_type: "code",
+          client_id: clientId,
+          redirect_uri: redirectUri,
+          scope: "openid fhirUser",
+          state: stateString,
+          aud: fhirUrl.replace(/\/$/, ""),
+          code_challenge: codeChallenge,
+          code_challenge_method: "S256",
+        });
+
+        const authUrl = `${authorizationEndpoint}?${params.toString()}`;
+        console.log("Auth URL generated, opening popup...");
 
         // Open EPIC auth in new window (bypasses iframe sandbox)
         const authWindow = window.open(authUrl, "epic_auth", "width=800,height=600");
