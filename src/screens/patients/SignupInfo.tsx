@@ -127,7 +127,7 @@ export default function SignupInfo(): JSX.Element {
 
           <div className="rounded-2xl border bg-white p-5 shadow-sm space-y-5">
             <div>
-              <label className="block text-sm font-medium">Primary Condition(s)<span className="text-red-500">*</span></label>
+              <label className="block text-sm font-medium">Primary Condition(s)</label>
               <p className="text-xs text-gray-600 mt-1">You can add as many as apply. If you’re unsure of the exact name, type what you know, we’ll help match it.</p>
               <input value={condition} onChange={(e)=>setCondition(e.target.value)} className="mt-2 w-full rounded-full border px-4 py-2" placeholder="Search medical condition or keyword" />
               <label className="mt-2 flex items-center gap-2 text-sm text-gray-700">
@@ -145,17 +145,12 @@ export default function SignupInfo(): JSX.Element {
                   <p className="text-xs text-gray-600 mt-1">This can help match you to trials requiring recent or long-term diagnoses.</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium">Your Current Medications<span className="text-red-500">*</span></label>
+                  <label className="block text-sm font-medium">Your Current Medications</label>
                   <p className="text-xs text-gray-600 mt-1">Include prescription, over-the-counter, or supplements you take regularly. Add as many as apply.</p>
-                  <input value={meds} onChange={(e)=>setMeds(e.target.value)} className="mt-2 w-full rounded-full border px-4 py-2" placeholder="Start typing a medication name (e.g. Metformin, Lis...)" required={!healthy} />
+                  <input value={meds} onChange={(e)=>setMeds(e.target.value)} className="mt-2 w-full rounded-full border px-4 py-2" placeholder="Start typing a medication name (e.g. Metformin, Lis...)" />
                 </div>
               </>
             )}
-            <div>
-              <label className="block text-sm font-medium mb-2">Upload medical documents<span className="text-red-500">*</span></label>
-              <UploadBox onFiles={(files)=> setDocCount((prev)=> prev + (files ? files.length : 0))} />
-              {docCount > 0 && (<div className="mt-1 text-xs text-gray-600">{docCount} document(s) added</div>)}
-            </div>
           </div>
 
           <div className="space-y-3">
