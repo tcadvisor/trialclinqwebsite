@@ -1,7 +1,7 @@
-import express, { Request, Response } from "express";
-import path from "path";
-
-const __dirname = __dirname || path.resolve();
+const express = require("express");
+const path = require("path");
+type Request = express.Request;
+type Response = express.Response;
 
 const app = express();
 app.use(express.json());
