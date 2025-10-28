@@ -16,8 +16,8 @@ export default function SignupInfo(): JSX.Element {
   const [language, setLanguage] = React.useState("");
   const [conditions, setConditions] = React.useState<string[]>([]);
   const [conditionInput, setConditionInput] = React.useState("");
+  const [diagnosisYears, setDiagnosisYears] = React.useState<Record<string, string>>({});
   const [healthy, setHealthy] = React.useState(false);
-  const [year, setYear] = React.useState("");
   const [meds, setMeds] = React.useState("");
   const [agree1, setAgree1] = React.useState(false);
   const [agree2, setAgree2] = React.useState(false);
