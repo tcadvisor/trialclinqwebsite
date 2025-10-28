@@ -11,7 +11,7 @@ RUN npm ci
 # Copy source files
 COPY . .
 
-# Build the application
+# Build the React app and TypeScript server
 RUN npm run build
 
 # Runtime stage
@@ -19,15 +19,20 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Install a simple HTTP server
-RUN npm install -g serve
+# Copy package.json for runtime dependencies
+COPY package.json package-lock.json ./
 
-# Copy built application from builder
+# Install production dependencies only
+RUN npm ci --omit=dev
+
+# Copy built frontend from builder
 COPY --from=builder /app/dist ./dist
+
+# Copy compiled server from builder
+COPY --from=builder /app/server-dist ./server-dist
 
 # Expose port
 EXPOSE 3000
 
-# Start the server with SPA routing support
-# serve -s dist will serve the dist folder and handle SPA routing (serves index.html for all routes)
-CMD ["serve", "-s", "dist", "-l", "3000"]
+# Start the Express server
+CMD ["node", "server-dist/server.js"]
