@@ -169,14 +169,101 @@ export default function EhrCallback(): JSX.Element {
 
         if (tokenData.patientData) {
           console.log("[EPIC CALLBACK] Step 8: Saving patient data to localStorage...");
+
+          // Extract and normalize EPIC patient data for profile autofill
+          const epicData = tokenData.patientData;
+          const syncedAt = new Date().toISOString();
+          const syncedAtDisplay = new Date().toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+
+          // Build profile fields from EPIC data with source tracking
+          const epicProfileData: Record<string, { value: any; source: string; syncedAt: string }> = {};
+
+          // Autofill basic demographics
+          if (epicData.name) {
+            epicProfileData.name = { value: epicData.name, source: 'epic', syncedAt };
+          }
+          if (epicData.gender) {
+            const genderMap: Record<string, string> = {
+              'male': 'Male',
+              'female': 'Female',
+              'other': 'Non-binary',
+            };
+            const normalizedGender = genderMap[epicData.gender.toLowerCase()] || epicData.gender;
+            epicProfileData.gender = { value: normalizedGender, source: 'epic', syncedAt };
+          }
+          if (epicData.birthDate) {
+            const birthDate = new Date(epicData.birthDate);
+            const today = new Date();
+            let age = today.getFullYear() - birthDate.getFullYear();
+            const m = today.getMonth() - birthDate.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+            epicProfileData.age = { value: String(age), source: 'epic', syncedAt };
+          }
+
+          // Medications
+          if (epicData.medications && Array.isArray(epicData.medications.entry)) {
+            const medications = epicData.medications.entry.map((entry: any) => {
+              const resource = entry.resource || {};
+              return {
+                name: resource.medicationCodeableConcept?.text || resource.medicationReference?.display || 'Unknown Medication',
+                dose: resource.dosageInstruction?.[0]?.doseAndRate?.[0]?.doseQuantity?.value
+                  ? `${resource.dosageInstruction[0].doseAndRate[0].doseQuantity.value} ${resource.dosageInstruction[0].doseAndRate[0].doseQuantity.unit || ''}`
+                  : undefined,
+                schedule: resource.dosageInstruction?.[0]?.timing?.repeat?.frequency
+                  ? `${resource.dosageInstruction[0].timing.repeat.frequency}x daily`
+                  : undefined,
+              };
+            });
+            if (medications.length > 0) {
+              epicProfileData.medications = { value: medications, source: 'epic', syncedAt };
+            }
+          }
+
+          // Allergies
+          if (epicData.allergies && Array.isArray(epicData.allergies.entry)) {
+            const allergies = epicData.allergies.entry.map((entry: any) => {
+              const resource = entry.resource || {};
+              return {
+                name: resource.code?.text || resource.code?.coding?.[0]?.display || 'Unknown Allergy',
+                reaction: resource.reaction?.[0]?.manifestation?.[0]?.text || undefined,
+                severity: resource.reaction?.[0]?.severity || undefined,
+              };
+            });
+            if (allergies.length > 0) {
+              epicProfileData.allergies = { value: allergies, source: 'epic', syncedAt };
+            }
+          }
+
+          // Conditions
+          if (epicData.conditions && Array.isArray(epicData.conditions.entry)) {
+            const conditions = epicData.conditions.entry.map((entry: any) => {
+              const resource = entry.resource || {};
+              return resource.code?.text || resource.code?.coding?.[0]?.display || 'Unknown Condition';
+            });
+            if (conditions.length > 0) {
+              const primaryCondition = conditions[0];
+              epicProfileData.primaryCondition = { value: primaryCondition, source: 'epic', syncedAt };
+            }
+          }
+
           localStorage.setItem(
             "epic:patient:v1",
             JSON.stringify({
               patientId: tokenData.patient,
               patientData: tokenData.patientData,
-              connectedAt: new Date().toISOString(),
+              profileData: epicProfileData,
+              syncedAt: syncedAt,
+              syncedAtDisplay: syncedAtDisplay,
             })
           );
+
+          console.log("[EPIC CALLBACK] EPIC patient data saved with profile autofill data");
         }
 
         console.log("[EPIC CALLBACK] SUCCESS: All tokens and data saved. Authorization complete!");
