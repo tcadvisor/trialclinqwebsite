@@ -105,82 +105,35 @@ export default function EhrDirectory(): JSX.Element {
     if (item.isEpic) {
       try {
         setConnecting(true);
-        const clientId = (import.meta as any).env?.VITE_EPIC_CLIENT_ID;
-        const redirectUri = (import.meta as any).env?.VITE_EPIC_REDIRECT_URI;
-        const fhirUrl = (import.meta as any).env?.VITE_EPIC_FHIR_URL;
+        console.log("Requesting EPIC authorization URL from server...");
 
-        if (!clientId || !redirectUri || !fhirUrl) {
-          throw new Error(
-            "Missing EPIC configuration. Please ensure VITE_EPIC_CLIENT_ID, VITE_EPIC_REDIRECT_URI, and VITE_EPIC_FHIR_URL are set."
-          );
+        // Get auth URL from server-side function
+        const response = await fetch("/.netlify/functions/epic-auth-url", {
+          method: "GET",
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || `Failed to generate auth URL: ${response.status}`);
         }
 
-        console.log("Fetching EPIC authorization endpoint...");
-        const authEndpoint = await getEpicAuthorizationEndpoint();
-        console.log("Authorization endpoint:", authEndpoint);
+        const data = await response.json();
+        const { authUrl, codeVerifier, state } = data;
 
-        // Generate PKCE code verifier and challenge (per EPIC spec)
-        console.log("Generating PKCE...");
-        try {
-          // Create a random string using a safer method
-          const randomBytes = crypto.getRandomValues(new Uint8Array(32));
-          const randomChars = Array.from(randomBytes)
-            .map((byte) => String.fromCharCode(byte))
-            .join("");
-          const codeVerifier = btoa(randomChars)
-            .replace(/\+/g, "-")
-            .replace(/\//g, "_")
-            .replace(/=/g, "");
+        console.log("Received auth URL from server");
 
-          // Calculate SHA256 hash of verifier
-          const encoder = new TextEncoder();
-          const data = encoder.encode(codeVerifier);
-          const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-          const hashArray = Array.from(new Uint8Array(hashBuffer));
-          const hashChars = Array.from(hashArray)
-            .map((byte) => String.fromCharCode(byte))
-            .join("");
-          const codeChallenge = btoa(hashChars)
-            .replace(/\+/g, "-")
-            .replace(/\//g, "_")
-            .replace(/=/g, "");
+        // Store PKCE and state for callback
+        sessionStorage.setItem("epic_code_verifier", codeVerifier);
+        sessionStorage.setItem("epic_state", state);
 
-          console.log("PKCE generated successfully");
+        // Open EPIC auth in new window (bypasses iframe sandbox)
+        const authWindow = window.open(authUrl, "epic_auth", "width=800,height=600");
 
-          // Store for callback
-          sessionStorage.setItem("epic_code_verifier", codeVerifier);
-          sessionStorage.setItem("epic_state", Math.random().toString(36).substring(7));
-
-          const state = sessionStorage.getItem("epic_state") || "";
-          const aud = fhirUrl.replace(/\/$/, "");
-
-          const params = new URLSearchParams({
-            response_type: "code",
-            client_id: clientId,
-            redirect_uri: redirectUri,
-            scope: "openid fhirUser",
-            state: state,
-            aud: aud,
-            code_challenge: codeChallenge,
-            code_challenge_method: "S256",
-          });
-
-          const fullUrl = `${authEndpoint}?${params.toString()}`;
-          console.log("OAuth Request Parameters:", {
-            response_type: "code",
-            client_id: clientId,
-            redirect_uri: redirectUri,
-            scope: "openid fhirUser",
-            aud: aud,
-            code_challenge_method: "S256",
-          });
-          console.log("Redirecting to:", fullUrl);
-
-          window.location.href = fullUrl;
-        } catch (pkceError) {
-          console.error("PKCE generation failed:", pkceError);
-          throw new Error(`PKCE generation failed: ${pkceError instanceof Error ? pkceError.message : String(pkceError)}`);
+        if (!authWindow) {
+          throw new Error("Failed to open authorization window. Please check your popup blocker settings.");
         }
+
+        setConnecting(false);
       } catch (error) {
         console.error("Failed to initiate EPIC connection:", error);
         const errorMsg = error instanceof Error ? error.message : String(error);
