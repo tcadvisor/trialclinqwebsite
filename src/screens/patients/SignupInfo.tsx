@@ -74,39 +74,58 @@ export default function SignupInfo(): JSX.Element {
           <div className="rounded-2xl border bg-white p-5 shadow-sm space-y-5">
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium">Date of Birth*</label>
-                <input type="date" value={dob} onChange={(e)=>setDob(e.target.value)} className="mt-2 w-full rounded-full border px-4 py-2" placeholder="Select date of birth" />
+                <label className="block text-sm font-medium">Date of Birth<span className="text-red-500">*</span></label>
+                <input type="date" value={dob} onChange={(e)=>setDob(e.target.value)} className="mt-2 w-full rounded-full border px-4 py-2" required />
               </div>
               <div>
-                <label className="block text-sm font-medium">Travel Distance*</label>
-                <select value={distance} onChange={(e)=>setDistance(e.target.value)} className="mt-2 w-full rounded-full border px-4 py-2">
-                  <option value="">How far can you travel</option>
-                  {["5 miles","10 miles","25 miles","50 miles","100 miles","Any"].map((d)=> (<option key={d} value={d}>{d}</option>))}
+                <label className="block text-sm font-medium">Age<span className="text-red-500">*</span></label>
+                <input inputMode="numeric" pattern="[0-9]*" value={age} onChange={(e)=>setAge(e.target.value)} className="mt-2 w-full rounded-full border px-4 py-2" placeholder="e.g. 34" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium">Weight (lbs)<span className="text-red-500">*</span></label>
+                <input inputMode="decimal" value={weight} onChange={(e)=>setWeight(e.target.value)} className="mt-2 w-full rounded-full border px-4 py-2" placeholder="e.g. 165" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium">Biological Gender<span className="text-red-500">*</span></label>
+                <select value={gender} onChange={(e)=>setGender(e.target.value)} className="mt-2 w-full rounded-full border px-4 py-2" required>
+                  <option value="">Select gender</option>
+                  <option>Female</option>
+                  <option>Male</option>
+                  <option>Non-binary</option>
+                  <option>Prefer not to say</option>
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium">Location*</label>
-                <input value={zip} onChange={(e)=>setZip(e.target.value)} className="mt-2 w-full rounded-full border px-4 py-2" placeholder="Search with zipcode" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium">Biological Gender*</label>
-                <div className="mt-2 inline-flex items-center gap-2">
-                  <button type="button" onClick={()=>setGender("Male")} className={`px-4 py-2 rounded-full border ${gender === "Male" ? "bg-gray-900 text-white" : "bg-white"}`}>Male</button>
-                  <button type="button" onClick={()=>setGender("Female")} className={`px-4 py-2 rounded-full border ${gender === "Female" ? "bg-gray-900 text-white" : "bg-white"}`}>Female</button>
-                </div>
-              </div>
-            </div>
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium">Race*</label>
-                <select value={race} onChange={(e)=>setRace(e.target.value)} className="mt-2 w-full rounded-full border px-4 py-2">
+                <label className="block text-sm font-medium">Race<span className="text-red-500">*</span></label>
+                <select value={race} onChange={(e)=>setRace(e.target.value)} className="mt-2 w-full rounded-full border px-4 py-2" required>
                   <option value="">Select your race</option>
                   {["Asian","Black / African American","White","Native American","Pacific Islander","Other","Prefer not to say"].map((r)=> (<option key={r} value={r}>{r}</option>))}
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium">Primary Language Spoken*</label>
-                <input value={language} onChange={(e)=>setLanguage(e.target.value)} className="mt-2 w-full rounded-full border px-4 py-2" placeholder="Search your preferred language(s) for trial communication." />
+                <label className="block text-sm font-medium">Primary Language Spoken<span className="text-red-500">*</span></label>
+                <select value={language} onChange={(e)=>setLanguage(e.target.value)} className="mt-2 w-full rounded-full border px-4 py-2" required>
+                  <option value="">Select language</option>
+                  {[
+                    "English",
+                    "Spanish",
+                    "French",
+                    "German",
+                    "Italian",
+                    "Portuguese",
+                  ].map((lng)=> (<option key={lng} value={lng}>{lng}</option>))}
+                </select>
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium">Your Location (City, State or ZIP)<span className="text-red-500">*</span></label>
+                <input value={zip} onChange={(e)=>setZip(e.target.value)} className="mt-2 w-full rounded-full border px-4 py-2" placeholder="e.g. 10001 or Buffalo, NY" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium">Travel Distance<span className="text-red-500">*</span></label>
+                <select value={distance} onChange={(e)=>setDistance(e.target.value)} className="mt-2 w-full rounded-full border px-4 py-2" required>
+                  <option value="">How far can you travel</option>
+                  {["25mi","50mi","100mi","200mi","300mi","500mi","1000mi"].map((d)=> (<option key={d} value={d}>{d}</option>))}
+                </select>
               </div>
             </div>
           </div>
