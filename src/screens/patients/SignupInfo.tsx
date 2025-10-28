@@ -38,7 +38,7 @@ export default function SignupInfo(): JSX.Element {
       conditions, diagnosisYears, healthy, medications
     };
     try { localStorage.setItem("tc_eligibility_profile", JSON.stringify(profile)); } catch {}
-    navigate(`/patients/check${nctParam ? `?nctId=${encodeURIComponent(nctParam)}` : ""}`);
+    navigate("/patients/dashboard");
   }
 
   return (
