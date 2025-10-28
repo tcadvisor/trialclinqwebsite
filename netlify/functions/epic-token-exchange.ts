@@ -145,6 +145,7 @@ const handler: Handler = async (event) => {
 
     return {
       statusCode: 500,
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         error: "token_exchange_failed",
         message: message,
