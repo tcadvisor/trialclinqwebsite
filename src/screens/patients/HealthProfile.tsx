@@ -832,7 +832,7 @@ export default function HealthProfile(): JSX.Element {
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
-                      <Row label="Patient ID" value={profile.patientId} icon={<UserIcon className="w-4 h-4" />} />
+                      <Row label="Patient ID" value={profile.patientId} icon={<UserIcon className="w-4 h-4" />} epicSyncedAt={metadata.fieldSources.patientId?.syncedAt} />
                       <div className="flex items-center justify-between py-2">
                         <div className="flex items-center gap-2 text-gray-600">
                           <MailIcon className="w-4 h-4" />
@@ -844,12 +844,12 @@ export default function HealthProfile(): JSX.Element {
                           {!profile.emailVerified && <button onClick={()=>setProfile(p=>({...p, emailVerified:true}))} className="text-[#1033e5] text-xs underline">Verify Now</button>}
                         </div>
                       </div>
-                      <Row label="Age" value={profile.age} icon={<CalendarIcon className="w-4 h-4" />} missing={!profile.age} />
-                      <Row label="Weight" value={profile.weight} icon={<WeightIcon className="w-4 h-4" />} missing={!profile.weight} />
-                      <Row label="Phone Number" value={profile.phone} icon={<PhoneIcon className="w-4 h-4" />} missing={!profile.phone} />
-                      <Row label="Gender" value={profile.gender} icon={<UserIcon className="w-4 h-4" />} missing={!profile.gender} />
-                      <Row label="Race" value={profile.race} missing={!profile.race} />
-                      <Row label="Language Preference" value={profile.language} missing={!profile.language} />
+                      <Row label="Age" value={profile.age} icon={<CalendarIcon className="w-4 h-4" />} missing={!profile.age} epicSyncedAt={metadata.fieldSources.age?.syncedAt} />
+                      <Row label="Weight" value={profile.weight} icon={<WeightIcon className="w-4 h-4" />} missing={!profile.weight} epicSyncedAt={metadata.fieldSources.weight?.syncedAt} />
+                      <Row label="Phone Number" value={profile.phone} icon={<PhoneIcon className="w-4 h-4" />} missing={!profile.phone} epicSyncedAt={metadata.fieldSources.phone?.syncedAt} />
+                      <Row label="Gender" value={profile.gender} icon={<UserIcon className="w-4 h-4" />} missing={!profile.gender} epicSyncedAt={metadata.fieldSources.gender?.syncedAt} />
+                      <Row label="Race" value={profile.race} missing={!profile.race} epicSyncedAt={metadata.fieldSources.race?.syncedAt} />
+                      <Row label="Language Preference" value={profile.language} missing={!profile.language} epicSyncedAt={metadata.fieldSources.language?.syncedAt} />
                     </div>
                   )}
                 </Section>
