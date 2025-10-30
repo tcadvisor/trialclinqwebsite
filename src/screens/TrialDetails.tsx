@@ -87,7 +87,16 @@ export default function TrialDetails(): JSX.Element {
 
         <div className="flex items-center gap-2 text-sm text-gray-700 mb-6">
           <CheckCircle2 className="w-4 h-4 text-[#1033e5]" />
-          <span>{trial.aiScore}% TrialCliniq AI Score</span>
+          {isAuthenticated ? (
+            <span>{trial.aiScore}% TrialCliniq AI Score</span>
+          ) : (
+            <button
+              onClick={() => navigate("/patients/volunteer")}
+              className="text-[#1033e5] hover:underline font-medium"
+            >
+              See Matching Score
+            </button>
+          )}
         </div>
 
         <div className="flex flex-col md:flex-row gap-6">
