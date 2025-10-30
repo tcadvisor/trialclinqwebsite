@@ -247,8 +247,25 @@ export default function CtgovStudyDetails(): JSX.Element {
                 <h1 className="text-2xl sm:text-3xl font-semibold mb-3 leading-snug flex-1">{title}</h1>
                 <div className="flex items-center gap-3">
                   <div className="text-center">
-                    <ScoreRing value={aiScore ?? 0} />
-                    <div className="mt-1 text-xs text-gray-700">Match score</div>
+                    {isAuthenticated ? (
+                      <>
+                        <ScoreRing value={aiScore ?? 0} />
+                        <div className="mt-1 text-xs text-gray-700">Match score</div>
+                      </>
+                    ) : (
+                      <div className="relative inline-block">
+                        <div className="blur-sm pointer-events-none">
+                          <ScoreRing value={aiScore ?? 0} />
+                        </div>
+                        <button
+                          onClick={() => navigate("/patients/volunteer")}
+                          className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-lg hover:bg-black/30 transition-colors text-white font-medium text-sm"
+                        >
+                          See Matching Score
+                        </button>
+                        <div className="mt-1 text-xs text-gray-700">Match score</div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
