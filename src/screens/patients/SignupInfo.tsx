@@ -33,11 +33,34 @@ export default function SignupInfo(): JSX.Element {
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!canSubmit) return;
-    const profile = {
+
+    // Calculate age from DOB
+    const dobDate = new Date(dob);
+    const today = new Date();
+    let calculatedAge = today.getFullYear() - dobDate.getFullYear();
+    const m = today.getMonth() - dobDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < dobDate.getDate())) calculatedAge--;
+
+    // Save to health profile (tc_health_profile_v1)
+    const healthProfile = {
+      age: calculatedAge,
+      gender,
+      race,
+      language,
+      weight,
+      primaryCondition: !healthy && conditions.length > 0 ? conditions[0] : null,
+      medications: medications.map(m => ({ name: m })),
+      additionalInfo: !healthy ? `Location: ${zip}, Travel Distance: ${distance}, Diagnosed Conditions: ${conditions.map(c => `${c} (${diagnosisYears[c] || 'unknown'})`).join(', ')}` : `Location: ${zip}, Travel Distance: ${distance}, Healthy Volunteer`
+    };
+    try { localStorage.setItem("tc_health_profile_v1", JSON.stringify(healthProfile)); } catch {}
+
+    // Also save to eligibility profile for backwards compatibility
+    const eligibilityProfile = {
       dob, weight, gender, race, language, zip, distance,
       conditions, diagnosisYears, healthy, medications
     };
-    try { localStorage.setItem("tc_eligibility_profile", JSON.stringify(profile)); } catch {}
+    try { localStorage.setItem("tc_eligibility_profile", JSON.stringify(eligibilityProfile)); } catch {}
+
     navigate("/patients/dashboard");
   }
 
