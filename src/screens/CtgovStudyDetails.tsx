@@ -1,5 +1,5 @@
 import React from "react";
-import { useParams, Link, useLocation } from "react-router-dom";
+import { useParams, Link, useLocation, useNavigate } from "react-router-dom";
 import HomeHeader from "../components/HomeHeader";
 import { Card, CardContent } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
@@ -8,6 +8,7 @@ import { Loader2, MapPinIcon, ArrowLeft } from "lucide-react";
 import { fetchStudyByNctId, CtgovStudy, formatNearestSitePreview } from "../lib/ctgov";
 import { Button } from "../components/ui/button";
 import { readCurrentHealthProfile, computeStudyScore } from "../lib/matching";
+import { useAuth } from "../lib/auth";
 
 function splitParagraphs(text: string): string[] {
   const t = String(text || "").replace(/\r/g, "").trim();
@@ -99,6 +100,8 @@ function ScoreRing({ value }: { value: number }) {
 export default function CtgovStudyDetails(): JSX.Element {
   const { nctId = "" } = useParams();
   const location = useLocation() as any;
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const initScore = (location?.state && typeof location.state.score === 'number') ? location.state.score : null;
   const initWhy = (location?.state && typeof location.state.rationale === 'string') ? location.state.rationale : '';
   const [study, setStudy] = React.useState<CtgovStudy | null>(null);
@@ -244,8 +247,24 @@ export default function CtgovStudyDetails(): JSX.Element {
                 <h1 className="text-2xl sm:text-3xl font-semibold mb-3 leading-snug flex-1">{title}</h1>
                 <div className="flex items-center gap-3">
                   <div className="text-center">
-                    <ScoreRing value={aiScore ?? 0} />
-                    <div className="mt-1 text-xs text-gray-700">Match score</div>
+                    {isAuthenticated ? (
+                      <>
+                        <ScoreRing value={aiScore ?? 0} />
+                        <div className="mt-1 text-xs text-gray-700">Match score</div>
+                      </>
+                    ) : (
+                      <div className="relative inline-block">
+                        <div className="blur-md pointer-events-none opacity-60">
+                          <ScoreRing value={aiScore ?? 0} />
+                        </div>
+                        <button
+                          onClick={() => navigate("/patients/volunteer")}
+                          className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-blue-500/10 to-blue-600/20 hover:from-blue-500/20 hover:to-blue-600/30 rounded-lg transition-all text-blue-700 font-semibold text-xs px-3 py-2"
+                        >
+                          Unlock Score
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

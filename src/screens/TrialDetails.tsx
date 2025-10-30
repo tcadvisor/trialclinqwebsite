@@ -1,11 +1,12 @@
 import React from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { getTrialBySlug } from '../lib/trials';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Card, CardContent } from '../components/ui/card';
 import { Separator } from '../components/ui/separator';
 import { CalendarIcon, Share2Icon, MapPinIcon, FileTextIcon, CheckCircle2, InfoIcon } from 'lucide-react';
+import { useAuth } from '../lib/auth';
 
 const formatDate = (iso: string) => new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
 
@@ -21,6 +22,8 @@ const TabButton: React.FC<{ active: boolean; onClick: () => void; children: Reac
 
 export default function TrialDetails(): JSX.Element {
   const { slug } = useParams();
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const trial = slug ? getTrialBySlug(slug) : undefined;
 
   if (!trial) {
@@ -84,7 +87,16 @@ export default function TrialDetails(): JSX.Element {
 
         <div className="flex items-center gap-2 text-sm text-gray-700 mb-6">
           <CheckCircle2 className="w-4 h-4 text-[#1033e5]" />
-          <span>{trial.aiScore}% TrialCliniq AI Score</span>
+          {isAuthenticated ? (
+            <span>{trial.aiScore}% TrialCliniq AI Score</span>
+          ) : (
+            <button
+              onClick={() => navigate("/patients/volunteer")}
+              className="text-[#1033e5] hover:underline font-medium"
+            >
+              See Matching Score
+            </button>
+          )}
         </div>
 
         <div className="flex flex-col md:flex-row gap-6">
