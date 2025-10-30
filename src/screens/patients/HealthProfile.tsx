@@ -725,10 +725,10 @@ export default function HealthProfile(): JSX.Element {
     const note = prompt("Edit notes (optional)", current?.note || "") || undefined;
     setProfile((p) => ({
       ...p,
-      allergies: p.allergies.map((a, i) => i === index ? { name: name.trim(), reaction: reaction?.trim() || undefined, severity: sev, note: note?.trim() || undefined } : a),
+      allergies: (p.allergies || []).map((a, i) => i === index ? { name: name.trim(), reaction: reaction?.trim() || undefined, severity: sev, note: note?.trim() || undefined } : a),
     }));
   }
-  function removeAllergy(index: number) { setProfile((p) => ({ ...p, allergies: p.allergies.filter((_, i) => i !== index) })); }
+  function removeAllergy(index: number) { setProfile((p) => ({ ...p, allergies: (p.allergies || []).filter((_, i) => i !== index) })); }
 
   // Medication handlers
   function addMedication() { setAddingMedication(true); }
@@ -754,10 +754,10 @@ export default function HealthProfile(): JSX.Element {
     const schedule = prompt("Edit schedule (optional)", current?.schedule || "") || undefined;
     setProfile((p) => ({
       ...p,
-      medications: p.medications.map((m, i) => i === index ? { name: name.trim(), dose: dose?.trim() || undefined, amountDaily: amountDaily?.trim() || undefined, schedule: schedule?.trim() || undefined } : m),
+      medications: (p.medications || []).map((m, i) => i === index ? { name: name.trim(), dose: dose?.trim() || undefined, amountDaily: amountDaily?.trim() || undefined, schedule: schedule?.trim() || undefined } : m),
     }));
   }
-  function removeMedication(index: number) { setProfile((p) => ({ ...p, medications: p.medications.filter((_, i) => i !== index) })); }
+  function removeMedication(index: number) { setProfile((p) => ({ ...p, medications: (p.medications || []).filter((_, i) => i !== index) })); }
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
@@ -861,7 +861,7 @@ export default function HealthProfile(): JSX.Element {
                   {metadata.fieldSources.allergies?.syncedAt && <EpicBadge syncedAt={metadata.fieldSources.allergies.syncedAt} />}
                 </div>}>
                   <ul className="divide-y">
-                    {profile.allergies.map((a, i) => (
+                    {(profile.allergies || []).map((a, i) => (
                       <li key={i} className="py-3 flex items-start justify-between">
                         <div>
                           <div className="text-sm font-medium">
@@ -943,7 +943,7 @@ export default function HealthProfile(): JSX.Element {
                   {metadata.fieldSources.medications?.syncedAt && <EpicBadge syncedAt={metadata.fieldSources.medications.syncedAt} />}
                 </div>}>
                   <ul className="divide-y">
-                    {profile.medications.map((m, i) => (
+                    {(profile.medications || []).map((m, i) => (
                       <li key={i} className="py-3 flex items-start justify-between">
                         <div>
                           <div className="text-sm font-medium">{m.name}</div>
@@ -1110,9 +1110,9 @@ export default function HealthProfile(): JSX.Element {
                           <button onClick={() => {
                             const name = prompt('Edit therapy name', t.name) || t.name;
                             const date = prompt('Edit date (optional)', t.date || '') || undefined;
-                            setProfile(p=>({...p, priorTherapies: p.priorTherapies.map((x,idx)=> idx===i? { name: name.trim(), date: date?.trim() }: x)}));
+                            setProfile(p=>({...p, priorTherapies: (p.priorTherapies || []).map((x,idx)=> idx===i? { name: name.trim(), date: date?.trim() }: x)}));
                           }} aria-label="edit"><PencilIcon className="w-4 h-4"/></button>
-                          <button onClick={() => setProfile(p=>({...p, priorTherapies: p.priorTherapies.filter((_,idx)=>idx!==i)}))} aria-label="delete"><Trash2Icon className="w-4 h-4"/></button>
+                          <button onClick={() => setProfile(p=>({...p, priorTherapies: (p.priorTherapies || []).filter((_,idx)=>idx!==i)}))} aria-label="delete"><Trash2Icon className="w-4 h-4"/></button>
                         </div>
                       </li>
                     ))}
