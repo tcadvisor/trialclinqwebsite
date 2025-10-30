@@ -283,7 +283,7 @@ export async function scoreTopKWithAI<T extends { nctId: string; aiScore: number
         }
       }
 
-      await Promise.all([worker(0), worker(1), worker(2)]);
+      await Promise.allSettled([worker(0), worker(1), worker(2)]);
 
       // If we got results, write to cache and notify UI
       let updated = false;
