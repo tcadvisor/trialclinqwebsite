@@ -1240,11 +1240,11 @@ export default function HealthProfile(): JSX.Element {
                 </div>
               )}
 
-              {data.medications && data.medications.length > 0 && (
+              {Array.isArray(data.medications) && data.medications.length > 0 && (
                 <div className="mt-4">
                   <Section title="Medications">
                     <ul className="divide-y">
-                      {data.medications.map((med: any, i: number) => (
+                      {(data.medications || []).map((med: any, i: number) => (
                         <li key={i} className="py-3 flex items-start justify-between">
                           <div>
                             <div className="text-sm font-medium">{med.name}</div>
