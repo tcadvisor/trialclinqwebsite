@@ -1,5 +1,5 @@
 import React from "react";
-import { useParams, Link, useLocation } from "react-router-dom";
+import { useParams, Link, useLocation, useNavigate } from "react-router-dom";
 import HomeHeader from "../components/HomeHeader";
 import { Card, CardContent } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
@@ -8,6 +8,7 @@ import { Loader2, MapPinIcon, ArrowLeft } from "lucide-react";
 import { fetchStudyByNctId, CtgovStudy, formatNearestSitePreview } from "../lib/ctgov";
 import { Button } from "../components/ui/button";
 import { readCurrentHealthProfile, computeStudyScore } from "../lib/matching";
+import { useAuth } from "../lib/auth";
 
 function splitParagraphs(text: string): string[] {
   const t = String(text || "").replace(/\r/g, "").trim();
