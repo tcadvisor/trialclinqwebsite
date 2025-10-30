@@ -43,14 +43,35 @@ export default function SignupInfo(): JSX.Element {
 
     // Save to health profile (tc_health_profile_v1)
     const healthProfile = {
-      age: calculatedAge,
+      patientId: "CUS_j2kthfmgv3bzr5r",
+      email: "",
+      emailVerified: false,
+      age: String(calculatedAge),
+      weight,
+      phone: "",
       gender,
       race,
       language,
-      weight,
-      primaryCondition: !healthy && conditions.length > 0 ? conditions[0] : null,
+      bloodGroup: "",
+      genotype: "",
+      hearingImpaired: false,
+      visionImpaired: false,
+      primaryCondition: !healthy && conditions.length > 0 ? conditions[0] : "",
+      diagnosed: !healthy && conditions.length > 0 ? diagnosisYears[conditions[0]] || "" : "",
+      allergies: [],
       medications: medications.map(m => ({ name: m })),
-      additionalInfo: !healthy ? `Location: ${zip}, Travel Distance: ${distance}, Diagnosed Conditions: ${conditions.map(c => `${c} (${diagnosisYears[c] || 'unknown'})`).join(', ')}` : `Location: ${zip}, Travel Distance: ${distance}, Healthy Volunteer`
+      additionalInfo: !healthy ? `Location: ${zip}, Travel Distance: ${distance}, Diagnosed Conditions: ${conditions.map(c => `${c} (${diagnosisYears[c] || 'unknown'})`).join(', ')}` : `Location: ${zip}, Travel Distance: ${distance}, Healthy Volunteer`,
+      ecog: "",
+      diseaseStage: "",
+      biomarkers: "",
+      priorTherapies: [],
+      comorbidityCardiac: false,
+      comorbidityRenal: false,
+      comorbidityHepatic: false,
+      comorbidityAutoimmune: false,
+      infectionHIV: false,
+      infectionHBV: false,
+      infectionHCV: false
     };
     try { localStorage.setItem("tc_health_profile_v1", JSON.stringify(healthProfile)); } catch {}
 
