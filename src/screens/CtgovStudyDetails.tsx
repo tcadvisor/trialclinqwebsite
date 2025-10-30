@@ -100,6 +100,8 @@ function ScoreRing({ value }: { value: number }) {
 export default function CtgovStudyDetails(): JSX.Element {
   const { nctId = "" } = useParams();
   const location = useLocation() as any;
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const initScore = (location?.state && typeof location.state.score === 'number') ? location.state.score : null;
   const initWhy = (location?.state && typeof location.state.rationale === 'string') ? location.state.rationale : '';
   const [study, setStudy] = React.useState<CtgovStudy | null>(null);
