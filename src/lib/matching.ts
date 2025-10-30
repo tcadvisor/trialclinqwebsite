@@ -645,18 +645,24 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
     for (let i = 0; i < top.length; i += 10) chunks.push(top.slice(i, i + 10));
     const toRemove = new Set<string>();
     for (const chunk of chunks) {
-      const details = await Promise.all(chunk.map(async (t) => {
-        try { return await fetchStudyByNctId(t.nctId); } catch { return { studies: [] as CtgovStudy[] }; }
-      }));
-      for (let i = 0; i < chunk.length; i++) {
-        const t = chunk[i];
-        const d = details[i];
-        const s = (d.studies && d.studies[0]) as CtgovStudy | undefined;
-        const elig = (s as any)?.protocolSection?.eligibilityModule?.eligibilityCriteria as string | undefined;
-        const okAge = isAgeCompatible(profile.age, s || ({} as CtgovStudy), elig);
-        const okGender = isGenderCompatible(profile.gender, s || ({} as CtgovStudy), elig);
-        const adv = evaluateAdvancedEligibility(profile, s || ({} as CtgovStudy), elig);
-        if (!okAge || !okGender || !adv.ok) toRemove.add(t.nctId);
+      try {
+        const details = await Promise.allSettled(chunk.map(async (t) => {
+          try { return await fetchStudyByNctId(t.nctId); } catch { return { studies: [] as CtgovStudy[] }; }
+        }));
+        for (let i = 0; i < chunk.length; i++) {
+          const t = chunk[i];
+          const result = details[i];
+          const d = result.status === 'fulfilled' ? result.value : { studies: [] as CtgovStudy[] };
+          const s = (d.studies && d.studies[0]) as CtgovStudy | undefined;
+          const elig = (s as any)?.protocolSection?.eligibilityModule?.eligibilityCriteria as string | undefined;
+          const okAge = isAgeCompatible(profile.age, s || ({} as CtgovStudy), elig);
+          const okGender = isGenderCompatible(profile.gender, s || ({} as CtgovStudy), elig);
+          const adv = evaluateAdvancedEligibility(profile, s || ({} as CtgovStudy), elig);
+          if (!okAge || !okGender || !adv.ok) toRemove.add(t.nctId);
+        }
+      } catch {
+        // If chunk fails entirely, skip eligibility filtering for this chunk
+        continue;
       }
     }
     return items.filter((t) => !toRemove.has(t.nctId));
