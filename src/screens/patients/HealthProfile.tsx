@@ -1223,11 +1223,11 @@ export default function HealthProfile(): JSX.Element {
                 </div>
               </Section>
 
-              {data.conditions && data.conditions.length > 0 && (
+              {Array.isArray(data.conditions) && data.conditions.length > 0 && (
                 <div className="mt-4">
                   <Section title="Conditions">
                     <ul className="divide-y">
-                      {data.conditions.map((condition: any, i: number) => (
+                      {(data.conditions || []).map((condition: any, i: number) => (
                         <li key={i} className="py-3 flex items-start justify-between">
                           <div>
                             <div className="text-sm font-medium">{condition.display || condition.code}</div>
