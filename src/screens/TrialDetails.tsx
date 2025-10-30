@@ -22,6 +22,8 @@ const TabButton: React.FC<{ active: boolean; onClick: () => void; children: Reac
 
 export default function TrialDetails(): JSX.Element {
   const { slug } = useParams();
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const trial = slug ? getTrialBySlug(slug) : undefined;
 
   if (!trial) {
