@@ -33,11 +33,55 @@ export default function SignupInfo(): JSX.Element {
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!canSubmit) return;
-    const profile = {
+
+    // Calculate age from DOB
+    const dobDate = new Date(dob);
+    const today = new Date();
+    let calculatedAge = today.getFullYear() - dobDate.getFullYear();
+    const m = today.getMonth() - dobDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < dobDate.getDate())) calculatedAge--;
+
+    // Save to health profile (tc_health_profile_v1)
+    const healthProfile = {
+      patientId: "CUS_j2kthfmgv3bzr5r",
+      email: "",
+      emailVerified: false,
+      age: String(calculatedAge),
+      weight,
+      phone: "",
+      gender,
+      race,
+      language,
+      bloodGroup: "",
+      genotype: "",
+      hearingImpaired: false,
+      visionImpaired: false,
+      primaryCondition: !healthy && conditions.length > 0 ? conditions[0] : "",
+      diagnosed: !healthy && conditions.length > 0 ? diagnosisYears[conditions[0]] || "" : "",
+      allergies: [],
+      medications: medications.map(m => ({ name: m })),
+      additionalInfo: !healthy ? `Location: ${zip}, Travel Distance: ${distance}, Diagnosed Conditions: ${conditions.map(c => `${c} (${diagnosisYears[c] || 'unknown'})`).join(', ')}` : `Location: ${zip}, Travel Distance: ${distance}, Healthy Volunteer`,
+      ecog: "",
+      diseaseStage: "",
+      biomarkers: "",
+      priorTherapies: [],
+      comorbidityCardiac: false,
+      comorbidityRenal: false,
+      comorbidityHepatic: false,
+      comorbidityAutoimmune: false,
+      infectionHIV: false,
+      infectionHBV: false,
+      infectionHCV: false
+    };
+    try { localStorage.setItem("tc_health_profile_v1", JSON.stringify(healthProfile)); } catch {}
+
+    // Also save to eligibility profile for backwards compatibility
+    const eligibilityProfile = {
       dob, weight, gender, race, language, zip, distance,
       conditions, diagnosisYears, healthy, medications
     };
-    try { localStorage.setItem("tc_eligibility_profile", JSON.stringify(profile)); } catch {}
+    try { localStorage.setItem("tc_eligibility_profile", JSON.stringify(eligibilityProfile)); } catch {}
+
     navigate("/patients/dashboard");
   }
 
@@ -111,54 +155,60 @@ export default function SignupInfo(): JSX.Element {
             <div>
               <label className="block text-sm font-medium">Primary Condition(s)</label>
               <p className="text-xs text-gray-600 mt-1">You can add as many as apply. If you’re unsure of the exact name, type what you know, we’ll help match it.</p>
-              <div className="mt-2 flex gap-2">
-                <input
-                  value={conditionInput}
-                  onChange={(e)=>setConditionInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      if (conditionInput.trim()) {
-                        setConditions([...conditions, conditionInput.trim()]);
-                        setConditionInput("");
-                      }
-                    }
-                  }}
-                  className="flex-1 w-full rounded-full border px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Search medical condition or keyword"
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (conditionInput.trim()) {
-                      setConditions([...conditions, conditionInput.trim()]);
-                      setConditionInput("");
-                    }
-                  }}
-                  className="rounded-full bg-blue-600 text-white px-4 py-2 text-sm font-medium hover:bg-blue-700 whitespace-nowrap"
-                >
-                  Add
-                </button>
-              </div>
-              {conditions.length > 0 && (
-                <div className="mt-3 space-y-2">
-                  {conditions.map((cond, idx) => (
-                    <div key={idx} className="flex items-center justify-between gap-2 rounded-full bg-blue-50 px-3 py-2">
-                      <span className="text-sm text-gray-900">{cond}</span>
-                      <button
-                        type="button"
-                        onClick={() => setConditions(conditions.filter((_, i) => i !== idx))}
-                        className="text-gray-500 hover:text-red-600 font-bold"
-                      >
-                        ✕
-                      </button>
+              {!healthy && (
+                <>
+                  <div className="mt-2 flex gap-2">
+                    <input
+                      value={conditionInput}
+                      onChange={(e)=>setConditionInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          if (conditionInput.trim()) {
+                            setConditions([...conditions, conditionInput.trim()]);
+                            setConditionInput("");
+                          }
+                        }
+                      }}
+                      className="flex-1 w-full rounded-full border px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Search medical condition or keyword"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (conditionInput.trim()) {
+                          setConditions([...conditions, conditionInput.trim()]);
+                          setConditionInput("");
+                        }
+                      }}
+                      className="rounded-full bg-blue-600 text-white px-4 py-2 text-sm font-medium hover:bg-blue-700 whitespace-nowrap"
+                    >
+                      Add
+                    </button>
+                  </div>
+                  {conditions.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      {conditions.map((cond, idx) => (
+                        <div key={idx} className="flex items-center justify-between gap-2 rounded-full bg-blue-50 px-3 py-2">
+                          <span className="text-sm text-gray-900">{cond}</span>
+                          <button
+                            type="button"
+                            onClick={() => setConditions(conditions.filter((_, i) => i !== idx))}
+                            className="text-gray-500 hover:text-red-600 font-bold"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  )}
+                </>
               )}
-              <label className="mt-3 flex items-center gap-2 text-sm text-gray-700">
-                <input type="checkbox" checked={healthy} onChange={(e)=>setHealthy(e.target.checked)} className="rounded" /> I am a healthy volunteer
-              </label>
+              {conditions.length === 0 && (
+                <label className="mt-3 flex items-center gap-2 text-sm text-gray-700">
+                  <input type="checkbox" checked={healthy} onChange={(e)=>setHealthy(e.target.checked)} className="rounded" /> I am a healthy volunteer
+                </label>
+              )}
             </div>
             {conditions.length > 0 && !healthy && (
               <>
