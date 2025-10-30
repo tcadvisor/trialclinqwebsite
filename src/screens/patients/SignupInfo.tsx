@@ -59,7 +59,7 @@ export default function SignupInfo(): JSX.Element {
       primaryCondition: !healthy && conditions.length > 0 ? conditions[0] : "",
       diagnosed: !healthy && conditions.length > 0 ? diagnosisYears[conditions[0]] || "" : "",
       allergies: [],
-      medications: medications.map(m => ({ name: m })),
+      medications: medications.length > 0 ? medications.map(m => ({ name: m, dose: "", amountDaily: "", schedule: "" })) : [],
       additionalInfo: !healthy ? `Location: ${zip}, Travel Distance: ${distance}, Diagnosed Conditions: ${conditions.map(c => `${c} (${diagnosisYears[c] || 'unknown'})`).join(', ')}` : `Location: ${zip}, Travel Distance: ${distance}, Healthy Volunteer`,
       ecog: "",
       diseaseStage: "",
@@ -74,6 +74,10 @@ export default function SignupInfo(): JSX.Element {
       infectionHCV: false
     };
     try { localStorage.setItem("tc_health_profile_v1", JSON.stringify(healthProfile)); } catch {}
+
+    // Dispatch event to notify HealthProfile to refresh
+    try { window.dispatchEvent(new Event('storage')); } catch {}
+    try { window.dispatchEvent(new CustomEvent('tc_profile_updated', { detail: { source: 'SignupInfo' } })); } catch {}
 
     // Also save to eligibility profile for backwards compatibility
     const eligibilityProfile = {
