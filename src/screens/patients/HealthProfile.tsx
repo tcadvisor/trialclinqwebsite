@@ -1259,11 +1259,11 @@ export default function HealthProfile(): JSX.Element {
                 </div>
               )}
 
-              {data.allergies && data.allergies.length > 0 && (
+              {Array.isArray(data.allergies) && data.allergies.length > 0 && (
                 <div className="mt-4">
                   <Section title="Allergies">
                     <ul className="divide-y">
-                      {data.allergies.map((allergy: any, i: number) => (
+                      {(data.allergies || []).map((allergy: any, i: number) => (
                         <li key={i} className="py-3 flex items-start justify-between">
                           <div>
                             <div className="text-sm font-medium">{allergy.substance}</div>
