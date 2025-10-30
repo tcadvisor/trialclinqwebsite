@@ -254,16 +254,15 @@ export default function CtgovStudyDetails(): JSX.Element {
                       </>
                     ) : (
                       <div className="relative inline-block">
-                        <div className="blur-sm pointer-events-none">
+                        <div className="blur-md pointer-events-none opacity-60">
                           <ScoreRing value={aiScore ?? 0} />
                         </div>
                         <button
                           onClick={() => navigate("/patients/volunteer")}
-                          className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-lg hover:bg-black/30 transition-colors text-white font-medium text-sm"
+                          className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-blue-500/10 to-blue-600/20 hover:from-blue-500/20 hover:to-blue-600/30 rounded-lg transition-all text-blue-700 font-semibold text-xs px-3 py-2"
                         >
-                          See Matching Score
+                          Unlock Score
                         </button>
-                        <div className="mt-1 text-xs text-gray-700">Match score</div>
                       </div>
                     )}
                   </div>
