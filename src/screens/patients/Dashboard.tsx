@@ -5,6 +5,27 @@ import PatientHeader from "../../components/PatientHeader";
 import { useAuth } from "../../lib/auth";
 import { computeProfileCompletion } from "../../lib/profile";
 
+// Session cache for trial matches
+let cachedMatches: LiteTrial[] | null = null;
+let cachedProfileHash: string = "";
+
+function getProfileHash(): string {
+  try {
+    const profile = localStorage.getItem("tc_health_profile_v1");
+    const loc = localStorage.getItem("tc_eligibility_profile");
+    const data = (profile || "") + (loc || "");
+    // Simple hash
+    let hash = 0;
+    for (let i = 0; i < data.length; i++) {
+      hash = ((hash << 5) - hash) + data.charCodeAt(i);
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    return String(hash);
+  } catch {
+    return "";
+  }
+}
+
 export default function Dashboard(): JSX.Element {
   const { user } = useAuth();
   const name = user ? `${user.firstName} ${user.lastName}` : "";
@@ -17,8 +38,17 @@ export default function Dashboard(): JSX.Element {
     let cancelled = false;
     const update = async () => {
       try {
+        const currentHash = getProfileHash();
+        // Only refetch if profile has changed
+        if (cachedMatches !== null && cachedProfileHash === currentHash) {
+          setItems(cachedMatches);
+          return;
+        }
+
         const list = await getRealMatchedTrialsForCurrentUser(50);
         if (!cancelled) {
+          cachedMatches = list;
+          cachedProfileHash = currentHash;
           setItems(list);
           setNoResultsWithinRadius((list as any).__noResultsWithinRadius === true);
         }
@@ -30,15 +60,12 @@ export default function Dashboard(): JSX.Element {
       }
     };
     update();
+    // Only refetch on storage change (profile update), not on focus/visibility
     const handler = () => update();
     window.addEventListener("storage", handler);
-    window.addEventListener("visibilitychange", handler);
-    window.addEventListener("focus", handler as any);
     return () => {
       cancelled = true;
       window.removeEventListener("storage", handler);
-      window.removeEventListener("visibilitychange", handler);
-      window.removeEventListener("focus", handler as any);
     };
   }, []);
   useEffect(() => {
