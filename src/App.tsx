@@ -1,43 +1,56 @@
 // src/App.tsx
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { SearchResults } from "./screens/SearchResults";
-import Home from "./routes/Home2/screens/Home";
-import Faq from "./screens/patients/Faq";
-import Privacy from "./screens/patients/Privacy";
-import Volunteer from "./screens/patients/Volunteer";
-import Login from "./screens/patients/Login";
-import InsiderBlog from "./screens/sites/InsiderBlog";
-import VisibilityOptions from "./screens/sites/VisibilityOptions";
-import MulticenterListings from "./screens/sites/MulticenterListings";
-import InvestigatorSupport from "./screens/support/InvestigatorSupport";
-import CreateAccount from "./screens/providers/CreateAccount";
-import ProviderLogin from "./screens/providers/Login";
-import SiteInformation from "./screens/providers/SiteInformation";
-import InvestigatorInformation from "./screens/providers/InvestigatorInformation";
-import ProviderWelcome from "./screens/providers/Welcome";
-import ProviderDashboard from "./screens/providers/ProviderDashboard";
-import ProviderTrials from "./screens/providers/Trials";
-import AllTrials from "./screens/providers/AllTrials";
-import Appointments from "./screens/providers/Appointments";
-import Volunteers from "./screens/providers/Volunteers";
-import Dashboard from "./screens/patients/Dashboard";
-import TrialDetails from "./screens/TrialDetails";
-import CtgovStudyDetails from "./screens/CtgovStudyDetails";
-import EligibleTrials from "./screens/patients/EligibleTrials";
-import HealthProfile from "./screens/patients/HealthProfile";
-import Settings from "./screens/patients/Settings";
-import EligibilityCheck from "./screens/patients/EligibilityCheck";
-import EligibilityResult from "./screens/patients/EligibilityResult";
-import ContactUs from "./screens/support/ContactUs";
-import BookDemo from "./screens/support/BookDemo";
-import EhrDirectory from "./screens/patients/EhrDirectory";
-import EhrCallback from "./screens/patients/EhrCallback";
-import Consent from "./screens/patients/Consent";
-import SignupProcessing from "./screens/patients/SignupProcessing";
-import Connect from "./screens/patients/Connect";
-import SignupInfo from "./screens/patients/SignupInfo";
-import SignupPersonalDetails from "./screens/patients/SignupPersonalDetails";
+import { Suspense, lazy } from "react";
 import { RequireAuth, RequireRole } from "./lib/auth";
+
+const SearchResults = lazy(() => import("./screens/SearchResults").then(m => ({ default: m.SearchResults })));
+const Home = lazy(() => import("./routes/Home2/screens/Home"));
+const Faq = lazy(() => import("./screens/patients/Faq"));
+const Privacy = lazy(() => import("./screens/patients/Privacy"));
+const Volunteer = lazy(() => import("./screens/patients/Volunteer"));
+const Login = lazy(() => import("./screens/patients/Login"));
+const InsiderBlog = lazy(() => import("./screens/sites/InsiderBlog"));
+const VisibilityOptions = lazy(() => import("./screens/sites/VisibilityOptions"));
+const MulticenterListings = lazy(() => import("./screens/sites/MulticenterListings"));
+const InvestigatorSupport = lazy(() => import("./screens/support/InvestigatorSupport"));
+const CreateAccount = lazy(() => import("./screens/providers/CreateAccount"));
+const ProviderLogin = lazy(() => import("./screens/providers/Login"));
+const SiteInformation = lazy(() => import("./screens/providers/SiteInformation"));
+const InvestigatorInformation = lazy(() => import("./screens/providers/InvestigatorInformation"));
+const ProviderWelcome = lazy(() => import("./screens/providers/Welcome"));
+const ProviderDashboard = lazy(() => import("./screens/providers/ProviderDashboard"));
+const ProviderTrials = lazy(() => import("./screens/providers/Trials"));
+const AllTrials = lazy(() => import("./screens/providers/AllTrials"));
+const Appointments = lazy(() => import("./screens/providers/Appointments"));
+const Volunteers = lazy(() => import("./screens/providers/Volunteers"));
+const Dashboard = lazy(() => import("./screens/patients/Dashboard"));
+const TrialDetails = lazy(() => import("./screens/TrialDetails"));
+const CtgovStudyDetails = lazy(() => import("./screens/CtgovStudyDetails"));
+const EligibleTrials = lazy(() => import("./screens/patients/EligibleTrials"));
+const HealthProfile = lazy(() => import("./screens/patients/HealthProfile"));
+const Settings = lazy(() => import("./screens/patients/Settings"));
+const EligibilityCheck = lazy(() => import("./screens/patients/EligibilityCheck"));
+const EligibilityResult = lazy(() => import("./screens/patients/EligibilityResult"));
+const ContactUs = lazy(() => import("./screens/support/ContactUs"));
+const BookDemo = lazy(() => import("./screens/support/BookDemo"));
+const EhrDirectory = lazy(() => import("./screens/patients/EhrDirectory"));
+const EhrCallback = lazy(() => import("./screens/patients/EhrCallback"));
+const Consent = lazy(() => import("./screens/patients/Consent"));
+const SignupProcessing = lazy(() => import("./screens/patients/SignupProcessing"));
+const Connect = lazy(() => import("./screens/patients/Connect"));
+const SignupInfo = lazy(() => import("./screens/patients/SignupInfo"));
+const SignupPersonalDetails = lazy(() => import("./screens/patients/SignupPersonalDetails"));
+
+function LoadingFallback() {
+  return (
+    <div className="w-full h-screen flex items-center justify-center bg-white">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+        <p className="text-gray-600">Loading...</p>
+      </div>
+    </div>
+  );
+}
 
 function App() {
   return (
