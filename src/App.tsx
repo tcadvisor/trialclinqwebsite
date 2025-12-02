@@ -55,46 +55,48 @@ function LoadingFallback() {
 function App() {
   return (
     <Router>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/search-results" element={<SearchResults />} />
-        <Route path="/patients/find-trial" element={<SearchResults />} />
-        <Route path="/patients/faq" element={<Faq />} />
-        <Route path="/patients/privacy" element={<Privacy />} />
-        <Route path="/patients/volunteer" element={<Volunteer />} />
-        <Route path="/patients/consent" element={<Consent />} />
-        <Route path="/patients/connect" element={<Connect />} />
-        <Route path="/patients/signup-info" element={<SignupInfo />} />
-        <Route path="/patients/signup-personal" element={<SignupPersonalDetails />} />
-        <Route path="/patients/ehr" element={<EhrDirectory />} />
-        <Route path="/patients/ehr-callback" element={<EhrCallback />} />
-        <Route path="/patients/check" element={<EligibilityCheck />} />
-        <Route path="/patients/result" element={<EligibilityResult />} />
-        <Route path="/patients/login" element={<Login />} />
-        <Route path="/sites/blog" element={<InsiderBlog />} />
-        <Route path="/sites/visibility" element={<VisibilityOptions />} />
-        <Route path="/sites/multicenter" element={<MulticenterListings />} />
-        <Route path="/support/investigators" element={<InvestigatorSupport />} />
-        <Route path="/providers/create" element={<CreateAccount />} />
-        <Route path="/providers/login" element={<ProviderLogin />} />
-        <Route path="/providers/site-information" element={<SiteInformation />} />
-        <Route path="/providers/investigator-information" element={<InvestigatorInformation />} />
-        <Route path="/providers/welcome" element={<ProviderWelcome />} />
-        <Route path="/providers/trials" element={<RequireRole role="provider" redirectTo="/providers/login"><ProviderTrials /></RequireRole>} />
-        <Route path="/providers/trials/all" element={<RequireRole role="provider" redirectTo="/providers/login"><AllTrials /></RequireRole>} />
-        <Route path="/providers/dashboard" element={<RequireRole role="provider" redirectTo="/providers/login"><ProviderDashboard /></RequireRole>} />
-        <Route path="/providers/appointments" element={<RequireRole role="provider" redirectTo="/providers/login"><Appointments /></RequireRole>} />
-        <Route path="/providers/volunteers" element={<RequireRole role="provider" redirectTo="/providers/login"><Volunteers /></RequireRole>} />
-        <Route path="/patients/dashboard" element={<RequireRole role="patient" redirectTo="/patients/login"><Dashboard /></RequireRole>} />
-        <Route path="/patients/eligible" element={<EligibleTrials />} />
-        <Route path="/patients/health-profile" element={<RequireRole role="patient" redirectTo="/patients/login"><HealthProfile /></RequireRole>} />
-        <Route path="/patients/settings" element={<RequireRole role="patient" redirectTo="/patients/login"><Settings /></RequireRole>} />
-        <Route path="/patients/processing" element={<SignupProcessing />} />
-        <Route path="/trials/:slug" element={<TrialDetails />} />
-        <Route path="/study/:nctId" element={<CtgovStudyDetails />} />
-        <Route path="/contact" element={<ContactUs />} />
-        <Route path="/book-demo" element={<BookDemo />} />
-      </Routes>
+      <Suspense fallback={<LoadingFallback />}>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/search-results" element={<SearchResults />} />
+          <Route path="/patients/find-trial" element={<SearchResults />} />
+          <Route path="/patients/faq" element={<Faq />} />
+          <Route path="/patients/privacy" element={<Privacy />} />
+          <Route path="/patients/volunteer" element={<Volunteer />} />
+          <Route path="/patients/consent" element={<Consent />} />
+          <Route path="/patients/connect" element={<Connect />} />
+          <Route path="/patients/signup-info" element={<SignupInfo />} />
+          <Route path="/patients/signup-personal" element={<SignupPersonalDetails />} />
+          <Route path="/patients/ehr" element={<EhrDirectory />} />
+          <Route path="/patients/ehr-callback" element={<EhrCallback />} />
+          <Route path="/patients/check" element={<EligibilityCheck />} />
+          <Route path="/patients/result" element={<EligibilityResult />} />
+          <Route path="/patients/login" element={<Login />} />
+          <Route path="/sites/blog" element={<InsiderBlog />} />
+          <Route path="/sites/visibility" element={<VisibilityOptions />} />
+          <Route path="/sites/multicenter" element={<MulticenterListings />} />
+          <Route path="/support/investigators" element={<InvestigatorSupport />} />
+          <Route path="/providers/create" element={<CreateAccount />} />
+          <Route path="/providers/login" element={<ProviderLogin />} />
+          <Route path="/providers/site-information" element={<SiteInformation />} />
+          <Route path="/providers/investigator-information" element={<InvestigatorInformation />} />
+          <Route path="/providers/welcome" element={<ProviderWelcome />} />
+          <Route path="/providers/trials" element={<RequireRole role="provider" redirectTo="/providers/login"><ProviderTrials /></RequireRole>} />
+          <Route path="/providers/trials/all" element={<RequireRole role="provider" redirectTo="/providers/login"><AllTrials /></RequireRole>} />
+          <Route path="/providers/dashboard" element={<RequireRole role="provider" redirectTo="/providers/login"><ProviderDashboard /></RequireRole>} />
+          <Route path="/providers/appointments" element={<RequireRole role="provider" redirectTo="/providers/login"><Appointments /></RequireRole>} />
+          <Route path="/providers/volunteers" element={<RequireRole role="provider" redirectTo="/providers/login"><Volunteers /></RequireRole>} />
+          <Route path="/patients/dashboard" element={<RequireRole role="patient" redirectTo="/patients/login"><Dashboard /></RequireRole>} />
+          <Route path="/patients/eligible" element={<EligibleTrials />} />
+          <Route path="/patients/health-profile" element={<RequireRole role="patient" redirectTo="/patients/login"><HealthProfile /></RequireRole>} />
+          <Route path="/patients/settings" element={<RequireRole role="patient" redirectTo="/patients/login"><Settings /></RequireRole>} />
+          <Route path="/patients/processing" element={<SignupProcessing />} />
+          <Route path="/trials/:slug" element={<TrialDetails />} />
+          <Route path="/study/:nctId" element={<CtgovStudyDetails />} />
+          <Route path="/contact" element={<ContactUs />} />
+          <Route path="/book-demo" element={<BookDemo />} />
+        </Routes>
+      </Suspense>
     </Router>
   );
 }
