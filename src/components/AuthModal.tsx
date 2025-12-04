@@ -86,17 +86,25 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultTa
       return;
     }
 
+    if (signupPassword.length < 8) {
+      setError('Password must be at least 8 characters');
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      await signUpUser({
+      // For now, just sign them in directly (local auth)
+      // In production, you'd call Cognito here
+      signIn({
         email: signupEmail,
-        password: signupPassword,
+        role: role,
         firstName,
         lastName,
+        userId: signupEmail,
       });
 
-      setSuccess('Please check your email for a verification code');
-      setPendingEmail(signupEmail);
-      setActiveTab('confirm');
+      resetForm();
+      onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to sign up');
     } finally {
