@@ -7,6 +7,7 @@ interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   defaultTab?: 'login' | 'signup';
+  role?: 'patient' | 'provider';
 }
 
 type AuthModalTab = 'login' | 'signup' | 'confirm';
