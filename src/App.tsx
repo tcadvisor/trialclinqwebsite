@@ -4,10 +4,7 @@ import { Suspense, lazy } from "react";
 import { RequireAuth, RequireRole } from "./lib/auth";
 import LandingPage from "./routes/LandingPage";
 
-const SearchResults = lazy(() => import("./screens/SearchResults").then(m => {
-  if (m.SearchResults) return { default: m.SearchResults };
-  return m as any;
-}));
+const SearchResults = lazy(() => import("./screens/SearchResults").then(m => ({ default: m.SearchResults })));
 const Home = lazy(() => import("./routes/Home2/screens/Home"));
 const Faq = lazy(() => import("./screens/patients/Faq"));
 const Privacy = lazy(() => import("./screens/patients/Privacy"));
