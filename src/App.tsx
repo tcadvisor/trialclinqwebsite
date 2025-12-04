@@ -2,6 +2,7 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Suspense, lazy } from "react";
 import { RequireAuth, RequireRole } from "./lib/auth";
+import LandingPage from "./routes/LandingPage";
 
 const SearchResults = lazy(() => import("./screens/SearchResults").then(m => ({ default: m.SearchResults })));
 const Home = lazy(() => import("./routes/Home2/screens/Home"));
