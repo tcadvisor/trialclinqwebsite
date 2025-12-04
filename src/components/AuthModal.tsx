@@ -214,7 +214,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultTa
             </div>
           )}
 
-          {/* Login Form */}
+          {/* Only show login and confirm forms - signup navigates away */}
           {activeTab === 'login' && (
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
