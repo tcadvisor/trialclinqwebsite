@@ -79,8 +79,6 @@ export default function HeaderActions() {
     );
   }
 
-  const [signInOpen, setSignInOpen] = React.useState(false);
-
   return (
     <>
       <div className="relative flex items-center gap-3" ref={menuRef}>
