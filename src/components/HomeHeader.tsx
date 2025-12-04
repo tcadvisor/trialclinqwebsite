@@ -24,7 +24,7 @@ export default function HomeHeader() {
   return (
     <header className="sticky top-0 z-30 bg-white/80 backdrop-blur border-b">
       <div ref={containerRef} className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
-        <Link to="/" className="flex items-center gap-2 shrink-0">
+        <Link to="/app" className="flex items-center gap-2 shrink-0">
           <img
             alt="TrialCliniq"
             className="h-8 w-auto"
