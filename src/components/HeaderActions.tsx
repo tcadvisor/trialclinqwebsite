@@ -89,39 +89,6 @@ export default function HeaderActions() {
           Back to Landing Page
         </Link>
 
-        {/* Sign In Button */}
-        <button
-          className="px-4 py-2 text-sm rounded-full border border-blue-600 text-blue-700 hover:bg-blue-50"
-          onClick={() => setSignInMenuOpen(!signInMenuOpen)}
-          type="button"
-        >
-          Sign in
-        </button>
-        {signInMenuOpen && (
-          <div className="absolute right-32 top-full mt-2 w-56 rounded-lg border bg-white shadow-md z-40">
-            <button
-              onClick={() => {
-                setSignInMenuOpen(false);
-                setPatientLoginOpen(true);
-              }}
-              className="block w-full text-left rounded-md px-4 py-2 text-sm hover:bg-gray-50"
-              type="button"
-            >
-              Participant Sign In
-            </button>
-            <button
-              onClick={() => {
-                setSignInMenuOpen(false);
-                setProviderLoginOpen(true);
-              }}
-              className="block w-full text-left rounded-md px-4 py-2 text-sm hover:bg-gray-50"
-              type="button"
-            >
-              Researcher Sign In
-            </button>
-          </div>
-        )}
-
         {/* Get Started Button */}
         <button
           className="px-4 py-2 text-sm rounded-full bg-blue-600 text-white hover:bg-blue-700"
