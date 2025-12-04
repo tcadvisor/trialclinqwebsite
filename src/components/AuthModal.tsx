@@ -78,42 +78,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultTa
     }
   };
 
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setIsLoading(true);
-
-    if (signupPassword !== signupConfirmPassword) {
-      setError('Passwords do not match');
-      setIsLoading(false);
-      return;
-    }
-
-    if (signupPassword.length < 8) {
-      setError('Password must be at least 8 characters');
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      // For now, just sign them in directly (local auth)
-      // In production, you'd call Cognito here
-      signIn({
-        email: signupEmail,
-        role: role,
-        firstName,
-        lastName,
-        userId: signupEmail,
-      });
-
-      resetForm();
-      onClose();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to sign up');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleConfirmSuccess = () => {
     setSuccess('Email verified! Please sign in with your credentials.');
