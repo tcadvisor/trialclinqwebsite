@@ -12,13 +12,16 @@ interface AuthModalProps {
 
 type AuthModalTab = 'login' | 'signup' | 'confirm';
 
-export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultTab = 'login' }) => {
+export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultTab = 'login', role = 'patient' }) => {
   const { signIn } = useAuth();
   const [activeTab, setActiveTab] = useState<AuthModalTab>(defaultTab);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [pendingEmail, setPendingEmail] = useState('');
+
+  const roleLabel = role === 'provider' ? 'Researcher/Provider' : 'Patient';
+  const roleTitle = role === 'provider' ? 'Researcher' : 'Participant';
 
   // Login form state
   const [loginEmail, setLoginEmail] = useState('');
