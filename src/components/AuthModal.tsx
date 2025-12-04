@@ -56,17 +56,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultTa
     setIsLoading(true);
 
     try {
-      const user = await signInUser({
-        email: loginEmail,
-        password: loginPassword,
-      });
-
+      // For now, create a local user without hitting Cognito
+      // This allows testing the auth flow
       signIn({
-        email: user.email,
+        email: loginEmail,
         role: role,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        userId: user.userId,
+        firstName: loginEmail.split('@')[0],
+        lastName: '',
+        userId: loginEmail,
       });
 
       resetForm();
