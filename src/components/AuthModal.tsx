@@ -53,7 +53,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultTa
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div
-        className="bg-white rounded-lg shadow-2xl w-full max-w-sm"
+        className="bg-white rounded-lg shadow-2xl w-full max-w-sm mt-20"
         onClick={(e) => e.stopPropagation()}
         style={{ maxHeight: 'calc(100vh - 32px)' }}
       >
