@@ -123,13 +123,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultTa
 
     try {
       await confirmUserSignUp(pendingEmail, confirmCode);
-      setSuccess('Email verified! Please sign in with your credentials.');
-      
-      setTimeout(() => {
-        resetForm();
-        setActiveTab('login');
-        setLoginEmail(pendingEmail);
-      }, 1500);
+      handleConfirmSuccess();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to confirm email');
     } finally {
