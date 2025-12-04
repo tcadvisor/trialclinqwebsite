@@ -8,8 +8,10 @@ export default function HeaderActions() {
   const navigate = useNavigate();
 
   const [open, setOpen] = React.useState(false);
-  const [authModalOpen, setAuthModalOpen] = React.useState(false);
-  const [authModalTab, setAuthModalTab] = React.useState<'login' | 'signup'>('login');
+  const [patientModalOpen, setPatientModalOpen] = React.useState(false);
+  const [providerModalOpen, setProviderModalOpen] = React.useState(false);
+  const [patientModalTab, setPatientModalTab] = React.useState<'login' | 'signup'>('login');
+  const [providerModalTab, setProviderModalTab] = React.useState<'login' | 'signup'>('login');
   const [getStartedOpen, setGetStartedOpen] = React.useState(false);
   const menuRef = React.useRef<HTMLDivElement | null>(null);
 
