@@ -602,4 +602,4 @@ export const SearchResults = (): JSX.Element => {
       </footer>
     </div>
   );
-}
+};
