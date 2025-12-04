@@ -51,11 +51,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultTa
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex justify-center pt-32 p-4 overflow-y-auto" onClick={onClose}>
-      <div
-        className="bg-white rounded-lg shadow-2xl w-full max-w-sm h-fit"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className="fixed inset-0 bg-black/50 z-50" onClick={onClose}>
+      <div className="fixed inset-0 flex justify-center pt-32 p-4">
+        <div
+          className="bg-white rounded-lg shadow-2xl w-full max-w-sm h-fit"
+          onClick={(e) => e.stopPropagation()}
+        >
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-xl font-bold text-gray-900">
@@ -139,6 +140,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultTa
           </button>
         </div>
       </div>
+    </div>
     </div>
   );
 };
