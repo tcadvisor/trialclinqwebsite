@@ -21,6 +21,8 @@ export default function HeaderActions() {
       if (e.target instanceof Node && !menuRef.current.contains(e.target)) {
         setOpen(false);
         setGetStartedOpen(false);
+        setPatientModalOpen(false);
+        setProviderModalOpen(false);
       }
     }
     document.addEventListener("click", onDocClick);
