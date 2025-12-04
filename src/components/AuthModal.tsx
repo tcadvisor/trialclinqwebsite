@@ -63,7 +63,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultTa
 
       signIn({
         email: user.email,
-        role: user.role,
+        role: role,
         firstName: user.firstName,
         lastName: user.lastName,
         userId: user.userId,
