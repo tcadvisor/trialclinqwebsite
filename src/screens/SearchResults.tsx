@@ -23,7 +23,7 @@ import {
 const solutionsLinks = ["Find a study", "More about trials", "How TrialCliniq help", "Blog"];
 const companyLinks = ["Terms of Conditions", "Contact Us", "About Us", "Privacy Policy"];
 
-export const SearchResults = (): JSX.Element => {
+export default function SearchResults(): JSX.Element {
   const { search } = useLocation();
   const navigate = useNavigate();
 
