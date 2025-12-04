@@ -15,6 +15,7 @@ type AuthModalTab = 'login' | 'signup' | 'confirm';
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultTab = 'login', role = 'patient' }) => {
   const { signIn } = useAuth();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<AuthModalTab>(defaultTab);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -23,6 +24,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultTa
 
   const roleLabel = role === 'provider' ? 'Researcher/Provider' : 'Patient';
   const roleTitle = role === 'provider' ? 'Researcher' : 'Participant';
+  const signupPath = role === 'provider' ? '/providers/create' : '/patients/volunteer';
 
   // Login form state
   const [loginEmail, setLoginEmail] = useState('');
