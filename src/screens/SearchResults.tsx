@@ -602,4 +602,4 @@ export default function SearchResults(): JSX.Element {
       </footer>
     </div>
   );
-};
+}
