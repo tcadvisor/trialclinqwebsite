@@ -139,8 +139,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultTa
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
           <h2 className="text-2xl font-bold text-gray-900">
-            {activeTab === 'login' && 'Sign In'}
-            {activeTab === 'signup' && 'Create Account'}
+            {activeTab === 'login' && `Sign In - ${roleTitle}`}
+            {activeTab === 'signup' && `Create ${roleTitle} Account`}
             {activeTab === 'confirm' && 'Verify Email'}
           </h2>
           <button
