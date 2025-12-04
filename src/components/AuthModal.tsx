@@ -38,11 +38,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultTa
     setSuccess('');
     setLoginEmail('');
     setLoginPassword('');
-    setSignupEmail('');
-    setSignupPassword('');
-    setSignupConfirmPassword('');
-    setFirstName('');
-    setLastName('');
     setConfirmCode('');
   };
 
