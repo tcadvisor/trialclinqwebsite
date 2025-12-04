@@ -107,6 +107,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultTa
     }
   };
 
+  const handleConfirmSuccess = () => {
+    setSuccess('Email verified! Please sign in with your credentials.');
+    setTimeout(() => {
+      resetForm();
+      setActiveTab('login');
+      setLoginEmail(pendingEmail);
+    }, 1500);
+  };
+
   const handleConfirm = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
