@@ -8,7 +8,6 @@ export default function HeaderActions() {
   const navigate = useNavigate();
 
   const [profileOpen, setProfileOpen] = React.useState(false);
-  const [signInMenuOpen, setSignInMenuOpen] = React.useState(false);
   const [getStartedMenuOpen, setGetStartedMenuOpen] = React.useState(false);
   
   const [patientLoginOpen, setPatientLoginOpen] = React.useState(false);
@@ -23,7 +22,6 @@ export default function HeaderActions() {
       if (!menuRef.current) return;
       if (e.target instanceof Node && !menuRef.current.contains(e.target)) {
         setProfileOpen(false);
-        setSignInMenuOpen(false);
         setGetStartedMenuOpen(false);
       }
     }
