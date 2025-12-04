@@ -78,20 +78,48 @@ export default function HeaderActions() {
     );
   }
 
+  const [signInOpen, setSignInOpen] = React.useState(false);
+
   return (
     <>
       <div className="relative flex items-center gap-3" ref={menuRef}>
         <button
           className="px-4 py-2 text-sm rounded-full border border-blue-600 text-blue-700 hover:bg-blue-50"
           onClick={() => {
-            setAuthModalTab('login');
-            setAuthModalOpen(true);
-            setGetStartedOpen(false);
+            setSignInOpen((v) => !v);
           }}
           type="button"
+          aria-haspopup="menu"
+          aria-expanded={signInOpen}
         >
           Sign in
         </button>
+        {signInOpen && (
+          <div className="absolute right-24 top-full mt-2 w-56 rounded-lg border bg-white shadow-md z-40">
+            <div className="p-2">
+              <button
+                onClick={() => {
+                  setPatientModalTab('login');
+                  setPatientModalOpen(true);
+                  setSignInOpen(false);
+                }}
+                className="block w-full text-left rounded-md px-3 py-2 text-sm hover:bg-gray-50"
+              >
+                Participant Sign In
+              </button>
+              <button
+                onClick={() => {
+                  setProviderModalTab('login');
+                  setProviderModalOpen(true);
+                  setSignInOpen(false);
+                }}
+                className="block w-full text-left rounded-md px-3 py-2 text-sm hover:bg-gray-50"
+              >
+                Researcher Sign In
+              </button>
+            </div>
+          </div>
+        )}
 
         <button
           className="px-4 py-2 text-sm rounded-full bg-blue-600 text-white hover:bg-blue-700"
@@ -109,30 +137,40 @@ export default function HeaderActions() {
             <div className="p-2">
               <button
                 onClick={() => {
-                  setAuthModalTab('signup');
-                  setAuthModalOpen(true);
+                  setPatientModalTab('signup');
+                  setPatientModalOpen(true);
                   setGetStartedOpen(false);
                 }}
                 className="block w-full text-left rounded-md px-3 py-2 text-sm hover:bg-gray-50"
               >
-                I'm a Patient
+                I'm a Participant
               </button>
-              <Link
-                to="/providers/create"
-                className="block rounded-md px-3 py-2 text-sm hover:bg-gray-50"
-                onClick={() => setGetStartedOpen(false)}
+              <button
+                onClick={() => {
+                  setProviderModalTab('signup');
+                  setProviderModalOpen(true);
+                  setGetStartedOpen(false);
+                }}
+                className="block w-full text-left rounded-md px-3 py-2 text-sm hover:bg-gray-50"
               >
                 I'm a Researcher / Site
-              </Link>
+              </button>
             </div>
           </div>
         )}
       </div>
 
       <AuthModal
-        isOpen={authModalOpen}
-        onClose={() => setAuthModalOpen(false)}
-        defaultTab={authModalTab}
+        isOpen={patientModalOpen}
+        onClose={() => setPatientModalOpen(false)}
+        defaultTab={patientModalTab}
+        role="patient"
+      />
+      <AuthModal
+        isOpen={providerModalOpen}
+        onClose={() => setProviderModalOpen(false)}
+        defaultTab={providerModalTab}
+        role="provider"
       />
     </>
   );
