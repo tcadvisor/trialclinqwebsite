@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Suspense, lazy } from "react";
 import { RequireAuth, RequireRole } from "./lib/auth";
 import LandingPage from "./routes/LandingPage";
+import TeamPage from "./routes/TeamPage";
 
 const SearchResults = lazy(() =>
   import("./screens/SearchResults")
