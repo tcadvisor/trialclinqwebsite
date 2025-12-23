@@ -23,7 +23,7 @@ export default function TeamPage() {
       role: "Clinical Trials Lead",
       description:
         "Background in biomedical engineering, global public health and health equity.",
-      linkedin: "https://linkedin.com",
+      linkedin: "https://www.linkedin.com/in/kiara-lee7/",
     },
     {
       name: "Janette Obi",
