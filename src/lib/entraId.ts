@@ -6,17 +6,37 @@
 import { PublicClientApplication, AccountInfo, AuthenticationResult, InteractionRequiredAuthError } from '@azure/msal-browser';
 import { msalConfig, loginRequest, tokenRequest, silentRequest } from './msalConfig';
 
-let msalInstance: PublicClientApplication;
+let msalInstance: PublicClientApplication | null = null;
+let initError: string | null = null;
 
-// Initialize MSAL instance
-export function initMsal(): PublicClientApplication {
+// Initialize MSAL instance with error handling
+export function initMsal(): PublicClientApplication | null {
+  if (initError) {
+    console.error('MSAL initialization failed:', initError);
+    return null;
+  }
+
   if (!msalInstance) {
-    msalInstance = new PublicClientApplication(msalConfig);
+    try {
+      // Validate configuration
+      if (!msalConfig.auth.clientId) {
+        throw new Error('Azure Client ID not configured. Set VITE_AZURE_CLIENT_ID environment variable.');
+      }
+      if (!msalConfig.auth.authority || msalConfig.auth.authority.includes('undefined')) {
+        throw new Error('Azure Tenant ID not configured. Set VITE_AZURE_TENANT_ID environment variable.');
+      }
+
+      msalInstance = new PublicClientApplication(msalConfig);
+    } catch (error) {
+      initError = error instanceof Error ? error.message : 'Failed to initialize MSAL';
+      console.error('MSAL initialization error:', initError);
+      return null;
+    }
   }
   return msalInstance;
 }
 
-export function getMsalInstance(): PublicClientApplication {
+export function getMsalInstance(): PublicClientApplication | null {
   return msalInstance || initMsal();
 }
 
@@ -42,38 +62,42 @@ export interface AuthUser {
 
 /**
  * Sign up a new user via Azure Entra ID
- * Note: Azure Entra ID typically uses existing user accounts.
- * New users should be provisioned via Azure Portal or via MS Graph API.
  */
 export async function signUpUser(input: SignUpInput): Promise<{ userId: string; requiresConfirmation: boolean }> {
   try {
-    // For new user registration, redirect to sign-up flow
-    // This will be handled by Azure Entra ID's sign-up policies
     const msal = getMsalInstance();
     
-    // Sign in will trigger sign-up if user doesn't exist and policy is configured
+    if (!msal) {
+      throw new Error('Azure Entra ID is not properly configured. Please check your environment variables: VITE_AZURE_CLIENT_ID and VITE_AZURE_TENANT_ID');
+    }
+
+    // For new user registration, redirect to sign-up flow
     const result = await msal.loginPopup({
       ...loginRequest,
-      prompt: 'select_account', // Forces account selection/creation
+      prompt: 'select_account',
     });
 
     return {
       userId: result.account?.localAccountId || result.account?.homeAccountId || '',
-      requiresConfirmation: false, // Azure Entra ID handles confirmation
+      requiresConfirmation: false,
     };
   } catch (error) {
-    throw new Error(`Sign up failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+    
+    // Provide helpful error messages
+    if (errorMsg.includes('not found') || errorMsg.includes('AADSTS90002')) {
+      throw new Error('Azure Entra ID tenant is not configured correctly. Please verify your VITE_AZURE_TENANT_ID environment variable.');
+    }
+    
+    throw new Error(`Sign up failed: ${errorMsg}`);
   }
 }
 
 /**
- * Confirm user MFA (Multi-Factor Authentication)
- * Azure Entra ID handles MFA automatically during sign-in if configured
+ * Confirm user MFA
  */
 export async function confirmUserMFA(email: string, mfaCode: string): Promise<void> {
   try {
-    // MFA is handled automatically by Azure Entra ID during login flow
-    // This function is kept for API compatibility
     console.log('MFA confirmation handled by Azure Entra ID during sign-in');
   } catch (error) {
     throw new Error(`MFA confirmation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -82,7 +106,6 @@ export async function confirmUserMFA(email: string, mfaCode: string): Promise<vo
 
 /**
  * Resend MFA code
- * Azure Entra ID handles this automatically
  */
 export async function resendMFACode(email: string): Promise<void> {
   try {
@@ -94,17 +117,18 @@ export async function resendMFACode(email: string): Promise<void> {
 
 /**
  * Sign in user with email and password
- * MFA is handled automatically by Azure Entra ID if enabled
  */
 export async function signInUser(input: SignInInput): Promise<AuthUser> {
   try {
     const msal = getMsalInstance();
     
-    // Get existing accounts
+    if (!msal) {
+      throw new Error('Azure Entra ID is not properly configured. Please check your environment variables: VITE_AZURE_CLIENT_ID and VITE_AZURE_TENANT_ID');
+    }
+
     const accounts = msal.getAllAccounts();
     let response: AuthenticationResult;
 
-    // If user already has a session, use silent flow first
     if (accounts.length > 0) {
       try {
         response = await msal.acquireTokenSilent({
@@ -113,14 +137,12 @@ export async function signInUser(input: SignInInput): Promise<AuthUser> {
         });
       } catch (error) {
         if (error instanceof InteractionRequiredAuthError) {
-          // Need interactive login
           response = await msal.loginPopup(loginRequest);
         } else {
           throw error;
         }
       }
     } else {
-      // New sign-in with popup
       response = await msal.loginPopup(loginRequest);
     }
 
@@ -132,20 +154,32 @@ export async function signInUser(input: SignInInput): Promise<AuthUser> {
       email: response.account.username || input.email,
       firstName: response.account.name?.split(' ')[0] || '',
       lastName: response.account.name?.split(' ').slice(1).join(' ') || '',
-      role: 'patient', // Default role, can be updated based on Azure AD groups
+      role: 'patient',
       userId: response.account.localAccountId || response.account.homeAccountId || '',
     };
   } catch (error) {
-    throw new Error(`Sign in failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+    
+    // Provide helpful error messages
+    if (errorMsg.includes('not found') || errorMsg.includes('AADSTS90002')) {
+      throw new Error('Azure Entra ID tenant is not configured correctly. Please verify your VITE_AZURE_TENANT_ID environment variable.');
+    }
+    
+    throw new Error(`Sign in failed: ${errorMsg}`);
   }
 }
 
 /**
- * Get current authenticated user from Azure Entra ID
+ * Get current authenticated user
  */
 export async function getCurrentAuthUser(): Promise<AuthUser | null> {
   try {
     const msal = getMsalInstance();
+    
+    if (!msal) {
+      return null;
+    }
+
     const accounts = msal.getAllAccounts();
 
     if (accounts.length === 0) {
@@ -157,7 +191,7 @@ export async function getCurrentAuthUser(): Promise<AuthUser | null> {
       email: account.username,
       firstName: account.name?.split(' ')[0] || '',
       lastName: account.name?.split(' ').slice(1).join(' ') || '',
-      role: 'patient', // Default role
+      role: 'patient',
       userId: account.localAccountId || account.homeAccountId || '',
     };
   } catch (error) {
@@ -167,11 +201,16 @@ export async function getCurrentAuthUser(): Promise<AuthUser | null> {
 }
 
 /**
- * Sign out the current user from Azure Entra ID
+ * Sign out
  */
 export async function signOutUser(): Promise<void> {
   try {
     const msal = getMsalInstance();
+    
+    if (!msal) {
+      return;
+    }
+
     const accounts = msal.getAllAccounts();
 
     if (accounts.length > 0) {
@@ -186,11 +225,16 @@ export async function signOutUser(): Promise<void> {
 }
 
 /**
- * Check if user is authenticated with Azure Entra ID
+ * Check if authenticated
  */
 export async function isUserAuthenticated(): Promise<boolean> {
   try {
     const msal = getMsalInstance();
+    
+    if (!msal) {
+      return false;
+    }
+
     const accounts = msal.getAllAccounts();
     return accounts.length > 0;
   } catch (error) {
@@ -205,6 +249,11 @@ export async function isUserAuthenticated(): Promise<boolean> {
 export async function getAccessToken(): Promise<string | null> {
   try {
     const msal = getMsalInstance();
+    
+    if (!msal) {
+      return null;
+    }
+
     const accounts = msal.getAllAccounts();
 
     if (accounts.length === 0) {
@@ -220,10 +269,9 @@ export async function getAccessToken(): Promise<string | null> {
   } catch (error) {
     if (error instanceof InteractionRequiredAuthError) {
       console.error('Token acquisition requires interaction');
-      // Try to get token interactively
       try {
-        const response = await msal.acquireTokenPopup(tokenRequest);
-        return response.accessToken;
+        const response = await msal?.acquireTokenPopup(tokenRequest);
+        return response?.accessToken || null;
       } catch (interactiveError) {
         console.error('Failed to acquire token interactively:', interactiveError);
         return null;
@@ -236,11 +284,16 @@ export async function getAccessToken(): Promise<string | null> {
 }
 
 /**
- * Refresh the access token
+ * Refresh access token
  */
 export async function refreshAccessToken(): Promise<string | null> {
   try {
     const msal = getMsalInstance();
+    
+    if (!msal) {
+      return null;
+    }
+
     const accounts = msal.getAllAccounts();
 
     if (accounts.length === 0) {
@@ -261,7 +314,7 @@ export async function refreshAccessToken(): Promise<string | null> {
 }
 
 /**
- * Get user profile information
+ * Get user profile
  */
 export async function getUserProfile(): Promise<AuthUser | null> {
   return getCurrentAuthUser();
