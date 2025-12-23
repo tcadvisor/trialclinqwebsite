@@ -1,16 +1,17 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../lib/auth";
-import { findAccountByEmail } from "../../lib/accountStore";
+import { signInUser } from "../../lib/entraId";
 import HomeHeader from "../../components/HomeHeader";
 
 export default function Login(): JSX.Element {
   const navigate = useNavigate();
   const location = useLocation();
   const { isAuthenticated, signIn, user } = useAuth();
-  const [email, setEmail] = React.useState("");
-  const [password, setPassword] = React.useState("");
-  const [error, setError] = React.useState<string | null>(null);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   React.useEffect(() => {
     if (isAuthenticated) {
@@ -20,26 +21,31 @@ export default function Login(): JSX.Element {
     }
   }, [isAuthenticated, navigate, location.state, user]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    const eNorm = email.trim().toLowerCase();
-    const acc = findAccountByEmail(eNorm);
-    if (!acc) {
-      setError("Account not found. Please sign up.");
-      return;
+    setIsLoading(true);
+
+    try {
+      // Sign in with Azure Entra ID
+      const authUser = await signInUser({
+        email: email.trim(),
+        password,
+      });
+
+      // Update auth context
+      signIn({
+        ...authUser,
+        role: "patient",
+      });
+
+      const from = (location.state as any)?.from?.pathname || "/patients/dashboard";
+      navigate(from, { replace: true });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Invalid email or password. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
-    if (acc.role !== "patient") {
-      setError("This email is registered as a researcher. Use Researcher sign in.");
-      return;
-    }
-    if (acc.password !== password) {
-      setError("Invalid email or password");
-      return;
-    }
-    signIn({ email: acc.email, role: acc.role, firstName: acc.firstName, lastName: acc.lastName });
-    const from = (location.state as any)?.from?.pathname || "/patients/dashboard";
-    navigate(from, { replace: true });
   };
 
   return (
