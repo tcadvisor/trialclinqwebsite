@@ -250,7 +250,7 @@ export default function LandingPage() {
             </div>
 
             {/* Patients */}
-            <div className="bg-white p-8 rounded-xl">
+            <div id="patients-form" className="bg-white p-8 rounded-xl">
               <div className="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center mb-6">
                 <Users className="w-6 h-6 text-teal-600" />
               </div>
