@@ -109,6 +109,50 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* About Section */}
+      <section id="about" className="py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            <div>
+              <h2 className="text-4xl font-bold text-gray-900 mb-6">
+                About TrialClinIQ
+              </h2>
+              <p className="text-lg text-gray-600 mb-4">
+                TrialClinIQ is a groundbreaking health information exchange platform designed to revolutionize how CNS patients discover and access clinical trials.
+              </p>
+              <p className="text-lg text-gray-600 mb-4">
+                We believe patients should have control over their health data and easy access to life-changing clinical trials. Our platform combines secure data aggregation with AI-powered matching to connect the right patients with the right trials.
+              </p>
+              <p className="text-lg text-gray-600 mb-6">
+                Founded with a mission to accelerate CNS trial enrollment while prioritizing patient privacy and consent, we're committed to advancing neurological and psychiatric research.
+              </p>
+              <div className="flex gap-6">
+                <div>
+                  <div className="text-3xl font-bold text-blue-600 mb-2">100%</div>
+                  <p className="text-sm text-gray-600">HIPAA Compliant</p>
+                </div>
+                <div>
+                  <div className="text-3xl font-bold text-blue-600 mb-2">24/7</div>
+                  <p className="text-sm text-gray-600">Secure Access</p>
+                </div>
+                <div>
+                  <div className="text-3xl font-bold text-blue-600 mb-2">FDA</div>
+                  <p className="text-sm text-gray-600">Guidance Aligned</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl h-96 flex items-center justify-center">
+              <div className="text-center">
+                <div className="w-24 h-24 bg-blue-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-4xl">💙</span>
+                </div>
+                <p className="text-gray-600 font-medium">Patient-Centered Care</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Features Section */}
       <section id="features" className="bg-gray-50 py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
