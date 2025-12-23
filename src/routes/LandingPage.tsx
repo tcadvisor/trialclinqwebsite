@@ -33,9 +33,9 @@ export default function LandingPage() {
             <a href="#sponsors" className="text-gray-700 hover:text-gray-900">
               For Sponsors & Sites
             </a>
-            <a href="#team" className="text-gray-700 hover:text-gray-900">
+            <Link to="/team" className="text-gray-700 hover:text-gray-900">
               Team
-            </a>
+            </Link>
             <a href="#contact" className="text-gray-700 hover:text-gray-900">
               Contact
             </a>
