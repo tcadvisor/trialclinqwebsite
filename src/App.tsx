@@ -4,6 +4,7 @@ import { Suspense, lazy } from "react";
 import { RequireAuth, RequireRole } from "./lib/auth";
 import LandingPage from "./routes/LandingPage";
 import TeamPage from "./routes/TeamPage";
+import ContactPage from "./routes/ContactPage";
 
 const SearchResults = lazy(() =>
   import("./screens/SearchResults")
