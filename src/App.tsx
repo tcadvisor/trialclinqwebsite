@@ -68,6 +68,7 @@ function App() {
       <Suspense fallback={<LoadingFallback />}>
         <Routes>
           <Route path="/" element={<LandingPage />} />
+          <Route path="/team" element={<TeamPage />} />
           <Route path="/app" element={<Home />} />
           <Route path="/search-results" element={<SearchResults />} />
           <Route path="/patients/find-trial" element={<SearchResults />} />
