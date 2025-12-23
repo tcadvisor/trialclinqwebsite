@@ -211,7 +211,7 @@ export default function LandingPage() {
 
           <div className="grid md:grid-cols-3 gap-8">
             {/* Sponsors & Sites */}
-            <div className="bg-white p-8 rounded-xl">
+            <div id="sponsors-form" className="bg-white p-8 rounded-xl">
               <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-6">
                 <FileText className="w-6 h-6 text-blue-600" />
               </div>
