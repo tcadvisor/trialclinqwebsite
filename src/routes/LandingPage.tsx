@@ -30,29 +30,23 @@ export default function LandingPage() {
             <a href="#about" className="text-gray-700 hover:text-gray-900">
               About
             </a>
-            <a href="#sponsors" className="text-gray-700 hover:text-gray-900">
+            <a href="#sponsors-form" className="text-gray-700 hover:text-gray-900">
               For Sponsors & Sites
             </a>
-            <a href="#team" className="text-gray-700 hover:text-gray-900">
+            <Link to="/team" className="text-gray-700 hover:text-gray-900">
               Team
-            </a>
-            <a href="#contact" className="text-gray-700 hover:text-gray-900">
+            </Link>
+            <Link to="/contact" className="text-gray-700 hover:text-gray-900">
               Contact
-            </a>
+            </Link>
           </nav>
           <div className="flex items-center gap-4">
             <Link
               to="/app"
-              className="text-sm font-medium text-gray-700 hover:text-gray-900"
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700"
             >
               Go to App
             </Link>
-            <button className="text-sm font-medium text-gray-700 hover:text-gray-900">
-              Sign In
-            </button>
-            <button className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700">
-              Request Demo
-            </button>
           </div>
         </div>
       </header>
@@ -69,15 +63,18 @@ export default function LandingPage() {
               Patient-centered trial discovery meets pre-screened, Consent-ready candidates. TrialClinIQ is a secure HIE that empowers CNS patients in life-changing clinical trials while keeping you in control of your health data.
             </p>
             <div className="flex gap-4 mb-8">
-              <Link
-                to="/patients/find-trial"
+              <a
+                href="#patients-form"
                 className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700"
               >
                 For Patients: Join Waitlist
-              </Link>
-              <button className="border border-gray-300 text-gray-700 px-6 py-3 rounded-lg font-medium hover:border-gray-400">
+              </a>
+              <a
+                href="#sponsors-form"
+                className="border border-gray-300 text-gray-700 px-6 py-3 rounded-lg font-medium hover:border-gray-400"
+              >
                 For Sites: Request Demo
-              </button>
+              </a>
             </div>
             <div className="flex gap-6">
               <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -102,6 +99,50 @@ export default function LandingPage() {
           </div>
           <div className="bg-gradient-to-br from-blue-900 to-blue-700 rounded-2xl h-80 flex items-center justify-center text-white">
             <div className="text-center" />
+          </div>
+        </div>
+      </section>
+
+      {/* About Section */}
+      <section id="about" className="py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            <div>
+              <h2 className="text-4xl font-bold text-gray-900 mb-6">
+                About TrialClinIQ
+              </h2>
+              <p className="text-lg text-gray-600 mb-4">
+                TrialClinIQ is a groundbreaking health information exchange platform designed to revolutionize how CNS patients discover and access clinical trials.
+              </p>
+              <p className="text-lg text-gray-600 mb-4">
+                We believe patients should have control over their health data and easy access to life-changing clinical trials. Our platform combines secure data aggregation with AI-powered matching to connect the right patients with the right trials.
+              </p>
+              <p className="text-lg text-gray-600 mb-6">
+                Founded with a mission to accelerate CNS trial enrollment while prioritizing patient privacy and consent, we're committed to advancing neurological and psychiatric research.
+              </p>
+              <div className="flex gap-6">
+                <div>
+                  <div className="text-3xl font-bold text-blue-600 mb-2">100%</div>
+                  <p className="text-sm text-gray-600">HIPAA Compliant</p>
+                </div>
+                <div>
+                  <div className="text-3xl font-bold text-blue-600 mb-2">24/7</div>
+                  <p className="text-sm text-gray-600">Secure Access</p>
+                </div>
+                <div>
+                  <div className="text-3xl font-bold text-blue-600 mb-2">FDA</div>
+                  <p className="text-sm text-gray-600">Guidance Aligned</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl h-96 flex items-center justify-center">
+              <div className="text-center">
+                <div className="w-24 h-24 bg-blue-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-4xl">💙</span>
+                </div>
+                <p className="text-gray-600 font-medium">Patient-Centered Care</p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -208,7 +249,7 @@ export default function LandingPage() {
 
           <div className="grid md:grid-cols-3 gap-8">
             {/* Sponsors & Sites */}
-            <div className="bg-white p-8 rounded-xl">
+            <div id="sponsors-form" className="bg-white p-8 rounded-xl">
               <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-6">
                 <FileText className="w-6 h-6 text-blue-600" />
               </div>
@@ -247,7 +288,7 @@ export default function LandingPage() {
             </div>
 
             {/* Patients */}
-            <div className="bg-white p-8 rounded-xl">
+            <div id="patients-form" className="bg-white p-8 rounded-xl">
               <div className="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center mb-6">
                 <Users className="w-6 h-6 text-teal-600" />
               </div>
@@ -312,6 +353,56 @@ export default function LandingPage() {
                   <li>✓ Neuroscience breakthroughs</li>
                 </ul>
               </form>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Contact Section */}
+      <section id="contact" className="bg-gray-50 py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+              Get in Touch
+            </h2>
+            <p className="text-lg text-gray-600">
+              Have questions? We'd love to hear from you. Contact us today.
+            </p>
+          </div>
+
+          <div className="bg-white rounded-xl border border-gray-200 max-w-2xl mx-auto p-8">
+            <div className="space-y-6">
+              <div>
+                <h3 className="font-semibold text-gray-900 mb-2">Email</h3>
+                <a
+                  href="mailto:info@trialcliniq.com"
+                  className="text-blue-600 hover:text-blue-700"
+                >
+                  info@trialcliniq.com
+                </a>
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900 mb-2">
+                  For Partnership Inquiries
+                </h3>
+                <a
+                  href="mailto:partnerships@trialcliniq.com"
+                  className="text-blue-600 hover:text-blue-700"
+                >
+                  partnerships@trialcliniq.com
+                </a>
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900 mb-2">
+                  For Patient Support
+                </h3>
+                <a
+                  href="mailto:support@trialcliniq.com"
+                  className="text-blue-600 hover:text-blue-700"
+                >
+                  support@trialcliniq.com
+                </a>
+              </div>
             </div>
           </div>
         </div>

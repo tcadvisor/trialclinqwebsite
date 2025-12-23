@@ -3,6 +3,9 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Suspense, lazy } from "react";
 import { RequireAuth, RequireRole } from "./lib/auth";
 import LandingPage from "./routes/LandingPage";
+import TeamPage from "./routes/TeamPage";
+import ContactPage from "./routes/ContactPage";
+import AuthCallback from "./routes/AuthCallback";
 
 const SearchResults = lazy(() =>
   import("./screens/SearchResults")
@@ -67,6 +70,9 @@ function App() {
       <Suspense fallback={<LoadingFallback />}>
         <Routes>
           <Route path="/" element={<LandingPage />} />
+          <Route path="/team" element={<TeamPage />} />
+          <Route path="/contact" element={<ContactPage />} />
+          <Route path="/auth-callback" element={<AuthCallback />} />
           <Route path="/app" element={<Home />} />
           <Route path="/search-results" element={<SearchResults />} />
           <Route path="/patients/find-trial" element={<SearchResults />} />

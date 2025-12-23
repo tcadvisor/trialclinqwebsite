@@ -9,11 +9,11 @@
     "build": "vite build"
   },
   "dependencies": {
+    "@azure/msal-browser": "^2.38.4",
+    "@azure/msal-react": "^1.5.13",
     "@radix-ui/react-select": "^2.1.2",
     "@radix-ui/react-separator": "^1.1.0",
     "@radix-ui/react-slot": "^1.1.0",
-    "amazon-cognito-identity-js": "^6.3.16",
-    "aws-amplify": "^6.15.8",
     "class-variance-authority": "^0.7.0",
     "clsx": "2.1.1",
     "lucide-react": "^0.453.0",
