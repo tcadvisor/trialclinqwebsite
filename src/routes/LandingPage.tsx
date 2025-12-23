@@ -36,9 +36,9 @@ export default function LandingPage() {
             <Link to="/team" className="text-gray-700 hover:text-gray-900">
               Team
             </Link>
-            <a href="#contact" className="text-gray-700 hover:text-gray-900">
+            <Link to="/contact" className="text-gray-700 hover:text-gray-900">
               Contact
-            </a>
+            </Link>
           </nav>
           <div className="flex items-center gap-4">
             <Link
