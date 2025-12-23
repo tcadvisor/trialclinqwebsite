@@ -16,7 +16,7 @@ export default function TeamPage() {
       role: "CTO",
       description:
         "Software engineer and Princeton University PhD candidate with expertise in neural networks and AI.",
-      linkedin: "https://linkedin.com",
+      linkedin: "https://www.linkedin.com/in/chandler-stevenson-717436202/",
     },
     {
       name: "Kiara Lee, PhD",
