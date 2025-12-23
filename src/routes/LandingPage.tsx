@@ -69,15 +69,18 @@ export default function LandingPage() {
               Patient-centered trial discovery meets pre-screened, Consent-ready candidates. TrialClinIQ is a secure HIE that empowers CNS patients in life-changing clinical trials while keeping you in control of your health data.
             </p>
             <div className="flex gap-4 mb-8">
-              <Link
-                to="/patients/find-trial"
+              <a
+                href="#patients-form"
                 className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700"
               >
                 For Patients: Join Waitlist
-              </Link>
-              <button className="border border-gray-300 text-gray-700 px-6 py-3 rounded-lg font-medium hover:border-gray-400">
+              </a>
+              <a
+                href="#sponsors-form"
+                className="border border-gray-300 text-gray-700 px-6 py-3 rounded-lg font-medium hover:border-gray-400"
+              >
                 For Sites: Request Demo
-              </button>
+              </a>
             </div>
             <div className="flex gap-6">
               <div className="flex items-center gap-2 text-sm text-gray-600">
