@@ -9,7 +9,7 @@ export default function TeamPage() {
       role: "Founder & CEO",
       description:
         "Neurologist and clinical researcher with expertise in Alzheimer's disease and patient recruitment.",
-      linkedin: "https://linkedin.com",
+      linkedin: "https://www.linkedin.com/in/jontelpierce/",
     },
     {
       name: "Chandler Stevenson",
