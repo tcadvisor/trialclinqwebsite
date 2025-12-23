@@ -5,6 +5,7 @@ import { RequireAuth, RequireRole } from "./lib/auth";
 import LandingPage from "./routes/LandingPage";
 import TeamPage from "./routes/TeamPage";
 import ContactPage from "./routes/ContactPage";
+import AuthCallback from "./routes/AuthCallback";
 
 const SearchResults = lazy(() =>
   import("./screens/SearchResults")
