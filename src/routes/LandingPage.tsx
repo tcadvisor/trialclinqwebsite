@@ -43,16 +43,10 @@ export default function LandingPage() {
           <div className="flex items-center gap-4">
             <Link
               to="/app"
-              className="text-sm font-medium text-gray-700 hover:text-gray-900"
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700"
             >
               Go to App
             </Link>
-            <button className="text-sm font-medium text-gray-700 hover:text-gray-900">
-              Sign In
-            </button>
-            <button className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700">
-              Request Demo
-            </button>
           </div>
         </div>
       </header>
