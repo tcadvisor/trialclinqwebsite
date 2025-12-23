@@ -70,7 +70,13 @@ export default function ProviderLogin(): JSX.Element {
             onChange={(e) => setPassword(e.target.value)}
           />
           {error && <div className="text-sm text-red-600">{error}</div>}
-          <button className="w-full px-4 py-2 rounded bg-gray-900 text-white hover:bg-black" type="submit">Login</button>
+          <button
+            className="w-full px-4 py-2 rounded bg-gray-900 text-white hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed"
+            type="submit"
+            disabled={isLoading}
+          >
+            {isLoading ? "Signing in..." : "Login"}
+          </button>
         </form>
         <p className="text-sm text-gray-600 mt-4">New to TrialCliniq? <Link to="/providers/create" className="text-blue-600 hover:underline">Create an account</Link></p>
       </main>
