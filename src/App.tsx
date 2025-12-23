@@ -72,6 +72,7 @@ function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/team" element={<TeamPage />} />
           <Route path="/contact" element={<ContactPage />} />
+          <Route path="/auth-callback" element={<AuthCallback />} />
           <Route path="/app" element={<Home />} />
           <Route path="/search-results" element={<SearchResults />} />
           <Route path="/patients/find-trial" element={<SearchResults />} />
