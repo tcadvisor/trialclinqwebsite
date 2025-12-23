@@ -70,6 +70,7 @@ function App() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/team" element={<TeamPage />} />
+          <Route path="/contact" element={<ContactPage />} />
           <Route path="/app" element={<Home />} />
           <Route path="/search-results" element={<SearchResults />} />
           <Route path="/patients/find-trial" element={<SearchResults />} />
