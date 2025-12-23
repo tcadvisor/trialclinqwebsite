@@ -9,6 +9,8 @@
     "build": "vite build"
   },
   "dependencies": {
+    "@azure/msal-browser": "^3.17.1",
+    "@azure/msal-react": "^2.3.0",
     "@radix-ui/react-select": "^2.1.2",
     "@radix-ui/react-separator": "^1.1.0",
     "@radix-ui/react-slot": "^1.1.0",
