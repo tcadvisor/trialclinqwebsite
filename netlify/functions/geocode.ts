@@ -20,7 +20,8 @@ export const handler: Handler = async (event) => {
 
   try {
     const payload = event.body ? JSON.parse(event.body) : {};
-    const q: string = (payload.q || '').toString().trim();
+    const raw = (payload.q || '').toString();
+    const q: string = raw.trim().replace(/\s+/g, ' ');
     if (!q) return cors(400, { error: 'Missing q' });
 
     // 1) ZIP-first resolver (US) - strict validation
@@ -43,23 +44,66 @@ export const handler: Handler = async (event) => {
       } catch {}
     }
 
-    // 2) For text queries with state/city info, prefer US results
-    const params = new URLSearchParams({ format: 'jsonv2', limit: '10', q });
-    const nres = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, {
-      headers: { 'user-agent': 'trialcliniq-geocoder/1.0 (+https://trialcliniq.com)' },
-    });
-    if (!nres.ok) return cors(404, { error: 'Not found' });
-    const arr = (await nres.json()) as Array<any>;
-
-    // Prefer US results when query contains state abbreviations or US state names
     const usStateAbbr = ['AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY', 'DC'];
+    const usStateNames = [
+      'alabama','alaska','arizona','arkansas','california','colorado','connecticut','delaware','florida','georgia',
+      'hawaii','idaho','illinois','indiana','iowa','kansas','kentucky','louisiana','maine','maryland','massachusetts',
+      'michigan','minnesota','mississippi','missouri','montana','nebraska','nevada','new hampshire','new jersey','new mexico',
+      'new york','north carolina','north dakota','ohio','oklahoma','oregon','pennsylvania','rhode island','south carolina',
+      'south dakota','tennessee','texas','utah','vermont','virginia','washington','west virginia','wisconsin','wyoming',
+      'district of columbia','washington dc','washington d.c.'
+    ];
     const qUpper = q.toUpperCase();
-    const hasStateHint = usStateAbbr.some(s => qUpper.includes(s));
+    const qLower = q.toLowerCase();
+    const hasStateHint = usStateAbbr.some(s => qUpper.includes(s)) || usStateNames.some((n) => qLower.includes(n));
+    const looksLikeUS = hasStateHint || /\busa\b|\bunited states\b|\bUS\b/i.test(q) || q.match(/\d{5}/);
+    const commaParts = q.split(",").map((p) => p.trim()).filter(Boolean);
+    const lastPart = commaParts.length ? commaParts[commaParts.length - 1].toLowerCase() : "";
+    const statePartIsUS = usStateAbbr.includes(lastPart.toUpperCase()) || usStateNames.includes(lastPart);
+
+    const baseParams: Record<string, string> = { format: 'jsonv2', limit: '10' };
+    if (looksLikeUS) baseParams.countrycodes = 'us';
+
+    // 2) For text queries with state/city info, prefer US results and structured queries
+    let params: URLSearchParams;
+    const fetchNominatim = async (p: URLSearchParams) => {
+      const nres = await fetch(`https://nominatim.openstreetmap.org/search?${p.toString()}`, {
+        headers: { 'user-agent': 'trialcliniq-geocoder/1.0 (+https://trialcliniq.com)' },
+      });
+      if (!nres.ok) return null;
+      return (await nres.json()) as Array<any>;
+    };
+
+    if (commaParts.length >= 2 && statePartIsUS) {
+      const city = commaParts.slice(0, -1).join(", ").trim();
+      const state = commaParts.slice(-1).join(", ").trim();
+      params = new URLSearchParams({ ...baseParams, city, state, country: 'United States' });
+    } else {
+      const preferredQ = looksLikeUS ? `${q}, United States` : q;
+      params = new URLSearchParams({ ...baseParams, q: preferredQ });
+    }
+
+    let arr = await fetchNominatim(params);
+    if ((!arr || arr.length === 0) && looksLikeUS) {
+      const retry = new URLSearchParams({ format: 'jsonv2', limit: '10', q });
+      arr = await fetchNominatim(retry);
+    }
+    if ((!arr || arr.length === 0) && commaParts.length >= 2 && statePartIsUS) {
+      const city = commaParts.slice(0, -1).join(", ").trim();
+      const state = commaParts.slice(-1).join(", ").trim();
+      const retry = new URLSearchParams({ format: 'jsonv2', limit: '10', q: `${city}, ${state}, United States` });
+      arr = await fetchNominatim(retry);
+    }
+    if ((!arr || arr.length === 0) && usStateNames.includes(qLower)) {
+      const retry = new URLSearchParams({ format: 'jsonv2', limit: '10', q: `${q}, United States` });
+      arr = await fetchNominatim(retry);
+    }
+    if (!arr) return cors(404, { error: 'Not found' });
 
     let first = arr?.[0];
 
     // If state hint detected or zip-like pattern, prefer US results
-    if (hasStateHint || q.match(/\d{5}/) || q.match(/georgia|california|texas|florida|new york|pennsylvania|ohio|illinois|michigan|north carolina|virginia|washington|colorado|arizona|tennessee|missouri|indiana|maryland|minnesota|wisconsin|massachusetts|washington|massachusetts|louisiana|alabama|kentucky|oregon|oklahoma|connecticut|utah|iowa|nevada|arkansas|kansas|mississippi|new mexico|west virginia|nebraska|idaho|south dakota|north dakota|maine|montana|rhode island|delaware|south carolina|wyoming|vermont|alaska|hawaii|district of columbia/i)) {
+    if (looksLikeUS) {
       // Find best US match
       const usResults = arr.filter((r) => {
         const displayName = (r?.display_name || '').toUpperCase();
@@ -75,6 +119,12 @@ export const handler: Handler = async (event) => {
           return Number.isFinite(lat) && Number.isFinite(lng) && lat > 24 && lat < 50 && lng > -130 && lng < -65;
         }) || first;
       }
+    }
+
+    if (!first && looksLikeUS) {
+      const retryParams = new URLSearchParams({ format: 'jsonv2', limit: '10', q });
+      const retryArr = await fetchNominatim(retryParams);
+      first = retryArr?.[0];
     }
 
     if (!first) return cors(404, { error: 'Not found' });

@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import SiteHeader from "../../components/SiteHeader";
+import HomeHeader from "../../components/HomeHeader";
 
 export default function VisibilityOptions(): JSX.Element {
   const options = [
@@ -24,7 +24,7 @@ export default function VisibilityOptions(): JSX.Element {
 
   return (
     <div className="min-h-screen bg-white text-gray-900">
-      <SiteHeader />
+      <HomeHeader />
       <main className="max-w-4xl mx-auto px-4 py-10">
         <h1 className="text-3xl font-semibold mb-2">Visibility/ Marketing Options</h1>
         <p className="text-gray-600 mb-8">Boost your trial listings and site visibility to eligible patients.</p>

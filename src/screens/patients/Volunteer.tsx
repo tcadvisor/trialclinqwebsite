@@ -1,7 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../lib/auth";
-import SiteHeader from "../../components/SiteHeader";
+import HomeHeader from "../../components/HomeHeader";
 import SignUpForm from "../../components/SignUpForm";
 import { upsertAccount } from "../../lib/accountStore";
 
@@ -33,7 +33,7 @@ export default function Volunteer(): JSX.Element {
 
   return (
     <div className="min-h-screen bg-white text-gray-900">
-      <SiteHeader />
+      <HomeHeader />
       <SignUpForm
         title="Create Patient Account"
         onSubmit={handleSubmit}

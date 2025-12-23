@@ -170,7 +170,7 @@ export default function HomeHeader() {
             </div>
           </div>
           <Link to="/contact" className="hover:text-gray-600">Contact Us</Link>
-          <a href="#faq" className="hover:text-gray-600">About Us</a>
+          <Link to="/about" className="hover:text-gray-600">About Us</Link>
         </nav>
         <div className="flex items-center gap-3 shrink-0">
           <HeaderActions />

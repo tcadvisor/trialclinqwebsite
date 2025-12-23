@@ -1,11 +1,11 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import SiteHeader from "../../components/SiteHeader";
+import HomeHeader from "../../components/HomeHeader";
 
 export default function InvestigatorSupport(): JSX.Element {
   return (
     <div className="min-h-screen bg-white text-gray-900">
-      <SiteHeader active="contact" />
+      <HomeHeader />
       <main className="max-w-3xl mx-auto px-4 py-10">
         <h1 className="text-3xl font-semibold mb-2">TrialCliniq Support Center</h1>
         <p className="text-gray-600 mb-6">Contact support or access onboarding guides for investigators.</p>

@@ -11,6 +11,7 @@ import HomeHeader from "../components/HomeHeader";
 import { buildSmartCondQuery, buildLooseCondQuery, normalizeLocation } from "../lib/searchQuery";
 import { getSpellCheckSuggestions, correctWithAI, type SpellCheckSuggestion } from "../lib/spellCheck";
 import { formatStudyStatus, formatStudyType, formatPhase } from "../lib/formatters";
+import { geocodeText } from "../lib/geocode";
 import {
   CtgovResponse,
   CtgovStudy,
@@ -23,16 +24,165 @@ import {
 const solutionsLinks = ["Find a study", "More about trials", "How TrialCliniq help", "Blog"];
 const companyLinks = ["Terms of Conditions", "Contact Us", "About Us", "Privacy Policy"];
 
+const US_STATES = new Set<string>([
+  "alabama","alaska","arizona","arkansas","california","colorado","connecticut","delaware","florida","georgia",
+  "hawaii","idaho","illinois","indiana","iowa","kansas","kentucky","louisiana","maine","maryland","massachusetts",
+  "michigan","minnesota","mississippi","missouri","montana","nebraska","nevada","new hampshire","new jersey","new mexico",
+  "new york","north carolina","north dakota","ohio","oklahoma","oregon","pennsylvania","rhode island","south carolina",
+  "south dakota","tennessee","texas","utah","vermont","virginia","washington","west virginia","wisconsin","wyoming",
+  "district of columbia","washington dc","washington d.c."
+]);
+
+const US_STATE_MAP: Record<string, string> = {
+  "alabama": "AL", "alaska": "AK", "arizona": "AZ", "arkansas": "AR", "california": "CA", "colorado": "CO",
+  "connecticut": "CT", "delaware": "DE", "florida": "FL", "georgia": "GA", "hawaii": "HI", "idaho": "ID",
+  "illinois": "IL", "indiana": "IN", "iowa": "IA", "kansas": "KS", "kentucky": "KY", "louisiana": "LA",
+  "maine": "ME", "maryland": "MD", "massachusetts": "MA", "michigan": "MI", "minnesota": "MN",
+  "mississippi": "MS", "missouri": "MO", "montana": "MT", "nebraska": "NE", "nevada": "NV",
+  "new hampshire": "NH", "new jersey": "NJ", "new mexico": "NM", "new york": "NY", "north carolina": "NC",
+  "north dakota": "ND", "ohio": "OH", "oklahoma": "OK", "oregon": "OR", "pennsylvania": "PA",
+  "rhode island": "RI", "south carolina": "SC", "south dakota": "SD", "tennessee": "TN", "texas": "TX",
+  "utah": "UT", "vermont": "VT", "virginia": "VA", "washington": "WA", "west virginia": "WV",
+  "wisconsin": "WI", "wyoming": "WY", "district of columbia": "DC", "washington dc": "DC", "washington d.c.": "DC",
+};
+
+const US_STATE_ABBRS = new Set<string>([
+  "al","ak","az","ar","ca","co","ct","de","fl","ga","hi","id","il","in","ia","ks","ky","la","me","md","ma","mi",
+  "mn","ms","mo","mt","ne","nv","nh","nj","nm","ny","nc","nd","oh","ok","or","pa","ri","sc","sd","tn","tx","ut",
+  "vt","va","wa","wv","wi","wy","dc"
+]);
+
+const LOCATION_ONLY_RE = /^\s*(\d{5}(-\d{4})?|[a-z\s]+,\s*[a-z]{2})\s*$/i;
+
+function looksLikeLocationOnly(input: string): boolean {
+  const trimmed = input.trim();
+  if (!trimmed) return false;
+  if (LOCATION_ONLY_RE.test(trimmed)) return true;
+  const lower = trimmed.toLowerCase();
+  if (lower === "usa" || lower === "us" || lower === "united states") return true;
+  if (US_STATES.has(lower)) return true;
+  if (US_STATE_ABBRS.has(lower)) return true;
+  return false;
+}
+
+function inferQueryAndLocation(rawQuery: string, rawLoc: string): { query: string; loc: string } {
+  const q = (rawQuery || "").trim();
+  const loc = (rawLoc || "").trim();
+  if (!q || loc) return { query: q, loc };
+
+  const nearMatch = q.match(/\b(?:in|near|around|within)\s+(.+)$/i);
+  if (nearMatch?.[1]) {
+    const inferredLoc = nearMatch[1].trim();
+    const cleanedQuery = q.replace(/\b(?:in|near|around|within)\s+(.+)$/i, "").trim();
+    if (inferredLoc) return { query: cleanedQuery, loc: inferredLoc };
+  }
+
+  const commaParts = q.split(",").map((p) => p.trim()).filter(Boolean);
+  if (commaParts.length >= 2) {
+    const tail = commaParts[commaParts.length - 1].toLowerCase();
+    if (US_STATE_ABBRS.has(tail) || US_STATES.has(tail)) {
+      const head = commaParts.slice(0, -1).join(", ").trim();
+      if (looksLikeLocationOnly(head)) {
+        return { query: "", loc: `${head}, ${commaParts[commaParts.length - 1]}`.trim() };
+      }
+      return { query: head, loc: commaParts.slice(-1).join(", ") };
+    }
+  }
+
+  if (looksLikeLocationOnly(q)) {
+    return { query: "", loc: q };
+  }
+
+  return { query: q, loc };
+}
+
+function normalizePart(input?: string): string {
+  return (input || "").trim().toLowerCase().replace(/\./g, "");
+}
+
+function toStateAbbr(input?: string): string | undefined {
+  const norm = normalizePart(input);
+  if (!norm) return undefined;
+  if (US_STATE_ABBRS.has(norm)) return norm.toUpperCase();
+  if (US_STATE_MAP[norm]) return US_STATE_MAP[norm];
+  return undefined;
+}
+
+function parsePreferredLocation(loc: string): { city?: string; state?: string; country?: string } {
+  if (!loc) return {};
+  const rawParts = loc.split(",").map((p) => p.trim()).filter(Boolean);
+  if (!rawParts.length) return {};
+  const parts = [...rawParts];
+  const last = normalizePart(parts[parts.length - 1]);
+  if (last === "united states" || last === "usa" || last === "us") {
+    const country = parts.pop();
+    const state = parts.length ? parts.pop() : undefined;
+    const city = parts.length ? parts.join(", ") : undefined;
+    return { city, state, country };
+  }
+  if (parts.length >= 2) {
+    const state = parts.pop();
+    const city = parts.join(", ");
+    return { city, state };
+  }
+  const single = parts[0];
+  const singleNorm = normalizePart(single);
+  if (US_STATES.has(singleNorm) || US_STATE_ABBRS.has(singleNorm)) {
+    return { state: single };
+  }
+  return { city: single };
+}
+
+function isCityMatch(a?: string, b?: string): boolean {
+  const na = normalizePart(a);
+  const nb = normalizePart(b);
+  if (!na || !nb) return false;
+  return na === nb || na.includes(nb) || nb.includes(na);
+}
+
+function formatPreferredSitePreview(study: CtgovStudy, preferredLoc?: string): string {
+  const locs = study.protocolSection?.contactsLocationsModule?.locations || [];
+  if (!locs.length) return "";
+  if (!preferredLoc) return formatNearestSitePreview(study);
+
+  const pref = parsePreferredLocation(preferredLoc);
+  const prefState = toStateAbbr(pref.state);
+  const prefCity = pref.city;
+  const prefCountry = normalizePart(pref.country);
+
+  let best = locs[0];
+  let bestScore = -1;
+
+  for (const loc of locs) {
+    const city = loc.city || "";
+    const state = loc.state || "";
+    const country = loc.country || "";
+    const stateAbbr = toStateAbbr(state) || state.toUpperCase();
+    let score = 0;
+    if (prefState && stateAbbr === prefState) score += 3;
+    if (prefCity && isCityMatch(prefCity, city)) score += 4;
+    if (prefCountry && normalizePart(country) === prefCountry) score += 1;
+    if (score > bestScore) {
+      best = loc;
+      bestScore = score;
+    }
+  }
+
+  const parts = [best.city, best.state, best.country].filter(Boolean);
+  return parts.join(", ");
+}
+
 export const SearchResults = (): JSX.Element => {
   const { search } = useLocation();
   const navigate = useNavigate();
 
   const params = React.useMemo(() => new URLSearchParams(search), [search]);
-  const initialQ = params.get("q")?.trim() || "breast cancer";
+  const initialQ = params.get("q")?.trim() || "";
   const initialLoc = params.get("loc")?.trim() || "";
   const initialStatus = (params.get("status")?.trim().toUpperCase() || "RECRUITING");
   const initialType = params.get("type")?.trim() || "";
   const initialPageSize = parseInt(params.get("pageSize") || "12", 10);
+  const initialRadius = params.get("radius")?.trim() || "";
 
   const [q, setQ] = React.useState<string>(initialQ);
   const [loc, setLoc] = React.useState<string>(initialLoc);
@@ -41,15 +191,22 @@ export const SearchResults = (): JSX.Element => {
   const [tempStatus, setTempStatus] = React.useState<string>(initialStatus);
   const [tempType, setTempType] = React.useState<string>(initialType);
   const [tempPageSize, setTempPageSize] = React.useState<number>(initialPageSize);
-  const preparedQ = React.useMemo(() => buildSmartCondQuery(q), [q]);
-  const preparedLoc = React.useMemo(() => normalizeLocation(loc), [loc]);
+  const [tempRadius, setTempRadius] = React.useState<string>(initialRadius);
+  const inferred = React.useMemo(() => inferQueryAndLocation(q, loc), [q, loc]);
+  const preparedQ = React.useMemo(() => buildSmartCondQuery(inferred.query), [inferred.query]);
+  const preparedLoc = React.useMemo(() => normalizeLocation(inferred.loc), [inferred.loc]);
   const [status, setStatus] = React.useState<string>(initialStatus);
-  const [type, setType] = React.useState<string>("");
-  const [pageSize, setPageSize] = React.useState<number>(12);
+  const [type, setType] = React.useState<string>(initialType);
+  const [pageSize, setPageSize] = React.useState<number>(initialPageSize);
+  const [radius, setRadius] = React.useState<string>(initialRadius);
+  const [radiusTouched, setRadiusTouched] = React.useState<boolean>(Boolean(initialRadius));
   const [page, setPage] = React.useState<number>(1);
   const [pageToken, setPageToken] = React.useState<string>("");
   const tokenMapRef = React.useRef<Record<number, string>>({ 1: "" });
   const [activeQuery, setActiveQuery] = React.useState<{ qq: string; st?: string; lc?: string } | null>(null);
+  const [geo, setGeo] = React.useState<{ lat?: number; lng?: number; label?: string } | null>(null);
+  const [geoLoading, setGeoLoading] = React.useState<boolean>(false);
+  const [geoError, setGeoError] = React.useState<string>("");
 
   const [data, setData] = React.useState<CtgovResponse | null>(null);
   const [loading, setLoading] = React.useState<boolean>(false);
@@ -64,19 +221,67 @@ export const SearchResults = (): JSX.Element => {
     if (tempLoc) queryParams.set("loc", tempLoc);
     if (tempStatus) queryParams.set("status", tempStatus);
     if (tempType) queryParams.set("type", tempType);
+    if (tempRadius) queryParams.set("radius", tempRadius);
     queryParams.set("pageSize", String(tempPageSize));
     navigate(`/patients/find-trial?${queryParams.toString()}`);
     setQ(tempQ);
     setLoc(tempLoc);
     setStatus(tempStatus);
     setType(tempType);
+    setRadius(tempRadius);
     setPageSize(tempPageSize);
     setPage(1);
   };
 
   React.useEffect(() => {
     let mounted = true;
+    const nextLoc = preparedLoc;
+    if (!nextLoc) {
+      setGeo(null);
+      setGeoError("");
+      setGeoLoading(false);
+      return;
+    }
+    setGeoLoading(true);
+    setGeoError("");
     (async () => {
+      const g = await geocodeText(nextLoc);
+      if (!mounted) return;
+      if (g?.lat && g?.lng) {
+        setGeo(g);
+        setGeoError("");
+      } else {
+        setGeo(null);
+        setGeoError("We couldn't pinpoint that location. Results may be broader than expected.");
+      }
+      setGeoLoading(false);
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [preparedLoc]);
+
+  React.useEffect(() => {
+    if (preparedLoc && !radius && !radiusTouched) {
+      setRadius("50mi");
+      setTempRadius("50mi");
+    }
+  }, [preparedLoc, radius, radiusTouched]);
+
+  React.useEffect(() => {
+    let mounted = true;
+    (async () => {
+      if (preparedLoc && !geoError && !(geo?.lat && geo?.lng)) {
+        setLoading(true);
+        setError("");
+        return;
+      }
+      if (!q.trim() && !preparedLoc) {
+        setError("");
+        setData({ studies: [], totalCount: 0 });
+        setLoading(false);
+        return;
+      }
       setLoading(true);
       setError("");
       try {
@@ -87,58 +292,57 @@ export const SearchResults = (): JSX.Element => {
           res = await fetchStudyByNctId(q.trim());
           used = { qq: q.trim(), st: '', lc: '' };
         } else {
-          const loose = buildLooseCondQuery(q);
-          const isBroadUSLocation = preparedLoc === 'United States';
+          const effectiveQuery = inferred.query.trim();
+          const loose = buildLooseCondQuery(effectiveQuery);
           const attempts: Array<{ qq: string; st?: string; lc?: string }> = [];
+          const normalizedQ = effectiveQuery;
+          const queryVariants = [preparedQ, loose, normalizedQ]
+            .map((v) => (v || "").trim())
+            .filter((v, i, arr) => v && arr.indexOf(v) === i);
 
-          // If location is a broad "USA" search, try with location first but don't fall back to worldwide
-          // For specific locations, allow broader fallbacks if few results
-          if (isBroadUSLocation) {
-            // US-only searches: keep location constraint
-            attempts.push({ qq: preparedQ, st: status, lc: preparedLoc });
-            if (loose && loose !== preparedQ) attempts.push({ qq: loose, st: status, lc: preparedLoc });
-            attempts.push({ qq: q.trim(), st: status, lc: preparedLoc });
-            attempts.push({ qq: preparedQ, st: '', lc: preparedLoc });
-            attempts.push({ qq: loose || preparedQ || q.trim(), st: '', lc: preparedLoc });
-          } else if (preparedLoc) {
-            // Specific location: try with location first, then fallback to broader searches
-            attempts.push({ qq: preparedQ, st: status, lc: preparedLoc });
-            if (loose && loose !== preparedQ) attempts.push({ qq: loose, st: status, lc: preparedLoc });
-            attempts.push({ qq: q.trim(), st: status, lc: preparedLoc });
-            attempts.push({ qq: preparedQ, st: status, lc: '' });
-            if (loose && loose !== preparedQ) attempts.push({ qq: loose, st: status, lc: '' });
-            attempts.push({ qq: q.trim(), st: status, lc: '' });
-            attempts.push({ qq: preparedQ, st: '', lc: preparedLoc });
-            attempts.push({ qq: loose || preparedQ || q.trim(), st: '', lc: preparedLoc });
-            attempts.push({ qq: preparedQ, st: '', lc: '' });
-            attempts.push({ qq: loose || preparedQ || q.trim(), st: '', lc: '' });
-          } else {
-            // No location specified
-            attempts.push({ qq: preparedQ, st: status, lc: '' });
-            if (loose && loose !== preparedQ) attempts.push({ qq: loose, st: status, lc: '' });
-            attempts.push({ qq: q.trim(), st: status, lc: '' });
-            attempts.push({ qq: preparedQ, st: '', lc: '' });
-            attempts.push({ qq: loose || preparedQ || q.trim(), st: '', lc: '' });
+          const baseStatus = status || "";
+          const baseLoc = preparedLoc || "";
+          const effectiveRadius = radius || "";
+          const geoReady = Boolean(baseLoc && effectiveRadius && geo?.lat && geo?.lng);
+
+          for (const variant of queryVariants) {
+            attempts.push({ qq: variant, st: baseStatus, lc: baseLoc });
+          }
+
+          if (attempts.length === 0) {
+            attempts.push({ qq: normalizedQ, st: baseStatus, lc: baseLoc });
           }
 
           if (page > 1 || pageToken) {
             const a = activeQuery || attempts[0];
             used = a;
-            res = await fetchStudies({ q: a.qq, status: a.st, type, loc: a.lc, pageSize, pageToken });
+            res = await fetchStudies({
+              q: a.qq,
+              status: a.st,
+              type,
+              loc: geoReady ? "" : a.lc,
+              lat: geoReady ? geo?.lat : undefined,
+              lng: geoReady ? geo?.lng : undefined,
+              radius: geoReady ? effectiveRadius : undefined,
+              pageSize,
+              pageToken,
+            });
           } else {
             for (const a of attempts) {
-              const r = await fetchStudies({ q: a.qq, status: a.st, type, loc: a.lc, pageSize, pageToken: "" });
+              const r = await fetchStudies({
+                q: a.qq,
+                status: a.st,
+                type,
+                loc: geoReady ? "" : a.lc,
+                lat: geoReady ? geo?.lat : undefined,
+                lng: geoReady ? geo?.lng : undefined,
+                radius: geoReady ? effectiveRadius : undefined,
+                pageSize,
+                pageToken: "",
+              });
               res = r;
               used = a;
-              // For broad US searches, always keep results even if few (don't fall back to worldwide)
-              // For specific locations, allow fallback if very few results
-              if (isBroadUSLocation) {
-                // Always accept results for US-specific searches
-                if ((r.studies || []).length > 0 || r.nextPageToken !== undefined) break;
-              } else {
-                // For specific locations, accept if we have results or fallback for broader searches
-                if ((r.studies || []).length > 0 || r.nextPageToken !== undefined) break;
-              }
+              if ((r.studies || []).length > 0 || r.nextPageToken !== undefined) break;
             }
           }
         }
@@ -159,14 +363,14 @@ export const SearchResults = (): JSX.Element => {
     return () => {
       mounted = false;
     };
-  }, [q, preparedQ, preparedLoc, status, type, pageSize, pageToken, page]);
+  }, [q, preparedQ, preparedLoc, status, type, pageSize, pageToken, page, geo?.lat, geo?.lng, geoError, radius]);
 
   React.useEffect(() => {
     tokenMapRef.current = { 1: "" };
     setActiveQuery(null);
     setPage(1);
     setPageToken("");
-  }, [preparedQ, preparedLoc, status, type, pageSize]);
+  }, [preparedQ, preparedLoc, status, type, pageSize, radius]);
 
   // Compute spell check suggestions when results are empty
   React.useEffect(() => {
@@ -224,6 +428,16 @@ export const SearchResults = (): JSX.Element => {
 
         <h1 className="text-2xl font-semibold mb-2">Clinical trials</h1>
         <div className="mb-6 text-sm text-gray-600">{`We found ${data?.totalCount ?? 0} clinical trial${(data?.totalCount ?? 0) === 1 ? '' : 's'}.`}</div>
+        {inferred.loc && !loc.trim() && (
+          <div className="mb-6 rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+            We treated "{inferred.loc}" as your location. Update the location filter if you meant it as a condition.
+          </div>
+        )}
+        {geoError && (
+          <div className="mb-6 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            {geoError}
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           <aside className="lg:col-span-1">
@@ -246,7 +460,7 @@ export const SearchResults = (): JSX.Element => {
                     type="text"
                     value={tempLoc}
                     onChange={(e) => setTempLoc(e.target.value)}
-                    placeholder="City, State or ZIP"
+                    placeholder="City, State"
                     className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
                   />
                 </div>
@@ -297,6 +511,32 @@ export const SearchResults = (): JSX.Element => {
                       <SelectItem value="EXPANDED_ACCESS">{formatStudyType('EXPANDED_ACCESS')}</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+                <div>
+                  <h4 className="font-medium mb-2">Distance from location</h4>
+                  <Select
+                    value={tempRadius || "any"}
+                    onValueChange={(v) => {
+                      const next = v === "any" ? "" : v;
+                      setTempRadius(next);
+                      setRadiusTouched(true);
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Any distance" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="any">Any distance</SelectItem>
+                      <SelectItem value="10mi">10 miles</SelectItem>
+                      <SelectItem value="25mi">25 miles</SelectItem>
+                      <SelectItem value="50mi">50 miles</SelectItem>
+                      <SelectItem value="100mi">100 miles</SelectItem>
+                      <SelectItem value="200mi">200 miles</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {geoLoading && (
+                    <div className="mt-2 text-xs text-gray-500">Finding that location...</div>
+                  )}
                 </div>
                 <div>
                   <h4 className="font-medium mb-2">Results per page</h4>
@@ -394,7 +634,7 @@ export const SearchResults = (): JSX.Element => {
               const conditions = study.protocolSection?.conditionsModule?.conditions || [];
               const phases = study.protocolSection?.designModule?.phases || [];
               const sponsor = study.protocolSection?.sponsorCollaboratorsModule?.leadSponsor?.name || "";
-              const nearest = formatNearestSitePreview(study);
+              const nearest = formatPreferredSitePreview(study, geo?.label || preparedLoc);
               const nctId = study.protocolSection?.identificationModule?.nctId || "";
 
               return (
@@ -489,10 +729,21 @@ export const SearchResults = (): JSX.Element => {
                               return;
                             }
                             const aq = activeQuery || { qq: preparedQ, st: status, lc: preparedLoc };
+                            const geoReady = Boolean(preparedLoc && radius && geo?.lat && geo?.lng);
                             let current = page;
                             let token = tokenMapRef.current[current] ?? "";
                             while (current < i) {
-                              const r = await fetchStudies({ q: aq.qq, status: aq.st, type, loc: aq.lc, pageSize, pageToken: token });
+                              const r = await fetchStudies({
+                                q: aq.qq,
+                                status: aq.st,
+                                type,
+                                loc: geoReady ? "" : aq.lc,
+                                lat: geoReady ? geo?.lat : undefined,
+                                lng: geoReady ? geo?.lng : undefined,
+                                radius: geoReady ? radius : undefined,
+                                pageSize,
+                                pageToken: token,
+                              });
                               token = r.nextPageToken || "";
                               if (r.nextPageToken) {
                                 tokenMapRef.current[current + 1] = r.nextPageToken;

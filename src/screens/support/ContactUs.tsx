@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Mail, Phone, Send } from "lucide-react";
-import SiteHeader from "../../components/SiteHeader";
+import HomeHeader from "../../components/HomeHeader";
 
 export default function ContactUs() {
   const reasons = useMemo(
@@ -58,7 +58,7 @@ export default function ContactUs() {
 
   return (
     <div className="min-h-screen bg-white text-gray-900">
-      <SiteHeader active="contact" />
+      <HomeHeader />
 
       <main className="px-4">
         <section className="max-w-5xl mx-auto pt-12 pb-8">

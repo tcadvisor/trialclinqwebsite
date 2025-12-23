@@ -12,6 +12,44 @@ function writeCache(map: Record<string, GeoResult>) {
   try { localStorage.setItem(CACHE_KEY, JSON.stringify(map)); } catch {}
 }
 
+function buildGeocodeVariants(input: string): string[] {
+  const base = input.trim().replace(/\s+/g, ' ');
+  if (!base) return [];
+  const variants = [base];
+  const lower = base.toLowerCase();
+  const usStateNames = [
+    'alabama','alaska','arizona','arkansas','california','colorado','connecticut','delaware','florida','georgia',
+    'hawaii','idaho','illinois','indiana','iowa','kansas','kentucky','louisiana','maine','maryland','massachusetts',
+    'michigan','minnesota','mississippi','missouri','montana','nebraska','nevada','new hampshire','new jersey','new mexico',
+    'new york','north carolina','north dakota','ohio','oklahoma','oregon','pennsylvania','rhode island','south carolina',
+    'south dakota','tennessee','texas','utah','vermont','virginia','washington','west virginia','wisconsin','wyoming',
+    'district of columbia','washington dc','washington d.c.'
+  ];
+  const looksLikeUS = /\busa\b|\bunited states\b|\bUS\b/i.test(base) || lower.includes(" united states");
+  if (!looksLikeUS) variants.push(`${base}, United States`);
+  if (usStateNames.includes(lower)) variants.push(`${base}, United States`);
+  if (lower === "new york") variants.push("New York, NY");
+  if (lower === "washington") variants.push("Washington, DC");
+  return Array.from(new Set(variants));
+}
+
+async function browserNominatimLookup(query: string): Promise<GeoResult | null> {
+  try {
+    const params = new URLSearchParams({ format: 'jsonv2', limit: '1', q: query });
+    const res = await safeFetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`);
+    if (!res || !res.ok) return null;
+    const arr = (await res.json()) as Array<any>;
+    const first = arr?.[0];
+    const lat = Number(first?.lat);
+    const lng = Number(first?.lon);
+    const label = (first?.display_name || '').toString();
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+    return { lat, lng, label };
+  } catch {
+    return null;
+  }
+}
+
 export function readLocPref(): { loc: string; radius?: string } {
   try {
     const raw = localStorage.getItem(ELIGIBILITY_KEY);
@@ -33,21 +71,33 @@ export async function geocodeText(q: string): Promise<{ lat?: number; lng?: numb
 
     // In browser, only call the serverless webhook to avoid noisy CORS/network errors
     if (typeof window !== 'undefined') {
-      try {
-        const res = await safeFetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ q: key }) });
-        if (res && res.ok) {
-          const data = (await res.json()) as any;
-          const lat = Number(data.lat);
-          const lng = Number(data.lng);
-          const label = typeof data.label === 'string' ? data.label : undefined;
-          if (Number.isFinite(lat) && Number.isFinite(lng)) {
-            cache[key] = { lat, lng, label };
-            writeCache(cache);
-            return { lat, lng, label };
+      const variants = buildGeocodeVariants(key);
+      for (const variant of variants) {
+        try {
+          const res = await safeFetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ q: variant }) });
+          if (res && res.ok) {
+            const data = (await res.json()) as any;
+            const lat = Number(data.lat);
+            const lng = Number(data.lng);
+            const label = typeof data.label === 'string' ? data.label : undefined;
+            if (Number.isFinite(lat) && Number.isFinite(lng)) {
+              cache[key] = { lat, lng, label };
+              writeCache(cache);
+              return { lat, lng, label };
+            }
           }
+        } catch (e) {
+          // swallow; do not attempt external public fetches from browser to avoid console noise/CORS
         }
-      } catch (e) {
-        // swallow; do not attempt external public fetches from browser to avoid console noise/CORS
+      }
+
+      for (const variant of variants) {
+        const g = await browserNominatimLookup(variant);
+        if (g) {
+          cache[key] = { lat: g.lat, lng: g.lng, label: g.label };
+          writeCache(cache);
+          return g;
+        }
       }
       return null;
     }
@@ -105,20 +155,44 @@ export async function geocodeText(q: string): Promise<{ lat?: number; lng?: numb
     }
 
     try {
-      const params = new URLSearchParams({ format: 'jsonv2', limit: '10', q: key });
+      const usStateAbbr = ['AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY', 'DC'];
+      const usStateNames = [
+        'alabama','alaska','arizona','arkansas','california','colorado','connecticut','delaware','florida','georgia',
+        'hawaii','idaho','illinois','indiana','iowa','kansas','kentucky','louisiana','maine','maryland','massachusetts',
+        'michigan','minnesota','mississippi','missouri','montana','nebraska','nevada','new hampshire','new jersey','new mexico',
+        'new york','north carolina','north dakota','ohio','oklahoma','oregon','pennsylvania','rhode island','south carolina',
+        'south dakota','tennessee','texas','utah','vermont','virginia','washington','west virginia','wisconsin','wyoming',
+        'district of columbia','washington dc','washington d.c.'
+      ];
+      const keyUpper = key.toUpperCase();
+      const keyLower = key.toLowerCase();
+      const hasStateHint = usStateAbbr.some(s => keyUpper.includes(s)) || usStateNames.some((n) => keyLower.includes(n));
+      const looksLikeUS = hasStateHint || /\busa\b|\bunited states\b|\bUS\b/i.test(key) || key.match(/\d{5}/);
+      const commaParts = key.split(",").map((p) => p.trim()).filter(Boolean);
+      const lastPart = commaParts.length ? commaParts[commaParts.length - 1].toLowerCase() : "";
+      const statePartIsUS = usStateAbbr.includes(lastPart.toUpperCase()) || usStateNames.includes(lastPart);
+      const baseParams: Record<string, string> = { format: 'jsonv2', limit: '10' };
+      if (looksLikeUS) baseParams.countrycodes = 'us';
+      let params: URLSearchParams;
+      if (commaParts.length >= 2 && statePartIsUS) {
+        const city = commaParts.slice(0, -1).join(", ").trim();
+        const state = commaParts.slice(-1).join(", ").trim();
+        params = new URLSearchParams({ ...baseParams, city, state, country: 'United States' });
+      } else if (usStateNames.includes(keyLower)) {
+        params = new URLSearchParams({ ...baseParams, state: key, country: 'United States' });
+      } else {
+        const preferredKey = looksLikeUS ? `${key}, United States` : key;
+        params = new URLSearchParams({ ...baseParams, q: preferredKey });
+      }
       try {
         const nres = await safeFetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`);
         if (nres && nres.ok) {
           const arr = (await nres.json()) as Array<any>;
           if (arr && arr.length > 0) {
             // Prefer US results when searching (especially if query suggests US location)
-            const keyUpper = key.toUpperCase();
-            const usStateAbbr = ['AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY', 'DC'];
-            const hasStateHint = usStateAbbr.some(s => keyUpper.includes(s)) || key.match(/georgia|california|texas|florida|new york|pennsylvania|ohio|illinois|michigan|north carolina|virginia|washington|colorado|arizona|tennessee|missouri|indiana|maryland|minnesota|wisconsin|massachusetts|louisiana|alabama|kentucky|oregon|oklahoma|connecticut|utah|iowa|nevada|arkansas|kansas|mississippi|new mexico|west virginia|nebraska|idaho|south dakota|north dakota|maine|montana|rhode island|delaware|south carolina|wyoming|vermont|alaska|hawaii|district of columbia/i);
-
             let first = arr[0];
 
-            if (hasStateHint) {
+            if (looksLikeUS) {
               // Find best US match
               const usResults = arr.filter((r) => {
                 const displayName = (r?.display_name || '').toUpperCase();

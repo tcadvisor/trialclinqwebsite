@@ -2,7 +2,7 @@ import React from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../lib/auth";
 import { findAccountByEmail } from "../../lib/accountStore";
-import SiteHeader from "../../components/SiteHeader";
+import HomeHeader from "../../components/HomeHeader";
 
 export default function ProviderLogin(): JSX.Element {
   const navigate = useNavigate();
@@ -45,7 +45,7 @@ export default function ProviderLogin(): JSX.Element {
 
   return (
     <div className="min-h-screen bg-white text-gray-900">
-      <SiteHeader />
+      <HomeHeader />
       <main className="max-w-md mx-auto px-4 py-10">
         <h1 className="text-3xl font-semibold mb-6">Provider Login</h1>
         <form onSubmit={handleSubmit} className="space-y-4">

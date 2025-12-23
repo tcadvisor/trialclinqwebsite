@@ -91,7 +91,7 @@ export default function Home() {
                   type="text"
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
-                  placeholder="10090, Niagara Falls, USA"
+                  placeholder="Niagara Falls, NY"
                   className="w-full rounded-lg border border-gray-300 px-4 py-3 placeholder:text-gray-400/80 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   aria-label="Location"
                 />

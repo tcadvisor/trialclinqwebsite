@@ -48,6 +48,7 @@ const SignupProcessing = lazy(() => import("./screens/patients/SignupProcessing"
 const Connect = lazy(() => import("./screens/patients/Connect"));
 const SignupInfo = lazy(() => import("./screens/patients/SignupInfo"));
 const SignupPersonalDetails = lazy(() => import("./screens/patients/SignupPersonalDetails"));
+const About = lazy(() => import("./screens/About"));
 
 function LoadingFallback() {
   return (
@@ -100,6 +101,7 @@ function App() {
           <Route path="/patients/health-profile" element={<RequireRole role="patient" redirectTo="/patients/login"><HealthProfile /></RequireRole>} />
           <Route path="/patients/settings" element={<RequireRole role="patient" redirectTo="/patients/login"><Settings /></RequireRole>} />
           <Route path="/patients/processing" element={<SignupProcessing />} />
+          <Route path="/about" element={<About />} />
           <Route path="/trials/:slug" element={<TrialDetails />} />
           <Route path="/study/:nctId" element={<CtgovStudyDetails />} />
           <Route path="/contact" element={<ContactUs />} />
