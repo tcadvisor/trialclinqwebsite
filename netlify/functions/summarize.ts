@@ -1,0 +1,158 @@
+import type { Handler } from "@netlify/functions";
+import Busboy from "busboy";
+import pdf from "pdf-parse";
+
+const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
+const DEFAULT_MODEL = "gpt-4o-mini";
+const MAX_TEXT_CHARS = 120000;
+
+type ParsedUpload = {
+  fields: Record<string, string>;
+  file?: { filename: string; mimeType: string; data: Buffer };
+};
+
+function cors(statusCode: number, body: any) {
+  return {
+    statusCode,
+    headers: {
+      "access-control-allow-origin": "*",
+      "access-control-allow-methods": "POST,OPTIONS",
+      "access-control-allow-headers": "content-type,authorization",
+      "content-type": "application/json",
+    },
+    body: typeof body === "string" ? body : JSON.stringify(body),
+  };
+}
+
+function parseMultipart(event: any): Promise<ParsedUpload> {
+  return new Promise((resolve, reject) => {
+    const contentType = event.headers?.["content-type"] || event.headers?.["Content-Type"];
+    if (!contentType) {
+      reject(new Error("Missing content-type"));
+      return;
+    }
+    const bb = Busboy({ headers: { "content-type": contentType } });
+    const fields: Record<string, string> = {};
+    let fileData: Buffer[] = [];
+    let fileMeta: { filename: string; mimeType: string } | null = null;
+
+    bb.on("file", (_name, file, info) => {
+      fileMeta = { filename: info.filename || "upload", mimeType: info.mimeType || "application/octet-stream" };
+      file.on("data", (d) => fileData.push(d));
+    });
+
+    bb.on("field", (name, val) => {
+      fields[name] = val;
+    });
+
+    bb.on("finish", () => {
+      const data = fileData.length ? Buffer.concat(fileData) : undefined;
+      resolve({
+        fields,
+        file: fileMeta && data ? { filename: fileMeta.filename, mimeType: fileMeta.mimeType, data } : undefined,
+      });
+    });
+
+    bb.on("error", reject);
+
+    const body = event.body
+      ? Buffer.from(event.body, event.isBase64Encoded ? "base64" : "utf8")
+      : Buffer.alloc(0);
+    bb.end(body);
+  });
+}
+
+async function extractText(file: { mimeType: string; data: Buffer }) {
+  const mime = file.mimeType || "";
+  if (mime === "application/pdf") {
+    const parsed = await pdf(file.data);
+    return parsed.text || "";
+  }
+  if (mime === "application/json") {
+    try {
+      const json = JSON.parse(file.data.toString("utf8"));
+      return JSON.stringify(json, null, 2);
+    } catch {
+      return file.data.toString("utf8");
+    }
+  }
+  return file.data.toString("utf8");
+}
+
+export const handler: Handler = async (event) => {
+  if (event.httpMethod === "OPTIONS") {
+    return cors(204, "");
+  }
+
+  if (event.httpMethod !== "POST") {
+    return cors(405, { error: "Method not allowed" });
+  }
+
+  const key = process.env.OPENAI_API_KEY || "";
+  if (!key) {
+    return cors(500, { error: "OPENAI_API_KEY not set" });
+  }
+
+  const authHeader = event.headers?.authorization || event.headers?.Authorization || "";
+  if (!authHeader) {
+    return cors(401, { error: "Missing Authorization header" });
+  }
+
+  try {
+    const parsed = await parseMultipart(event);
+    const file = parsed.file;
+    if (!file) return cors(400, { error: "Missing file" });
+
+    const profileId = parsed.fields.profileId || "unknown";
+    const text = await extractText(file);
+    const trimmed = text.slice(0, MAX_TEXT_CHARS);
+    if (!trimmed.trim()) return cors(400, { error: "Empty document" });
+
+    const model = process.env.OPENAI_SUMMARIZE_MODEL || DEFAULT_MODEL;
+    const prompt = [
+      "Summarize the clinical document. Provide a concise markdown summary and a plain-text summary.",
+      "If you can infer eligibility, include overall, criteria, and missing fields. If unsure, set overall to \"Unknown\".",
+      "Output ONLY valid JSON with keys: summaryMarkdown, summaryPlain, eligibility.",
+    ].join(" ");
+
+    const res = await fetch(OPENAI_URL, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${key}`,
+      },
+      body: JSON.stringify({
+        model,
+        temperature: 0.2,
+        messages: [
+          { role: "system", content: prompt },
+          { role: "user", content: trimmed },
+        ],
+        response_format: { type: "json_object" },
+      }),
+    });
+
+    if (!res.ok) {
+      const textErr = await res.text().catch(() => "");
+      return cors(res.status, { error: textErr || `HTTP ${res.status}` });
+    }
+
+    const data = await res.json();
+    const content: string | undefined = data?.choices?.[0]?.message?.content;
+    let out: any = {};
+    try {
+      out = content ? JSON.parse(content) : {};
+    } catch {
+      out = {};
+    }
+
+    return cors(200, {
+      summaryMarkdown: out.summaryMarkdown || out.summary || "",
+      summaryPlain: out.summaryPlain || "",
+      eligibility: out.eligibility || { overall: "Unknown", criteria: [], missing: [] },
+      audit: { requestId: data?.id || "unknown", generatedAt: new Date().toISOString(), profileId },
+    });
+  } catch (e: any) {
+    return cors(500, { error: String(e?.message || e || "Unknown error") });
+  }
+};

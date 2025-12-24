@@ -72,15 +72,12 @@ export async function signUpUser(input: SignUpInput): Promise<{ userId: string; 
     }
 
     // For new user registration, redirect to sign-up flow
-    const result = await msal.loginPopup({
+    await msal.loginRedirect({
       ...loginRequest,
       prompt: 'select_account',
     });
 
-    return {
-      userId: result.account?.localAccountId || result.account?.homeAccountId || '',
-      requiresConfirmation: false,
-    };
+    return { userId: '', requiresConfirmation: false };
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Unknown error';
     
@@ -118,7 +115,7 @@ export async function resendMFACode(email: string): Promise<void> {
 /**
  * Sign in user with email and password
  */
-export async function signInUser(input: SignInInput): Promise<AuthUser> {
+export async function signInUser(input: SignInInput): Promise<AuthUser | null> {
   try {
     const msal = getMsalInstance();
     
@@ -137,13 +134,15 @@ export async function signInUser(input: SignInInput): Promise<AuthUser> {
         });
       } catch (error) {
         if (error instanceof InteractionRequiredAuthError) {
-          response = await msal.loginPopup(loginRequest);
+          await msal.loginRedirect(loginRequest);
+          return null;
         } else {
           throw error;
         }
       }
     } else {
-      response = await msal.loginPopup(loginRequest);
+      await msal.loginRedirect(loginRequest);
+      return null;
     }
 
     if (!response.account) {
@@ -211,14 +210,16 @@ export async function signOutUser(): Promise<void> {
       return;
     }
 
-    const accounts = msal.getAllAccounts();
+    try {
+      const accounts = msal.getAllAccounts();
+      if (accounts[0]) {
+        msal.setActiveAccount(null);
+      }
+    } catch (_) {}
 
-    if (accounts.length > 0) {
-      await msal.logoutPopup({
-        account: accounts[0],
-        postLogoutRedirectUri: msalConfig.auth.postLogoutRedirectUri,
-      });
-    }
+    try {
+      await msal.getTokenCache().clear();
+    } catch (_) {}
   } catch (error) {
     throw new Error(`Sign out failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }

@@ -149,7 +149,7 @@ export default function Dashboard(): JSX.Element {
             </div>
           </div>
 
-          {noResultsWithinRadius && items.length === 0 && (
+          {noResultsWithinRadius && (
             <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4">
               <div className="flex items-start gap-3">
                 <div className="text-xl">⚠️</div>

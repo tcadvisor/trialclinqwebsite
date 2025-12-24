@@ -27,20 +27,24 @@ export default function Login(): JSX.Element {
     setIsLoading(true);
 
     try {
+      localStorage.setItem("pending_role_v1", "patient");
+
       // Sign in with Azure Entra ID
       const authUser = await signInUser({
         email: email.trim(),
         password,
       });
 
-      // Update auth context
-      signIn({
-        ...authUser,
-        role: "patient",
-      });
+      if (authUser) {
+        // Update auth context
+        signIn({
+          ...authUser,
+          role: "patient",
+        });
 
-      const from = (location.state as any)?.from?.pathname || "/patients/dashboard";
-      navigate(from, { replace: true });
+        const from = (location.state as any)?.from?.pathname || "/patients/dashboard";
+        navigate(from, { replace: true });
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Invalid email or password. Please try again.");
     } finally {

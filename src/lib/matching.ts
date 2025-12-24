@@ -130,6 +130,23 @@ function tokenize(s: string | null | undefined): string[] {
     .filter((w) => w && !STOPWORDS.has(w));
 }
 
+function matchesQuery(s: string, tokens: string[]): boolean {
+  if (!tokens.length) return true;
+  const hay = s.toLowerCase();
+  return tokens.every((t) => hay.includes(t));
+}
+
+function filterStudiesByQuery(studies: CtgovStudy[], rawQuery: string): CtgovStudy[] {
+  const tokens = tokenize(rawQuery);
+  if (!tokens.length) return studies;
+  return studies.filter((s) => {
+    const title = (s.protocolSection?.identificationModule?.briefTitle || "").toString();
+    const conditions = (s.protocolSection?.conditionsModule?.conditions || []).join(" ");
+    const hay = `${title} ${conditions}`;
+    return matchesQuery(hay, tokens);
+  });
+}
+
 function textFromTrial(t: Trial): string {
   const parts: string[] = [
     t.title,
@@ -483,16 +500,23 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
   try { geo = (await geocodeLocPref()) || {}; } catch { geo = {}; }
   const locText = (geo as any)?.label || loc;
 
-  // Parse the user-specified radius; if set, it becomes a hard barrier
+  // Parse the user-specified radius; use only when we have geo
   const userRadiusMi = parseRadiusMi(radius);
   const hasUserRadius = typeof userRadiusMi === 'number' && Number.isFinite(userRadiusMi);
+  const hasGeo = typeof geo.lat === 'number' && typeof geo.lng === 'number';
+  const enforceRadius = hasUserRadius && hasGeo;
+  if (hasUserRadius && !hasGeo) {
+    const empty: LiteTrial[] = [];
+    (empty as any).__noResultsWithinRadius = true;
+    return empty;
+  }
 
   const fetchSet = async (query: string, opts: { withGeo?: boolean; withStatuses?: boolean } = { withGeo: true, withStatuses: true }) => {
     const base = { q: query, pageSize } as any;
-    if (opts.withGeo && typeof geo.lat === 'number' && typeof geo.lng === 'number') {
+    if (opts.withGeo && hasGeo) {
       base.loc = locText;
-      // If user specified a radius, use only that radius (hard barrier)
-      if (hasUserRadius) {
+      // If we can enforce a radius, use it as a hard barrier
+      if (enforceRadius) {
         const rStr = `${userRadiusMi}mi`;
         const withGeo = { ...base, lat: geo.lat, lng: geo.lng, radius: rStr } as any;
         if (opts.withStatuses) {
@@ -527,23 +551,32 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
     }
   };
 
-  let studies = await fetchSet(q, { withGeo: true, withStatuses: true });
+  const locationFirst = Boolean(locText) && Boolean(q);
+  let studies = locationFirst
+    ? await fetchSet('', { withGeo: true, withStatuses: true })
+    : await fetchSet(q, { withGeo: true, withStatuses: true });
 
-  // Without user-specified radius, allow fallback queries for better results
-  if (!studies || studies.length === 0) {
-    if (!hasUserRadius) studies = await fetchSet(q, { withGeo: true, withStatuses: false });
+  if (locationFirst && studies && studies.length > 0) {
+    studies = filterStudiesByQuery(studies, q);
   }
-  if (!studies || studies.length === 0) {
-    if (!hasUserRadius) studies = await fetchSet(q, { withGeo: false, withStatuses: true });
-  }
-  if ((!studies || studies.length === 0) && q && q !== qPrimary) {
-    studies = await fetchSet(qPrimary || '', { withGeo: !hasUserRadius ? true : true, withStatuses: true });
-  }
-  if (!studies || studies.length === 0) {
-    if (!hasUserRadius) studies = await fetchSet(q, { withGeo: false, withStatuses: false });
-  }
-  if (!studies || studies.length === 0) {
-    if (!hasUserRadius) studies = await fetchSet('', { withGeo: true, withStatuses: true });
+
+  // Without an enforceable radius, allow fallback queries for better results
+  if (!locationFirst) {
+    if (!studies || studies.length === 0) {
+      if (!enforceRadius) studies = await fetchSet(q, { withGeo: true, withStatuses: false });
+    }
+    if (!studies || studies.length === 0) {
+      if (!enforceRadius) studies = await fetchSet(q, { withGeo: false, withStatuses: true });
+    }
+    if ((!studies || studies.length === 0) && q && q !== qPrimary) {
+      studies = await fetchSet(qPrimary || '', { withGeo: !enforceRadius ? true : true, withStatuses: true });
+    }
+    if (!studies || studies.length === 0) {
+      if (!enforceRadius) studies = await fetchSet(q, { withGeo: false, withStatuses: false });
+    }
+    if (!studies || studies.length === 0) {
+      if (!enforceRadius) studies = await fetchSet('', { withGeo: true, withStatuses: true });
+    }
   }
   if (!studies) studies = [];
 
@@ -619,8 +652,8 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
     }
   } catch {}
 
-  // HARD BARRIER: Enforce radius strictly when user specified one
-  if (hasUserRadius && typeof radMiComputed === 'number') {
+  // HARD BARRIER: Enforce radius strictly when we can
+  if (enforceRadius && typeof radMiComputed === 'number') {
     const within = list.filter((t) => {
       // Include only if distance is calculable and within radius, or if distance couldn't be calculated (give benefit of doubt)
       if (typeof t.distanceMi !== 'number') return true;

@@ -1,11 +1,13 @@
 import React from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import SiteHeader from "../../components/SiteHeader";
+import { signUpUser } from "../../lib/entraId";
 
 export default function SignupInfo(): JSX.Element {
-  const navigate = useNavigate();
   const { search } = useLocation();
   const nctParam = React.useMemo(() => new URLSearchParams(search).get("nctId") || "", [search]);
+  const [error, setError] = React.useState("");
+  const [isLoading, setIsLoading] = React.useState(false);
   // Profile fields
   const [dob, setDob] = React.useState("");
   const [weight, setWeight] = React.useState("");
@@ -30,9 +32,23 @@ export default function SignupInfo(): JSX.Element {
 
   const canSubmit = agree1 && agree2 && dob && weight && gender && race && language && zip && distance;
 
-  function onSubmit(e: React.FormEvent) {
+  async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!canSubmit) return;
+
+    let pending: any = null;
+    try {
+      const raw = localStorage.getItem("pending_signup_v1");
+      pending = raw ? JSON.parse(raw) : null;
+    } catch {}
+
+    if (!pending?.email) {
+      setError("Please start sign up from the patient registration form.");
+      return;
+    }
+
+    setError("");
+    setIsLoading(true);
 
     // Calculate age from DOB
     const dobDate = new Date(dob);
@@ -44,11 +60,11 @@ export default function SignupInfo(): JSX.Element {
     // Save to health profile (tc_health_profile_v1)
     const healthProfile = {
       patientId: "CUS_j2kthfmgv3bzr5r",
-      email: "",
+      email: pending?.email || "",
       emailVerified: false,
       age: String(calculatedAge),
       weight,
-      phone: "",
+      phone: pending?.phone || "",
       gender,
       race,
       language,
@@ -82,7 +98,18 @@ export default function SignupInfo(): JSX.Element {
     };
     try { localStorage.setItem("tc_eligibility_profile", JSON.stringify(eligibilityProfile)); } catch {}
 
-    navigate("/patients/dashboard");
+    try {
+      localStorage.setItem("pending_role_v1", "patient");
+      await signUpUser({
+        email: pending.email,
+        password: pending.password || "",
+        firstName: pending.firstName || "",
+        lastName: pending.lastName || "",
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Sign up failed. Please try again.");
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -96,6 +123,11 @@ export default function SignupInfo(): JSX.Element {
         </div>
 
         <form onSubmit={onSubmit} className="mt-6 space-y-5">
+          {error && (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {error}
+            </div>
+          )}
           <div className="rounded-2xl border bg-white p-5 shadow-sm space-y-5">
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
@@ -287,7 +319,12 @@ export default function SignupInfo(): JSX.Element {
               <input type="checkbox" className="rounded" checked={agree2} onChange={(e)=>setAgree2(e.target.checked)} /> I consent to share my (or the volunteer’s) health data for clinical trial matching under HIPAA-compliant protocols.
             </label>
             <div className="text-xs text-gray-600">You may revoke consent at any time in Settings</div>
-            <button disabled={!canSubmit} className={`w-full rounded-full px-6 py-3 text-white font-medium ${canSubmit ? "bg-[#1033e5] hover:bg-blue-700" : "bg-blue-400 cursor-not-allowed"}`}>Continue</button>
+            <button
+              disabled={!canSubmit || isLoading}
+              className={`w-full rounded-full px-6 py-3 text-white font-medium ${canSubmit && !isLoading ? "bg-[#1033e5] hover:bg-blue-700" : "bg-blue-400 cursor-not-allowed"}`}
+            >
+              {isLoading ? "Connecting to Microsoft..." : "Continue"}
+            </button>
             <div className="text-center text-xs text-gray-600">Your data stays private and protected with HIPAA-compliant security.</div>
           </div>
         </form>

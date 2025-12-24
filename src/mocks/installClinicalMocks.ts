@@ -8,7 +8,7 @@ export function installClinicalMocks() {
     if (!enabled) return;
 
     const summarizePath = "/api/summarize";
-    const writePath = "/api/profile/write";
+    const writePath = "/api/profile-write";
 
     const originalFetch = window.fetch.bind(window);
 

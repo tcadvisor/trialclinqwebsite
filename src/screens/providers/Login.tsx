@@ -28,20 +28,24 @@ export default function ProviderLogin(): JSX.Element {
     setIsLoading(true);
 
     try {
+      localStorage.setItem("pending_role_v1", "provider");
+
       // Sign in with Azure Entra ID
       const authUser = await signInUser({
         email: email.trim(),
         password,
       });
 
-      // Update auth context
-      signIn({
-        ...authUser,
-        role: "provider",
-      });
+      if (authUser) {
+        // Update auth context
+        signIn({
+          ...authUser,
+          role: "provider",
+        });
 
-      const from = (location.state as any)?.from?.pathname || "/providers/dashboard";
-      navigate(from, { replace: true });
+        const from = (location.state as any)?.from?.pathname || "/providers/dashboard";
+        navigate(from, { replace: true });
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Invalid email or password. Please try again.");
     } finally {

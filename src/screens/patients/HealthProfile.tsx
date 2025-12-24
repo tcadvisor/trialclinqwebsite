@@ -775,7 +775,7 @@ export default function HealthProfile(): JSX.Element {
           <button onClick={() => setActiveTab("documents")} className={`relative pb-2 flex items-center gap-2 ${activeTab === "documents" ? "border-b-2 border-[#1033e5] text-gray-900" : "text-gray-600"}`}>
             Documents <span className="ml-1 inline-flex items-center justify-center px-1.5 h-5 text-xs rounded-full bg-gray-100">{docCount}</span>
           </button>
-          <button onClick={() => setActiveTab("ehr")} className={`relative pb-2 ${activeTab === "ehr" ? "border-b-2 border-[#1033e5] text-gray-900" : "text-gray-600"}`}>Connected EHR/EMR</button>
+          <button onClick={() => setActiveTab("ehr")} className={`relative pb-2 ${activeTab === "ehr" ? "border-b-2 border-[#1033e5] text-gray-900" : "text-gray-600"}`}>Connected Medical Records</button>
         </div>
 
         {activeTab === "overview" && (
@@ -825,9 +825,6 @@ export default function HealthProfile(): JSX.Element {
                       </label>
                       <div className="sm:col-span-2 flex items-center gap-2 text-sm mt-1">
                         <span className={`px-2 py-0.5 rounded-full text-xs ${profile.emailVerified ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>{profile.emailVerified ? "Verified" : "Not verified"}</span>
-                        {!profile.emailVerified && (
-                          <button onClick={()=>setProfile(p=>({...p, emailVerified:true}))} className="text-[#1033e5] text-xs underline">Verify Now</button>
-                        )}
                       </div>
                     </div>
                   ) : (
@@ -841,7 +838,6 @@ export default function HealthProfile(): JSX.Element {
                         <div className="text-sm text-gray-900 flex items-center gap-2">
                           <span>{profile.email}</span>
                           <span className={`${profile.emailVerified ? "text-emerald-700" : "text-amber-600"} text-xs`}>{profile.emailVerified ? "Verified" : "Not verified"}</span>
-                          {!profile.emailVerified && <button onClick={()=>setProfile(p=>({...p, emailVerified:true}))} className="text-[#1033e5] text-xs underline">Verify Now</button>}
                         </div>
                       </div>
                       <Row label="Age" value={profile.age} icon={<CalendarIcon className="w-4 h-4" />} missing={!profile.age} epicSyncedAt={metadata.fieldSources.age?.syncedAt} />

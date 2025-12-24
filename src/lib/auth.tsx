@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { getCurrentAuthUser, signOutUser } from "./entraId";
+import { getCurrentAuthUser, getMsalInstance, signOutUser } from "./entraId";
+import { upsertAccount } from "./accountStore";
 
 export type User = { email: string; role: "patient" | "provider"; firstName: string; lastName: string; userId: string };
 
@@ -15,6 +16,119 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 const STORAGE_KEY = "auth:v1";
+const PENDING_SIGNUP_KEY = "pending_signup_v1";
+const PENDING_ROLE_KEY = "pending_role_v1";
+const PROFILE_KEY = "tc_health_profile_v1";
+const PROFILE_METADATA_KEY = "tc_health_profile_metadata_v1";
+const DOCS_KEY = "tc_docs";
+const ELIGIBILITY_KEY = "tc_eligibility_profile";
+
+type PendingSignup = {
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  ref?: string;
+  role?: User["role"];
+};
+
+function readPendingSignup(): PendingSignup | null {
+  try {
+    const raw = localStorage.getItem(PENDING_SIGNUP_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as PendingSignup;
+  } catch {
+    return null;
+  }
+}
+
+function clearPendingSignup() {
+  try {
+    localStorage.removeItem(PENDING_SIGNUP_KEY);
+  } catch (_) {}
+}
+
+function readPendingRole(): User["role"] | null {
+  try {
+    const raw = localStorage.getItem(PENDING_ROLE_KEY);
+    if (!raw) return null;
+    return raw === "provider" ? "provider" : "patient";
+  } catch {
+    return null;
+  }
+}
+
+function clearPendingRole() {
+  try {
+    localStorage.removeItem(PENDING_ROLE_KEY);
+  } catch (_) {}
+}
+
+function clearUserScopedDataIfMismatch(currentEmail: string) {
+  try {
+    const raw = localStorage.getItem(PROFILE_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw) as { email?: string };
+    const storedEmail = (parsed?.email || "").trim().toLowerCase();
+    const nextEmail = currentEmail.trim().toLowerCase();
+    if (!storedEmail || storedEmail !== nextEmail) {
+      localStorage.removeItem(PROFILE_KEY);
+      localStorage.removeItem(PROFILE_METADATA_KEY);
+      localStorage.removeItem(DOCS_KEY);
+    }
+  } catch (_) {}
+}
+
+function mergeProfileFromEligibility(currentEmail: string) {
+  try {
+    const rawProfile = localStorage.getItem(PROFILE_KEY);
+    const rawEligibility = localStorage.getItem(ELIGIBILITY_KEY);
+    if (!rawEligibility) return;
+    const eligibility = JSON.parse(rawEligibility) as any;
+    const profile = rawProfile ? (JSON.parse(rawProfile) as any) : null;
+
+    const next = profile || {
+      patientId: "CUS_j2kthfmgv3bzr5r",
+      email: currentEmail,
+      emailVerified: false,
+      age: "",
+      weight: "",
+      phone: "",
+      gender: "",
+      race: "",
+      language: "",
+      bloodGroup: "",
+      genotype: "",
+      hearingImpaired: false,
+      visionImpaired: false,
+      primaryCondition: "",
+      diagnosed: "",
+      allergies: [],
+      medications: [],
+      additionalInfo: "",
+      ecog: "",
+      diseaseStage: "",
+      biomarkers: "",
+      priorTherapies: [],
+      comorbidityCardiac: false,
+      comorbidityRenal: false,
+      comorbidityHepatic: false,
+      comorbidityAutoimmune: false,
+      infectionHIV: false,
+      infectionHBV: false,
+      infectionHCV: false,
+    };
+
+    if (!next.email) next.email = currentEmail;
+    if (!next.primaryCondition && eligibility?.condition) next.primaryCondition = String(eligibility.condition);
+    if (!next.diagnosed && eligibility?.year) next.diagnosed = String(eligibility.year);
+    if ((!Array.isArray(next.medications) || next.medications.length === 0) && Array.isArray(eligibility?.medications)) {
+      next.medications = eligibility.medications.map((m: any) => ({ name: String(m) }));
+    }
+
+    localStorage.setItem(PROFILE_KEY, JSON.stringify(next));
+  } catch (_) {}
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -24,31 +138,92 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const loadAuth = async () => {
       try {
+        const msal = getMsalInstance();
+        if (msal) {
+          const result = await msal.handleRedirectPromise();
+          const account = result?.account;
+          if (account) {
+            const pendingRole = readPendingRole();
+            const pending = readPendingSignup();
+            const role = pendingRole || pending?.role || "patient";
+            const accountFirstName = account.name?.split(" ")[0] || "";
+            const accountLastName = account.name?.split(" ").slice(1).join(" ") || "";
+            let firstName = accountFirstName;
+            let lastName = accountLastName;
+            if (pending) {
+              const pendingEmail = (pending.email || "").trim().toLowerCase();
+              const accountEmail = (account.username || "").trim().toLowerCase();
+              if (!pendingEmail || pendingEmail === accountEmail) {
+                firstName = pending.firstName || firstName;
+                lastName = pending.lastName || lastName;
+                mergeProfileFromEligibility(account.username);
+                upsertAccount({
+                  email: account.username,
+                  password: "",
+                  firstName: pending.firstName || firstName,
+                  lastName: pending.lastName || lastName,
+                  phone: pending.phone,
+                  ref: pending.ref,
+                  role,
+                });
+              }
+            clearPendingSignup();
+          }
+          clearPendingRole();
+          clearUserScopedDataIfMismatch(account.username);
+          setUser({
+            email: account.username,
+            firstName,
+            lastName,
+              role,
+              userId: account.localAccountId || account.homeAccountId || "",
+            });
+            return;
+          }
+        }
+
         // First check if there's a valid Cognito session
         const cognitoUser = await getCurrentAuthUser();
         if (cognitoUser) {
+          const pendingRole = readPendingRole();
+          const pending = readPendingSignup();
+          const role = pendingRole || pending?.role || "patient";
+          let firstName = cognitoUser.firstName || "";
+          let lastName = cognitoUser.lastName || "";
+          if (pending) {
+            const pendingEmail = (pending.email || "").trim().toLowerCase();
+            const accountEmail = (cognitoUser.email || "").trim().toLowerCase();
+            if (!pendingEmail || pendingEmail === accountEmail) {
+              firstName = pending.firstName || firstName;
+              lastName = pending.lastName || lastName;
+              mergeProfileFromEligibility(cognitoUser.email);
+              upsertAccount({
+                email: cognitoUser.email,
+                password: "",
+                firstName: pending.firstName || firstName,
+                lastName: pending.lastName || lastName,
+                phone: pending.phone,
+                ref: pending.ref,
+                role,
+              });
+            }
+            clearPendingSignup();
+          }
+          clearPendingRole();
+          clearUserScopedDataIfMismatch(cognitoUser.email);
           setUser({
             ...cognitoUser,
             userId: cognitoUser.userId || '',
+            firstName,
+            lastName,
+            role,
           });
           return;
         }
 
-        // Fall back to localStorage
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (raw) {
-          const parsed = JSON.parse(raw) as { user: Partial<User> | null };
-          if (parsed?.user?.email && parsed?.user?.role) {
-            const u: User = {
-              email: parsed.user.email as string,
-              role: parsed.user.role as User["role"],
-              firstName: (parsed.user as any).firstName ?? "",
-              lastName: (parsed.user as any).lastName ?? "",
-              userId: (parsed.user as any).userId ?? "",
-            };
-            setUser(u);
-          }
-        }
+        try {
+          localStorage.removeItem(STORAGE_KEY);
+        } catch (_) {}
       } catch (_) {
         // ignore errors, user will need to sign in
       } finally {
@@ -58,15 +233,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     loadAuth();
   }, []);
-
-  // Persist on change
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ user }));
-    } catch (_) {
-      // ignore
-    }
-  }, [user]);
 
   const signIn = useCallback((next: User) => setUser(next), []);
   const signOut = useCallback(async () => {
