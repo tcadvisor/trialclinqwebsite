@@ -7,8 +7,11 @@ import { registerClinicalSummaryUploader } from "./builder/registerClinicalSumma
 import { installClinicalMocks } from "./mocks/installClinicalMocks";
 
 try {
-  installClinicalMocks();
   const w: any = window as any;
+  if (import.meta.env.DEV && w && w.__enableClinicalMocks == null) {
+    w.__enableClinicalMocks = true;
+  }
+  installClinicalMocks();
   if (w && w.Builder) {
     registerClinicalSummaryUploader(w.Builder);
   }

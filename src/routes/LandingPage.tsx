@@ -1,8 +1,11 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Mail, Users, FileText, Database, Lock, Activity } from "lucide-react";
+import { useAuth } from "../lib/auth";
 
 export default function LandingPage() {
+  const navigate = useNavigate();
+  const { isAuthenticated, user } = useAuth();
   const [sponsorName, setSponsorName] = useState("");
   const [sponsorEmail, setSponsorEmail] = useState("");
   const [sponsorOrg, setSponsorOrg] = useState("");
@@ -10,6 +13,12 @@ export default function LandingPage() {
   const [patientEmail, setPatientEmail] = useState("");
   const [patientCondition, setPatientCondition] = useState("");
   const [newsletterEmail, setNewsletterEmail] = useState("");
+
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      navigate("/patients/dashboard", { replace: true });
+    }
+  }, [isAuthenticated, navigate, user]);
 
   return (
     <div className="min-h-screen bg-white">

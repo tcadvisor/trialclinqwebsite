@@ -11,22 +11,31 @@ export default function AuthCallback() {
     const handleAuthCallback = async () => {
       try {
         const msal = getMsalInstance();
-        const accounts = msal.getAllAccounts();
+        if (!msal) {
+          navigate('/', { replace: true });
+          return;
+        }
 
-        if (accounts.length > 0) {
-          const account = accounts[0];
-          
+        const result = await msal.handleRedirectPromise();
+        const accounts = msal.getAllAccounts();
+        const account = result?.account || accounts[0];
+
+        if (account) {
+          const stored = localStorage.getItem('auth:v1');
+          const storedRole = stored ? (JSON.parse(stored)?.user?.role as 'patient' | 'provider' | undefined) : undefined;
+          const role = storedRole || 'patient';
+
           // Update auth context with user info
           signIn({
             email: account.username,
             firstName: account.name?.split(' ')[0] || '',
             lastName: account.name?.split(' ').slice(1).join(' ') || '',
-            role: 'patient', // Default role
+            role,
             userId: account.localAccountId || account.homeAccountId || '',
           });
 
-          // Redirect to dashboard
-          navigate('/app', { replace: true });
+          const dashPath = role === 'provider' ? '/providers/dashboard' : '/patients/dashboard';
+          navigate(dashPath, { replace: true });
         } else {
           // No account found, redirect to home
           navigate('/', { replace: true });
