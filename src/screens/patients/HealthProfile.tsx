@@ -17,6 +17,7 @@ import {
 import { useAuth } from "../../lib/auth";
 import PatientHeader from "../../components/PatientHeader";
 import { findAccountByEmail } from "../../lib/accountStore";
+import { buildMarkdownAppend } from "../../components/ClinicalSummaryUploader";
 
 // Field source tracking
 type FieldSource = {
