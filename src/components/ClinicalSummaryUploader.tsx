@@ -252,14 +252,21 @@ export default function ClinicalSummaryUploader(props: ClinicalSummaryUploaderPr
       setProgress(0.6);
 
       if (!res.ok) {
-        setError("Summarization failed");
+        let errorDetail = "Summarization failed";
+        try {
+          const errData = await res.json();
+          if (errData?.error) {
+            errorDetail = `Summarization failed: ${errData.error}`;
+          }
+        } catch {}
+        setError(errorDetail);
         track("clinical_summary_error", { profileId, stage: "summarize", code: res.status });
         return;
       }
 
       const data = (await res.json()) as SummarizeResponse;
       if (!data || !data.summaryMarkdown) {
-        setError("Summarization failed");
+        setError("Summarization failed: No summary generated");
         track("clinical_summary_error", { profileId, stage: "summarize", code: "no_summary" });
         return;
       }
