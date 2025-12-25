@@ -104,9 +104,13 @@ export const handler: Handler = async (event) => {
     if (!file) return cors(400, { error: "Missing file" });
 
     const profileId = parsed.fields.profileId || "unknown";
+    const uploadId = parsed.fields.uploadId || "unknown";
     const text = await extractText(file);
     const trimmed = text.slice(0, MAX_TEXT_CHARS);
     if (!trimmed.trim()) return cors(400, { error: "Empty document" });
+
+    // Log file details for debugging
+    console.log(`[summarize] Processing file: ${file.filename} (${file.mimeType}, ${Buffer.byteLength(file.data)} bytes) for profile ${profileId}, upload ${uploadId}`);
 
     const model = process.env.OPENAI_SUMMARIZE_MODEL || DEFAULT_MODEL;
     const prompt = [
