@@ -200,6 +200,8 @@ function Documents({ onCountChange }: { onCountChange?: (count: number) => void 
     const pid = resolveProfileId();
     if (!pid) { setOverlay({ mode: "error", message: "Profile not found" }); return; }
 
+    const uploadId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
     try {
       const w: any = window as any;
       const getTok = w?.[getAuthTokenClientFnName];
@@ -209,6 +211,7 @@ function Documents({ onCountChange }: { onCountChange?: (count: number) => void 
       const form = new FormData();
       form.append("file", file);
       form.append("profileId", pid);
+      form.append("uploadId", uploadId);
       form.append("options.showEligibilityBadges", String(!!showEligibilityBadges));
 
       const ctrl1 = new AbortController();
