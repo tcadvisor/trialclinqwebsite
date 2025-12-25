@@ -64,19 +64,34 @@ function parseMultipart(event: any): Promise<ParsedUpload> {
 
 async function extractText(file: { mimeType: string; data: Buffer }) {
   const mime = file.mimeType || "";
-  if (mime === "application/pdf") {
-    const parsed = await pdf(file.data);
-    return parsed.text || "";
-  }
-  if (mime === "application/json") {
-    try {
-      const json = JSON.parse(file.data.toString("utf8"));
-      return JSON.stringify(json, null, 2);
-    } catch {
-      return file.data.toString("utf8");
+  try {
+    if (mime === "application/pdf") {
+      try {
+        const parsed = await pdf(file.data);
+        const text = parsed.text || "";
+        if (!text.trim()) {
+          console.warn("[extractText] PDF extracted but contains no text");
+        }
+        return text;
+      } catch (err) {
+        console.error("[extractText] Failed to parse PDF:", err);
+        throw new Error(`PDF parsing failed: ${err}`);
+      }
     }
+    if (mime === "application/json") {
+      try {
+        const json = JSON.parse(file.data.toString("utf8"));
+        return JSON.stringify(json, null, 2);
+      } catch {
+        return file.data.toString("utf8");
+      }
+    }
+    // Default: treat as text
+    return file.data.toString("utf8");
+  } catch (err) {
+    console.error("[extractText] Unexpected error:", err);
+    throw err;
   }
-  return file.data.toString("utf8");
 }
 
 export const handler: Handler = async (event) => {
