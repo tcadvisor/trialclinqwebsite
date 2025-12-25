@@ -3,7 +3,7 @@ import Busboy from "busboy";
 import pdf from "pdf-parse";
 
 const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
-const DEFAULT_MODEL = "gpt-4o-mini";
+const DEFAULT_MODEL = "gpt-4o"; // Use gpt-4o for better structured output and JSON handling
 const MAX_TEXT_CHARS = 120000;
 
 type ParsedUpload = {
