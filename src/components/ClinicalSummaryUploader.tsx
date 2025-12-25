@@ -220,7 +220,8 @@ export default function ClinicalSummaryUploader(props: ClinicalSummaryUploaderPr
         return;
       }
 
-      track("clinical_summary_upload_started", { profileId });
+      const uploadId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      track("clinical_summary_upload_started", { profileId, fileName: file.name, fileSize: file.size, uploadId });
 
       // Step 1: Upload + summarize
       setStage("uploading");
@@ -229,6 +230,7 @@ export default function ClinicalSummaryUploader(props: ClinicalSummaryUploaderPr
       const form = new FormData();
       form.append("file", file);
       form.append("profileId", profileId);
+      form.append("uploadId", uploadId);
       form.append("options.showEligibilityBadges", String(!!showEligibilityBadges));
 
       setStage("parsing");
