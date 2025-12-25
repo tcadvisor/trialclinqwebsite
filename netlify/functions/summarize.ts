@@ -157,7 +157,7 @@ export const handler: Handler = async (event) => {
       summaryMarkdown: out.summaryMarkdown || out.summary || "",
       summaryPlain: out.summaryPlain || "",
       eligibility: out.eligibility || { overall: "Unknown", criteria: [], missing: [] },
-      audit: { requestId: data?.id || "unknown", generatedAt: new Date().toISOString(), profileId },
+      audit: { requestId: data?.id || "unknown", generatedAt: new Date().toISOString(), profileId, uploadId, fileName: file.filename },
     });
   } catch (e: any) {
     return cors(500, { error: String(e?.message || e || "Unknown error") });
