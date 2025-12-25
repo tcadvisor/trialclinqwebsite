@@ -111,6 +111,8 @@ export const handler: Handler = async (event) => {
 
     // Log file details for debugging
     console.log(`[summarize] Processing file: ${file.filename} (${file.mimeType}, ${Buffer.byteLength(file.data)} bytes) for profile ${profileId}, upload ${uploadId}`);
+    console.log(`[summarize] Extracted text length: ${trimmed.length} chars`);
+    console.log(`[summarize] First 500 chars of extracted text: ${trimmed.substring(0, 500)}`);
 
     const model = process.env.OPENAI_SUMMARIZE_MODEL || DEFAULT_MODEL;
     const prompt = [
