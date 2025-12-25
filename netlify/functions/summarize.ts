@@ -153,11 +153,24 @@ export const handler: Handler = async (event) => {
 
     const data = await res.json();
     const content: string | undefined = data?.choices?.[0]?.message?.content;
+
+    if (!content) {
+      console.error("[summarize] OpenAI returned no content");
+      return cors(500, { error: "OpenAI returned empty response" });
+    }
+
     let out: any = {};
     try {
-      out = content ? JSON.parse(content) : {};
-    } catch {
-      out = {};
+      out = JSON.parse(content);
+      console.log(`[summarize] Successfully parsed OpenAI response`);
+    } catch (parseErr) {
+      console.error(`[summarize] Failed to parse OpenAI JSON response:`, content.substring(0, 500));
+      return cors(500, { error: "Invalid JSON response from OpenAI", detail: "Could not parse AI response" });
+    }
+
+    // Validate required fields
+    if (!out.summaryMarkdown && !out.summary) {
+      console.warn(`[summarize] Response missing summaryMarkdown field:`, out);
     }
 
     return cors(200, {
