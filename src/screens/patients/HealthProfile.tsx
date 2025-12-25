@@ -218,9 +218,22 @@ function Documents({ onCountChange }: { onCountChange?: (count: number) => void 
         fetch(summarizeApiUrl, { method: "POST", headers: { [authHeaderName]: `Bearer ${token}` } as any, body: form, signal: ctrl1.signal }),
         new Promise<Response>((_, rej) => setTimeout(() => { try { ctrl1.abort(); } catch {} ; rej(new Error("timeout")); }, 120000)) as any,
       ]);
-      if (!res || !(res as Response).ok) { setOverlay({ mode: "error", message: "Summarization failed" }); return; }
+      if (!res || !(res as Response).ok) {
+        let errorMsg = "Summarization failed";
+        try {
+          const errData = await (res as Response).json();
+          if (errData?.error) {
+            errorMsg = `Summarization failed: ${errData.error}`;
+          }
+        } catch {}
+        setOverlay({ mode: "error", message: errorMsg });
+        return;
+      }
       const data = await (res as Response).json();
-      if (!data?.summaryMarkdown) { setOverlay({ mode: "error", message: "Summarization failed" }); return; }
+      if (!data?.summaryMarkdown) {
+        setOverlay({ mode: "error", message: data?.error ? `Summarization failed: ${data.error}` : "Summarization failed: No summary generated" });
+        return;
+      }
 
       const appendMarkdown = buildMarkdownAppend({ summaryMarkdown: data.summaryMarkdown, eligibility: data.eligibility, audit: data.audit }, !!showEligibilityBadges);
 
