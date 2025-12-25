@@ -137,8 +137,6 @@ function formatDate(ts: number): string {
   return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
 }
 
-import { buildMarkdownAppend } from "../../components/ClinicalSummaryUploader";
-
 function Documents({ onCountChange }: { onCountChange?: (count: number) => void }): JSX.Element {
   const [category, setCategory] = useState<DocCategory>("Diagnostic Reports");
   const [query, setQuery] = useState("");
