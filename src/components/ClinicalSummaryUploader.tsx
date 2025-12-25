@@ -317,6 +317,14 @@ export default function ClinicalSummaryUploader(props: ClinicalSummaryUploaderPr
       } catch {}
 
       track("clinical_summary_success", { profileId, requestId: data.audit?.requestId });
+
+      // Clear the file input and reset after a short delay so user sees success message
+      setTimeout(() => {
+        if (inputRef.current) {
+          inputRef.current.value = "";
+        }
+        reset();
+      }, 2000);
     } catch (e: any) {
       const aborted = e?.name === "AbortError";
       setError(aborted ? "Network timeout" : "Upload failed");
