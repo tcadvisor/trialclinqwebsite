@@ -259,6 +259,10 @@ function Documents({ onCountChange }: { onCountChange?: (count: number) => void 
       } catch {}
 
       setOverlay({ mode: "success", message: "Summary saved to Additional Information" });
+      // Clear the input after success so new files can be selected
+      if (inputRef.current) {
+        inputRef.current.value = "";
+      }
       setTimeout(() => setOverlay(null), 2000);
     } catch (e: any) {
       setOverlay({ mode: "error", message: "Upload failed" });
