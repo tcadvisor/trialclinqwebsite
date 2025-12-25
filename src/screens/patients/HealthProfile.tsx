@@ -137,8 +137,6 @@ function formatDate(ts: number): string {
   return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
 }
 
-import { buildMarkdownAppend } from "../../components/ClinicalSummaryUploader";
-
 function Documents({ onCountChange }: { onCountChange?: (count: number) => void }): JSX.Element {
   const [category, setCategory] = useState<DocCategory>("Diagnostic Reports");
   const [query, setQuery] = useState("");
@@ -202,6 +200,8 @@ function Documents({ onCountChange }: { onCountChange?: (count: number) => void 
     const pid = resolveProfileId();
     if (!pid) { setOverlay({ mode: "error", message: "Profile not found" }); return; }
 
+    const uploadId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
     try {
       const w: any = window as any;
       const getTok = w?.[getAuthTokenClientFnName];
@@ -211,6 +211,7 @@ function Documents({ onCountChange }: { onCountChange?: (count: number) => void 
       const form = new FormData();
       form.append("file", file);
       form.append("profileId", pid);
+      form.append("uploadId", uploadId);
       form.append("options.showEligibilityBadges", String(!!showEligibilityBadges));
 
       const ctrl1 = new AbortController();
@@ -218,9 +219,22 @@ function Documents({ onCountChange }: { onCountChange?: (count: number) => void 
         fetch(summarizeApiUrl, { method: "POST", headers: { [authHeaderName]: `Bearer ${token}` } as any, body: form, signal: ctrl1.signal }),
         new Promise<Response>((_, rej) => setTimeout(() => { try { ctrl1.abort(); } catch {} ; rej(new Error("timeout")); }, 120000)) as any,
       ]);
-      if (!res || !(res as Response).ok) { setOverlay({ mode: "error", message: "Summarization failed" }); return; }
+      if (!res || !(res as Response).ok) {
+        let errorMsg = "Summarization failed";
+        try {
+          const errData = await (res as Response).json();
+          if (errData?.error) {
+            errorMsg = `Summarization failed: ${errData.error}`;
+          }
+        } catch {}
+        setOverlay({ mode: "error", message: errorMsg });
+        return;
+      }
       const data = await (res as Response).json();
-      if (!data?.summaryMarkdown) { setOverlay({ mode: "error", message: "Summarization failed" }); return; }
+      if (!data?.summaryMarkdown) {
+        setOverlay({ mode: "error", message: data?.error ? `Summarization failed: ${data.error}` : "Summarization failed: No summary generated" });
+        return;
+      }
 
       const appendMarkdown = buildMarkdownAppend({ summaryMarkdown: data.summaryMarkdown, eligibility: data.eligibility, audit: data.audit }, !!showEligibilityBadges);
 
@@ -248,6 +262,10 @@ function Documents({ onCountChange }: { onCountChange?: (count: number) => void 
       } catch {}
 
       setOverlay({ mode: "success", message: "Summary saved to Additional Information" });
+      // Clear the input after success so new files can be selected
+      if (inputRef.current) {
+        inputRef.current.value = "";
+      }
       setTimeout(() => setOverlay(null), 2000);
     } catch (e: any) {
       setOverlay({ mode: "error", message: "Upload failed" });
