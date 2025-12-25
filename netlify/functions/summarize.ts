@@ -88,7 +88,7 @@ export const handler: Handler = async (event) => {
     return cors(405, { error: "Method not allowed" });
   }
 
-  const key = process.env.OPENAI_API_KEY || "";
+  const key = process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY || "";
   if (!key) {
     return cors(500, { error: "OPENAI_API_KEY not set" });
   }
@@ -134,7 +134,10 @@ export const handler: Handler = async (event) => {
 
     if (!res.ok) {
       const textErr = await res.text().catch(() => "");
-      return cors(res.status, { error: textErr || `HTTP ${res.status}` });
+      const errorMsg = textErr || `HTTP ${res.status}`;
+      // Log detailed error for debugging
+      console.error(`[summarize] OpenAI API error (${res.status}):`, errorMsg);
+      return cors(res.status, { error: errorMsg, detail: "OpenAI API request failed. Check API key validity." });
     }
 
     const data = await res.json();
