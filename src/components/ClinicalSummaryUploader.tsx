@@ -262,7 +262,7 @@ export default function ClinicalSummaryUploader(props: ClinicalSummaryUploaderPr
           }
         } catch {}
         setError(errorDetail);
-        track("clinical_summary_error", { profileId, stage: "summarize", code: res.status });
+        track("clinical_summary_error", { profileId, stage: "summarize", code: res.status, fileName: file.name, fileSize: file.size, uploadId });
         return;
       }
 
