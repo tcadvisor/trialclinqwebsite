@@ -114,9 +114,14 @@ export const handler: Handler = async (event) => {
 
     const model = process.env.OPENAI_SUMMARIZE_MODEL || DEFAULT_MODEL;
     const prompt = [
-      "Summarize the clinical document. Provide a concise markdown summary and a plain-text summary.",
-      "If you can infer eligibility, include overall, criteria, and missing fields. If unsure, set overall to \"Unknown\".",
-      "Output ONLY valid JSON with keys: summaryMarkdown, summaryPlain, eligibility.",
+      "You are a medical document analyzer. Your task is to extract and summarize clinical information from the provided document.",
+      "If the document is NOT a medical/clinical document, respond with: {\"summaryMarkdown\": \"Not a medical document\", \"summaryPlain\": \"Unable to summarize non-medical content\", \"eligibility\": {\"overall\": \"Unknown\", \"criteria\": [], \"missing\": []}}",
+      "For MEDICAL documents only:",
+      "1. Provide a concise markdown summary (200-400 words max) highlighting key clinical findings",
+      "2. Provide a plain-text summary (100-200 words max)",
+      "3. If you can infer trial eligibility based on the document, provide: overall (Eligible/Likely eligible/Ineligible/Unknown), criteria met/not met, and missing information",
+      "Output ONLY valid JSON with exactly these keys: summaryMarkdown, summaryPlain, eligibility (with overall, criteria array, missing array).",
+      "Do NOT make up or hallucinate medical information. Only summarize what is explicitly stated in the document.",
     ].join(" ");
 
     const res = await fetch(OPENAI_URL, {
