@@ -3,7 +3,7 @@ import Busboy from "busboy";
 import pdf from "pdf-parse";
 
 const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
-const DEFAULT_MODEL = "gpt-4o-mini";
+const DEFAULT_MODEL = "gpt-4o"; // Use gpt-4o for better structured output and JSON handling
 const MAX_TEXT_CHARS = 120000;
 
 type ParsedUpload = {
@@ -64,19 +64,34 @@ function parseMultipart(event: any): Promise<ParsedUpload> {
 
 async function extractText(file: { mimeType: string; data: Buffer }) {
   const mime = file.mimeType || "";
-  if (mime === "application/pdf") {
-    const parsed = await pdf(file.data);
-    return parsed.text || "";
-  }
-  if (mime === "application/json") {
-    try {
-      const json = JSON.parse(file.data.toString("utf8"));
-      return JSON.stringify(json, null, 2);
-    } catch {
-      return file.data.toString("utf8");
+  try {
+    if (mime === "application/pdf") {
+      try {
+        const parsed = await pdf(file.data);
+        const text = parsed.text || "";
+        if (!text.trim()) {
+          console.warn("[extractText] PDF extracted but contains no text");
+        }
+        return text;
+      } catch (err) {
+        console.error("[extractText] Failed to parse PDF:", err);
+        throw new Error(`PDF parsing failed: ${err}`);
+      }
     }
+    if (mime === "application/json") {
+      try {
+        const json = JSON.parse(file.data.toString("utf8"));
+        return JSON.stringify(json, null, 2);
+      } catch {
+        return file.data.toString("utf8");
+      }
+    }
+    // Default: treat as text
+    return file.data.toString("utf8");
+  } catch (err) {
+    console.error("[extractText] Unexpected error:", err);
+    throw err;
   }
-  return file.data.toString("utf8");
 }
 
 export const handler: Handler = async (event) => {
@@ -88,7 +103,7 @@ export const handler: Handler = async (event) => {
     return cors(405, { error: "Method not allowed" });
   }
 
-  const key = process.env.OPENAI_API_KEY || "";
+  const key = process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY || "";
   if (!key) {
     return cors(500, { error: "OPENAI_API_KEY not set" });
   }
@@ -104,15 +119,26 @@ export const handler: Handler = async (event) => {
     if (!file) return cors(400, { error: "Missing file" });
 
     const profileId = parsed.fields.profileId || "unknown";
+    const uploadId = parsed.fields.uploadId || "unknown";
     const text = await extractText(file);
     const trimmed = text.slice(0, MAX_TEXT_CHARS);
     if (!trimmed.trim()) return cors(400, { error: "Empty document" });
 
+    // Log file details for debugging
+    console.log(`[summarize] Processing file: ${file.filename} (${file.mimeType}, ${Buffer.byteLength(file.data)} bytes) for profile ${profileId}, upload ${uploadId}`);
+    console.log(`[summarize] Extracted text length: ${trimmed.length} chars`);
+    console.log(`[summarize] First 500 chars of extracted text: ${trimmed.substring(0, 500)}`);
+
     const model = process.env.OPENAI_SUMMARIZE_MODEL || DEFAULT_MODEL;
     const prompt = [
-      "Summarize the clinical document. Provide a concise markdown summary and a plain-text summary.",
-      "If you can infer eligibility, include overall, criteria, and missing fields. If unsure, set overall to \"Unknown\".",
-      "Output ONLY valid JSON with keys: summaryMarkdown, summaryPlain, eligibility.",
+      "You are a medical document analyzer. Your task is to extract and summarize clinical information from the provided document.",
+      "If the document is NOT a medical/clinical document, respond with: {\"summaryMarkdown\": \"Not a medical document\", \"summaryPlain\": \"Unable to summarize non-medical content\", \"eligibility\": {\"overall\": \"Unknown\", \"criteria\": [], \"missing\": []}}",
+      "For MEDICAL documents only:",
+      "1. Provide a concise markdown summary (200-400 words max) highlighting key clinical findings",
+      "2. Provide a plain-text summary (100-200 words max)",
+      "3. If you can infer trial eligibility based on the document, provide: overall (Eligible/Likely eligible/Ineligible/Unknown), criteria met/not met, and missing information",
+      "Output ONLY valid JSON with exactly these keys: summaryMarkdown, summaryPlain, eligibility (with overall, criteria array, missing array).",
+      "Do NOT make up or hallucinate medical information. Only summarize what is explicitly stated in the document.",
     ].join(" ");
 
     const res = await fetch(OPENAI_URL, {
@@ -134,23 +160,39 @@ export const handler: Handler = async (event) => {
 
     if (!res.ok) {
       const textErr = await res.text().catch(() => "");
-      return cors(res.status, { error: textErr || `HTTP ${res.status}` });
+      const errorMsg = textErr || `HTTP ${res.status}`;
+      // Log detailed error for debugging
+      console.error(`[summarize] OpenAI API error (${res.status}):`, errorMsg);
+      return cors(res.status, { error: errorMsg, detail: "OpenAI API request failed. Check API key validity." });
     }
 
     const data = await res.json();
     const content: string | undefined = data?.choices?.[0]?.message?.content;
+
+    if (!content) {
+      console.error("[summarize] OpenAI returned no content");
+      return cors(500, { error: "OpenAI returned empty response" });
+    }
+
     let out: any = {};
     try {
-      out = content ? JSON.parse(content) : {};
-    } catch {
-      out = {};
+      out = JSON.parse(content);
+      console.log(`[summarize] Successfully parsed OpenAI response`);
+    } catch (parseErr) {
+      console.error(`[summarize] Failed to parse OpenAI JSON response:`, content.substring(0, 500));
+      return cors(500, { error: "Invalid JSON response from OpenAI", detail: "Could not parse AI response" });
+    }
+
+    // Validate required fields
+    if (!out.summaryMarkdown && !out.summary) {
+      console.warn(`[summarize] Response missing summaryMarkdown field:`, out);
     }
 
     return cors(200, {
       summaryMarkdown: out.summaryMarkdown || out.summary || "",
       summaryPlain: out.summaryPlain || "",
       eligibility: out.eligibility || { overall: "Unknown", criteria: [], missing: [] },
-      audit: { requestId: data?.id || "unknown", generatedAt: new Date().toISOString(), profileId },
+      audit: { requestId: data?.id || "unknown", generatedAt: new Date().toISOString(), profileId, uploadId, fileName: file.filename },
     });
   } catch (e: any) {
     return cors(500, { error: String(e?.message || e || "Unknown error") });

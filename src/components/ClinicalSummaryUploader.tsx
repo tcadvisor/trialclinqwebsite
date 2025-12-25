@@ -220,7 +220,8 @@ export default function ClinicalSummaryUploader(props: ClinicalSummaryUploaderPr
         return;
       }
 
-      track("clinical_summary_upload_started", { profileId });
+      const uploadId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      track("clinical_summary_upload_started", { profileId, fileName: file.name, fileSize: file.size, uploadId });
 
       // Step 1: Upload + summarize
       setStage("uploading");
@@ -229,6 +230,7 @@ export default function ClinicalSummaryUploader(props: ClinicalSummaryUploaderPr
       const form = new FormData();
       form.append("file", file);
       form.append("profileId", profileId);
+      form.append("uploadId", uploadId);
       form.append("options.showEligibilityBadges", String(!!showEligibilityBadges));
 
       setStage("parsing");
@@ -252,14 +254,21 @@ export default function ClinicalSummaryUploader(props: ClinicalSummaryUploaderPr
       setProgress(0.6);
 
       if (!res.ok) {
-        setError("Summarization failed");
-        track("clinical_summary_error", { profileId, stage: "summarize", code: res.status });
+        let errorDetail = "Summarization failed";
+        try {
+          const errData = await res.json();
+          if (errData?.error) {
+            errorDetail = `Summarization failed: ${errData.error}`;
+          }
+        } catch {}
+        setError(errorDetail);
+        track("clinical_summary_error", { profileId, stage: "summarize", code: res.status, fileName: file.name, fileSize: file.size, uploadId });
         return;
       }
 
       const data = (await res.json()) as SummarizeResponse;
       if (!data || !data.summaryMarkdown) {
-        setError("Summarization failed");
+        setError("Summarization failed: No summary generated");
         track("clinical_summary_error", { profileId, stage: "summarize", code: "no_summary" });
         return;
       }
@@ -310,6 +319,14 @@ export default function ClinicalSummaryUploader(props: ClinicalSummaryUploaderPr
       } catch {}
 
       track("clinical_summary_success", { profileId, requestId: data.audit?.requestId });
+
+      // Clear the file input and reset after a short delay so user sees success message
+      setTimeout(() => {
+        if (inputRef.current) {
+          inputRef.current.value = "";
+        }
+        reset();
+      }, 2000);
     } catch (e: any) {
       const aborted = e?.name === "AbortError";
       setError(aborted ? "Network timeout" : "Upload failed");
