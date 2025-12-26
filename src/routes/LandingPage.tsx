@@ -390,31 +390,43 @@ export default function LandingPage() {
               <p className="text-gray-600 text-sm mb-6">
                 See how TrialClinIQ accelerates CNS trial enrollment with pre-screened, consent-ready candidates
               </p>
-              <form className="space-y-4">
+              <form className="space-y-4" onSubmit={submitSponsorForm}>
                 <input
                   type="text"
                   placeholder="Your Name"
                   value={sponsorName}
                   onChange={(e) => setSponsorName(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={sponsorSubmitting}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                 />
                 <input
                   type="email"
                   placeholder="Work Email"
                   value={sponsorEmail}
                   onChange={(e) => setSponsorEmail(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={sponsorSubmitting}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                 />
                 <input
                   type="text"
                   placeholder="Organization"
                   value={sponsorOrg}
                   onChange={(e) => setSponsorOrg(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={sponsorSubmitting}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                 />
-                <button className="w-full bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700">
-                  Book Demo Call
+                <button
+                  type="submit"
+                  disabled={sponsorSubmitting}
+                  className="w-full bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                >
+                  {sponsorSubmitting ? "Submitting..." : "Book Demo Call"}
                 </button>
+                {sponsorMessage && (
+                  <p className={`text-sm ${sponsorMessage.includes("✓") ? "text-green-600" : "text-red-600"}`}>
+                    {sponsorMessage}
+                  </p>
+                )}
               </form>
             </div>
 
