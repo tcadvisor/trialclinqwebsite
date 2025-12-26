@@ -393,28 +393,6 @@ export default function LandingPage() {
                   info@trialcliniq.com
                 </a>
               </div>
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-2">
-                  For Partnership Inquiries
-                </h3>
-                <a
-                  href="mailto:partnerships@trialcliniq.com"
-                  className="text-blue-600 hover:text-blue-700"
-                >
-                  partnerships@trialcliniq.com
-                </a>
-              </div>
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-2">
-                  For Patient Support
-                </h3>
-                <a
-                  href="mailto:support@trialcliniq.com"
-                  className="text-blue-600 hover:text-blue-700"
-                >
-                  support@trialcliniq.com
-                </a>
-              </div>
             </div>
           </div>
         </div>
