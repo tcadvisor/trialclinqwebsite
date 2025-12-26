@@ -424,13 +424,62 @@ function summarizeDevPlugin() {
     json(res, 200, { ok: true });
   }
 
+  function handleBookDemo(req: any, res: any) {
+    if (req.method === "OPTIONS") {
+      json(res, 204, "");
+      return;
+    }
+    if (req.method !== "POST") {
+      json(res, 405, { error: "Method not allowed" });
+      return;
+    }
+
+    const webhookUrl = process.env.BOOKING_WEBHOOK_URL || process.env.VITE_BOOKING_WEBHOOK_URL;
+    if (!webhookUrl) {
+      json(res, 500, { error: "BOOKING_WEBHOOK_URL not configured" });
+      return;
+    }
+
+    let body = "";
+    req.on("data", (chunk: any) => {
+      body += chunk.toString();
+    });
+
+    req.on("end", async () => {
+      try {
+        const payload = body ? JSON.parse(body) : {};
+        const response = await fetch(webhookUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          const text = await response.text().catch(() => "");
+          json(res, 502, { error: "Upstream webhook error", status: response.status, body: text });
+          return;
+        }
+
+        json(res, 200, { ok: true });
+      } catch (err: any) {
+        json(res, 500, { error: err?.message || String(err) });
+      }
+    });
+
+    req.on("error", (err: any) => {
+      json(res, 500, { error: err?.message || "Request error" });
+    });
+  }
+
   return {
     name: "summarize-dev",
     configureServer(server) {
       const summarizePaths = ["/.netlify/functions/summarize", "/api/summarize"];
       const writePaths = ["/.netlify/functions/profile-write", "/api/profile-write"];
+      const bookDemoPaths = ["/.netlify/functions/book-demo", "/api/book-demo"];
       summarizePaths.forEach((p) => server.middlewares.use(p, handleSummarize));
       writePaths.forEach((p) => server.middlewares.use(p, handleProfileWrite));
+      bookDemoPaths.forEach((p) => server.middlewares.use(p, handleBookDemo));
     },
   };
 }
