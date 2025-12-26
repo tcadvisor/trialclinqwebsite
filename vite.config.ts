@@ -424,13 +424,107 @@ function summarizeDevPlugin() {
     json(res, 200, { ok: true });
   }
 
+  function handleBookDemo(req: any, res: any) {
+    if (req.method === "OPTIONS") {
+      json(res, 204, "");
+      return;
+    }
+    if (req.method !== "POST") {
+      json(res, 405, { error: "Method not allowed" });
+      return;
+    }
+
+    let body = "";
+    req.on("data", (chunk: any) => {
+      body += chunk.toString();
+    });
+
+    req.on("end", async () => {
+      try {
+        const apiKey = process.env.RESEND_API_KEY;
+        if (!apiKey) {
+          json(res, 500, { error: "RESEND_API_KEY not configured" });
+          return;
+        }
+
+        const formData = body ? JSON.parse(body) : {};
+
+        // Generate email content based on form type
+        let subject = "New Form Submission";
+        let html = `<pre>${JSON.stringify(formData, null, 2)}</pre>`;
+
+        if (formData.type === "sponsor_demo") {
+          subject = "New Demo Request - TrialClinIQ";
+          html = `
+            <h2>New Demo Request</h2>
+            <p><strong>Name:</strong> ${formData.name}</p>
+            <p><strong>Email:</strong> ${formData.email}</p>
+            <p><strong>Organization:</strong> ${formData.organization}</p>
+            <p>Please reach out to schedule a demo call.</p>
+          `;
+        } else if (formData.type === "patient_waitlist") {
+          subject = "New Patient Waitlist Signup - TrialClinIQ";
+          html = `
+            <h2>New Patient Waitlist Signup</h2>
+            <p><strong>Name:</strong> ${formData.name}</p>
+            <p><strong>Email:</strong> ${formData.email}</p>
+            <p><strong>CNS Research Area:</strong> ${formData.condition}</p>
+            <p>A new patient has signed up for the waitlist.</p>
+          `;
+        } else if (formData.type === "newsletter_signup") {
+          subject = "New Newsletter Subscriber - TrialClinIQ";
+          html = `
+            <h2>New Newsletter Subscriber</h2>
+            <p><strong>Email:</strong> ${formData.email}</p>
+            <p>A new subscriber has joined the newsletter.</p>
+          `;
+        }
+
+        // Send email via Resend
+        const response = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            from: "onboarding@resend.dev",
+            to: "chandler@trialcliniq.com",
+            subject,
+            html,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text().catch(() => "");
+          console.error("[book-demo] Resend error:", errorText);
+          json(res, 502, { error: "Failed to send email", status: response.status });
+          return;
+        }
+
+        const result = await response.json();
+        console.log("[book-demo] Email sent successfully:", result.id);
+        json(res, 200, { ok: true, messageId: result.id });
+      } catch (err: any) {
+        console.error("[book-demo] Error:", err);
+        json(res, 500, { error: err?.message || String(err) });
+      }
+    });
+
+    req.on("error", (err: any) => {
+      json(res, 500, { error: err?.message || "Request error" });
+    });
+  }
+
   return {
     name: "summarize-dev",
     configureServer(server) {
       const summarizePaths = ["/.netlify/functions/summarize", "/api/summarize"];
       const writePaths = ["/.netlify/functions/profile-write", "/api/profile-write"];
+      const bookDemoPaths = ["/.netlify/functions/book-demo", "/api/book-demo"];
       summarizePaths.forEach((p) => server.middlewares.use(p, handleSummarize));
       writePaths.forEach((p) => server.middlewares.use(p, handleProfileWrite));
+      bookDemoPaths.forEach((p) => server.middlewares.use(p, handleBookDemo));
     },
   };
 }
