@@ -114,7 +114,7 @@ export default function LandingPage() {
     setNewsletterMessage("");
 
     try {
-      const response = await fetch(webhookUrl || "/.netlify/functions/booking-webhook", {
+      const response = await fetch("/.netlify/functions/book-demo", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
