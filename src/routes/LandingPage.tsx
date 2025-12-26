@@ -21,8 +21,6 @@ export default function LandingPage() {
   const [patientMessage, setPatientMessage] = useState("");
   const [newsletterMessage, setNewsletterMessage] = useState("");
 
-  const webhookUrl = (import.meta as any).env?.VITE_BOOKING_WEBHOOK_URL as string | undefined;
-
   useEffect(() => {
     if (isAuthenticated && user) {
       navigate("/patients/dashboard", { replace: true });
