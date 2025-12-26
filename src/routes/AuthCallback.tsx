@@ -21,8 +21,7 @@ export default function AuthCallback() {
         const account = result?.account || accounts[0];
 
         if (account) {
-          const stored = localStorage.getItem('auth:v1');
-          const storedRole = stored ? (JSON.parse(stored)?.user?.role as 'patient' | 'provider' | undefined) : undefined;
+          const storedRole = localStorage.getItem('pending_role_v1') as 'patient' | 'provider' | null;
           const role = storedRole || 'patient';
 
           // Update auth context with user info

@@ -17,8 +17,8 @@
     <script>
       window.getAuthToken = async () => "TEST_TOKEN";
       window.__clinicalSummaryUploaderProps = {
-        summarizeApiUrl: "/api/summarize",
-        writeProfileApiUrl: "/api/profile-write",
+        summarizeApiUrl: "/.netlify/functions/summarize",
+        writeProfileApiUrl: "/.netlify/functions/profile-write",
         getAuthTokenClientFnName: "getAuthToken",
         authHeaderName: "Authorization"
       };

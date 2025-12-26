@@ -5,6 +5,8 @@ import pdf from "pdf-parse";
 const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
 const DEFAULT_MODEL = "gpt-4o"; // Use gpt-4o for better structured output and JSON handling
 const MAX_TEXT_CHARS = 120000;
+const SUPPORTED_MIME = new Set(["application/pdf"]);
+const SUPPORTED_EXT = new Set([".pdf"]);
 
 type ParsedUpload = {
   fields: Record<string, string>;
@@ -62,10 +64,96 @@ function parseMultipart(event: any): Promise<ParsedUpload> {
   });
 }
 
-async function extractText(file: { mimeType: string; data: Buffer }) {
-  const mime = file.mimeType || "";
+function getExtension(filename: string) {
+  const idx = filename.lastIndexOf(".");
+  return idx >= 0 ? filename.slice(idx).toLowerCase() : "";
+}
+
+function detectKind(mimeType: string, filename: string) {
+  const mime = mimeType || "";
+  if (SUPPORTED_MIME.has(mime)) {
+    return "pdf";
+  }
+  const ext = getExtension(filename);
+  if (SUPPORTED_EXT.has(ext)) {
+    return "pdf";
+  }
+  return null;
+}
+
+function looksBinary(buf: Buffer) {
+  const len = Math.min(buf.length, 8000);
+  if (len === 0) return false;
+  let suspicious = 0;
+  for (let i = 0; i < len; i++) {
+    const b = buf[i];
+    if (b === 0) return true;
+    const isWhitespace = b === 9 || b === 10 || b === 13;
+    const isPrintable = b >= 32 && b <= 126;
+    if (!isPrintable && !isWhitespace) suspicious++;
+  }
+  return suspicious / len > 0.2;
+}
+
+function isLowQualityText(text: string) {
+  const trimmed = text.trim();
+  if (trimmed.length < 80) return true;
+  const nonWhitespace = trimmed.replace(/\s+/g, "");
+  if (!nonWhitespace) return true;
+  const letters = nonWhitespace.match(/[A-Za-z]/g)?.length || 0;
+  const ratio = letters / nonWhitespace.length;
+  return ratio < 0.2;
+}
+
+function looksLikeResume(text: string) {
+  const lower = text.toLowerCase();
+  const resumeHits = [
+    "experience",
+    "education",
+    "skills",
+    "work history",
+    "employment",
+    "certifications",
+    "professional summary",
+    "objective",
+    "references",
+    "projects",
+  ];
+  let hits = 0;
+  for (const term of resumeHits) {
+    if (lower.includes(term)) hits++;
+  }
+  return hits >= 2;
+}
+
+function looksMedical(text: string) {
+  const lower = text.toLowerCase();
+  const medicalHits = [
+    "diagnosis",
+    "treatment",
+    "medication",
+    "radiology",
+    "pathology",
+    "ecog",
+    "lab",
+    "cbc",
+    "mg/dl",
+    "hx",
+    "hpi",
+    "assessment",
+    "plan",
+    "patient",
+  ];
+  let hits = 0;
+  for (const term of medicalHits) {
+    if (lower.includes(term)) hits++;
+  }
+  return hits >= 2;
+}
+
+async function extractText(file: { mimeType: string; data: Buffer; filename: string }, kind: "pdf") {
   try {
-    if (mime === "application/pdf") {
+    if (kind === "pdf") {
       try {
         const parsed = await pdf(file.data);
         const text = parsed.text || "";
@@ -78,16 +166,7 @@ async function extractText(file: { mimeType: string; data: Buffer }) {
         throw new Error(`PDF parsing failed: ${err}`);
       }
     }
-    if (mime === "application/json") {
-      try {
-        const json = JSON.parse(file.data.toString("utf8"));
-        return JSON.stringify(json, null, 2);
-      } catch {
-        return file.data.toString("utf8");
-      }
-    }
-    // Default: treat as text
-    return file.data.toString("utf8");
+    return "";
   } catch (err) {
     console.error("[extractText] Unexpected error:", err);
     throw err;
@@ -120,8 +199,22 @@ export const handler: Handler = async (event) => {
 
     const profileId = parsed.fields.profileId || "unknown";
     const uploadId = parsed.fields.uploadId || "unknown";
-    const text = await extractText(file);
+    const kind = detectKind(file.mimeType, file.filename);
+    if (!kind) {
+      return cors(415, { error: "Unsupported file type. Please upload a PDF file." });
+    }
+    if (looksBinary(file.data)) {
+      return cors(415, { error: "Unsupported file type. The uploaded file appears to be binary." });
+    }
+
+    const text = await extractText({ ...file, filename: file.filename }, kind);
     const trimmed = text.slice(0, MAX_TEXT_CHARS);
+    if (isLowQualityText(trimmed)) {
+      return cors(422, { error: "Unable to extract readable text from this PDF. Please upload a text-based PDF." });
+    }
+    if (looksLikeResume(trimmed) && !looksMedical(trimmed)) {
+      return cors(422, { error: "This document appears to be non-medical (e.g., a resume). Please upload a clinical document." });
+    }
     if (!trimmed.trim()) return cors(400, { error: "Empty document" });
 
     // Log file details for debugging
@@ -132,13 +225,14 @@ export const handler: Handler = async (event) => {
     const model = process.env.OPENAI_SUMMARIZE_MODEL || DEFAULT_MODEL;
     const prompt = [
       "You are a medical document analyzer. Your task is to extract and summarize clinical information from the provided document.",
-      "If the document is NOT a medical/clinical document, respond with: {\"summaryMarkdown\": \"Not a medical document\", \"summaryPlain\": \"Unable to summarize non-medical content\", \"eligibility\": {\"overall\": \"Unknown\", \"criteria\": [], \"missing\": []}}",
+      "If the document is NOT a medical/clinical document or is unreadable/garbled, respond with: {\"summaryMarkdown\": \"Unable to extract readable text from document\", \"summaryPlain\": \"Unable to summarize this document\", \"eligibility\": {\"overall\": \"Unknown\", \"criteria\": [], \"missing\": []}}",
       "For MEDICAL documents only:",
       "1. Provide a concise markdown summary (200-400 words max) highlighting key clinical findings",
       "2. Provide a plain-text summary (100-200 words max)",
       "3. If you can infer trial eligibility based on the document, provide: overall (Eligible/Likely eligible/Ineligible/Unknown), criteria met/not met, and missing information",
       "Output ONLY valid JSON with exactly these keys: summaryMarkdown, summaryPlain, eligibility (with overall, criteria array, missing array).",
       "Do NOT make up or hallucinate medical information. Only summarize what is explicitly stated in the document.",
+      "Use ONLY the text between DOCUMENT START and DOCUMENT END.",
     ].join(" ");
 
     const res = await fetch(OPENAI_URL, {
@@ -152,7 +246,7 @@ export const handler: Handler = async (event) => {
         temperature: 0.2,
         messages: [
           { role: "system", content: prompt },
-          { role: "user", content: trimmed },
+          { role: "user", content: `DOCUMENT START\n${trimmed}\nDOCUMENT END` },
         ],
         response_format: { type: "json_object" },
       }),

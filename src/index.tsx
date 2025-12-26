@@ -4,14 +4,9 @@ import App from "./App";
 
 import { AuthProvider } from "./lib/auth";
 import { registerClinicalSummaryUploader } from "./builder/registerClinicalSummaryUploader";
-import { installClinicalMocks } from "./mocks/installClinicalMocks";
 
 try {
   const w: any = window as any;
-  if (import.meta.env.DEV && w && w.__enableClinicalMocks == null) {
-    w.__enableClinicalMocks = true;
-  }
-  installClinicalMocks();
   if (w && w.Builder) {
     registerClinicalSummaryUploader(w.Builder);
   }

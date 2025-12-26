@@ -87,18 +87,36 @@ export default function Dashboard(): JSX.Element {
               onChange={(e) => {
                 const f = e.target.files && e.target.files[0];
                 if (!f) return;
-                try {
-                  const raw = localStorage.getItem("tc_docs");
-                  const list = raw ? (JSON.parse(raw) as any[]) : [];
-                  const id = `${Date.now()}_${Math.random().toString(36).slice(2)}`;
-                  const item = { id, name: f.name, type: f.type, size: f.size, uploadedAt: new Date().toISOString() };
-                  list.unshift(item);
-                  localStorage.setItem("tc_docs", JSON.stringify(list));
-                  try { window.dispatchEvent(new Event("storage")); } catch {}
-                  alert("File added to your records. For detailed summarization, use Health Profile > Documents.");
-                } catch {}
-                // reset input
-                try { (e.target as HTMLInputElement).value = ""; } catch {}
+                const reader = new FileReader();
+                reader.onload = () => {
+                  try {
+                    const raw = localStorage.getItem("tc_docs");
+                    const list = raw ? (JSON.parse(raw) as any[]) : [];
+                    const id = `${Date.now()}_${Math.random().toString(36).slice(2)}`;
+                    const uploadedBy = (name || "You").trim() || "You";
+                    const item = {
+                      id,
+                      name: f.name,
+                      type: f.type,
+                      size: f.size,
+                      uploadedBy,
+                      uploadedAt: Date.now(),
+                      category: "Diagnostic Reports",
+                      url: reader.result as string,
+                    };
+                    list.unshift(item);
+                    localStorage.setItem("tc_docs", JSON.stringify(list));
+                    try { window.dispatchEvent(new Event("storage")); } catch {}
+                    alert("File added to your records. For detailed summarization, use Health Profile > Documents.");
+                  } catch {}
+                  // reset input
+                  try { (e.target as HTMLInputElement).value = ""; } catch {}
+                };
+                reader.onerror = () => {
+                  try { (e.target as HTMLInputElement).value = ""; } catch {}
+                  alert("Failed to read file.");
+                };
+                reader.readAsDataURL(f);
               }}
             />
             <button

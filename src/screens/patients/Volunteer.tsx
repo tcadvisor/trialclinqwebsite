@@ -18,7 +18,6 @@ export default function Volunteer(): JSX.Element {
       phone: HTMLInputElement;
       firstName: HTMLInputElement;
       lastName: HTMLInputElement;
-      password: HTMLInputElement;
       ref?: HTMLInputElement;
     };
     const email = form.email.value.trim();
@@ -57,6 +56,8 @@ export default function Volunteer(): JSX.Element {
         onSubmit={handleSubmit}
         privacyPath="/patients/privacy"
         signInPath="/patients/login"
+        error={error}
+        isLoading={isLoading}
       />
     </div>
   );

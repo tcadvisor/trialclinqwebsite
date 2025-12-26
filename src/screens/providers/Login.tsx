@@ -10,7 +10,6 @@ export default function ProviderLogin(): JSX.Element {
   const { isAuthenticated, signIn, user } = useAuth();
 
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -33,7 +32,7 @@ export default function ProviderLogin(): JSX.Element {
       // Sign in with Azure Entra ID
       const authUser = await signInUser({
         email: email.trim(),
-        password,
+        password: "",
       });
 
       if (authUser) {
@@ -66,20 +65,13 @@ export default function ProviderLogin(): JSX.Element {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
-          <input
-            className="w-full border rounded px-3 py-2"
-            placeholder="Password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
           {error && <div className="text-sm text-red-600">{error}</div>}
           <button
             className="w-full px-4 py-2 rounded bg-gray-900 text-white hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed"
             type="submit"
             disabled={isLoading}
           >
-            {isLoading ? "Signing in..." : "Login"}
+            {isLoading ? "Redirecting..." : "Continue with Microsoft"}
           </button>
         </form>
         <p className="text-sm text-gray-600 mt-4">New to TrialCliniq? <Link to="/providers/create" className="text-blue-600 hover:underline">Create an account</Link></p>

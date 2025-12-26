@@ -16,7 +16,6 @@ import {
 } from "lucide-react";
 import { useAuth } from "../../lib/auth";
 import PatientHeader from "../../components/PatientHeader";
-import { findAccountByEmail } from "../../lib/accountStore";
 import { buildMarkdownAppend } from "../../components/ClinicalSummaryUploader";
 
 // Field source tracking
@@ -69,6 +68,8 @@ type HealthProfileMetadata = {
 
 const PROFILE_KEY = "tc_health_profile_v1";
 const PROFILE_METADATA_KEY = "tc_health_profile_metadata_v1";
+const ALLOWED_MIME = new Set(["application/pdf"]);
+const ALLOWED_EXT = new Set([".pdf"]);
 
 // Component to display EPIC sync badge
 const EpicBadge: React.FC<{ syncedAt?: string }> = ({ syncedAt }) => {
@@ -186,6 +187,12 @@ function Documents({ onCountChange }: { onCountChange?: (count: number) => void 
     return null;
   }
 
+  function isAllowedFile(file: File) {
+    if (ALLOWED_MIME.has(file.type)) return true;
+    const ext = file.name.includes(".") ? `.${file.name.split(".").pop()}`.toLowerCase() : "";
+    return !!ext && ALLOWED_EXT.has(ext);
+  }
+
   async function summarizeAndSave(file: File) {
     const cfg: any = (window as any).__clinicalSummaryUploaderProps || {};
     setOverlay({ mode: "loading", message: "AI is reviewing the document..." });
@@ -221,12 +228,25 @@ function Documents({ onCountChange }: { onCountChange?: (count: number) => void 
       ]);
       if (!res || !(res as Response).ok) {
         let errorMsg = "Summarization failed";
+        const status = (res as Response | undefined)?.status;
         try {
           const errData = await (res as Response).json();
           if (errData?.error) {
             errorMsg = `Summarization failed: ${errData.error}`;
           }
-        } catch {}
+        } catch {
+          try {
+            const textErr = await (res as Response).text();
+            if (textErr) errorMsg = `Summarization failed: ${textErr}`;
+          } catch {}
+        }
+        if (status === 415) {
+          errorMsg = "Summarization failed: Unsupported file type. Please upload a PDF.";
+        } else if (status === 422) {
+          errorMsg = "Summarization failed: The document looks non-medical or unreadable.";
+        } else if (status) {
+          errorMsg = `${errorMsg} (HTTP ${status})`;
+        }
         setOverlay({ mode: "error", message: errorMsg });
         return;
       }
@@ -276,7 +296,15 @@ function Documents({ onCountChange }: { onCountChange?: (count: number) => void 
   async function onFilesSelected(files: FileList | null) {
     if (!files || files.length === 0) return;
     const list = Array.from(files);
-    const uploads: Promise<DocItem>[] = list.map(async (file) => {
+    const invalid = list.filter((file) => !isAllowedFile(file));
+    if (invalid.length > 0) {
+      const names = invalid.map((f) => f.name).join(", ");
+      setOverlay({ mode: "error", message: `Unsupported file type: ${names}. Use PDF.` });
+      setTimeout(() => setOverlay(null), 2500);
+    }
+    const valid = list.filter((file) => isAllowedFile(file));
+    if (valid.length === 0) return;
+    const uploads: Promise<DocItem>[] = valid.map(async (file) => {
       const dataUrl = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result as string);
@@ -358,7 +386,7 @@ function Documents({ onCountChange }: { onCountChange?: (count: number) => void 
           <button onClick={triggerUpload} className="inline-flex items-center gap-2 rounded-full bg-[#1033e5] text-white px-3 py-2 text-sm hover:bg-blue-700">
             Upload document
           </button>
-          <input ref={inputRef} className="hidden" type="file" multiple onChange={(e) => onFilesSelected(e.target.files)} />
+          <input ref={inputRef} className="hidden" type="file" multiple accept=".pdf,application/pdf" onChange={(e) => onFilesSelected(e.target.files)} />
         </div>
       </div>
 
@@ -584,9 +612,6 @@ export default function HealthProfile(): JSX.Element {
     setProfile((prev) => {
       let next = { ...prev };
       if ((!next.email || next.email === "") && user?.email) next.email = user.email;
-      // Account phone
-      const acc = next.email ? findAccountByEmail(next.email) : undefined;
-      if (acc?.phone && (!next.phone || next.phone === "")) next.phone = acc.phone;
       // Eligibility fields
       try {
         const raw = localStorage.getItem("tc_eligibility_profile");

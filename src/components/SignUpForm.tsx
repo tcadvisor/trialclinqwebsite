@@ -6,14 +6,21 @@ export type SignUpFormProps = {
   onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
   signInPath: string;
   privacyPath: string;
+  error?: string | null;
+  isLoading?: boolean;
 };
 
-export default function SignUpForm({ title, onSubmit, signInPath, privacyPath }: SignUpFormProps): JSX.Element {
+export default function SignUpForm({ title, onSubmit, signInPath, privacyPath, error, isLoading }: SignUpFormProps): JSX.Element {
   return (
     <main className="max-w-2xl mx-auto px-4 py-12">
       <h1 className="text-3xl md:text-4xl font-semibold text-center mb-8">{title}</h1>
 
       <div className="rounded-2xl border shadow-sm p-6 md:p-8 bg-white">
+        {error && (
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {error}
+          </div>
+        )}
         <form className="space-y-5" onSubmit={onSubmit}>
           <div>
             <label className="block text-sm font-medium mb-1" htmlFor="email">Email Address<span className="text-red-500">*</span></label>
@@ -44,17 +51,17 @@ export default function SignUpForm({ title, onSubmit, signInPath, privacyPath }:
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1" htmlFor="password">Password<span className="text-red-500">*</span></label>
-            <input id="password" name="password" type="password" placeholder="Create a secure password" className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" required />
-            <p className="text-xs text-gray-500 mt-1">Must be at least 8 characters.</p>
-          </div>
-
-          <div>
             <label className="block text-sm font-medium mb-1" htmlFor="ref">How did you hear about us?</label>
             <input id="ref" name="ref" placeholder="How did you hear about us?" className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
           </div>
 
-          <button className="w-full px-4 py-3 rounded-full bg-blue-600 text-white hover:bg-blue-700" type="submit">Get Started</button>
+          <button
+            className="w-full px-4 py-3 rounded-full bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            type="submit"
+            disabled={!!isLoading}
+          >
+            {isLoading ? "Submitting..." : "Get Started"}
+          </button>
         </form>
         <p className="text-center text-xs text-gray-500 mt-3">
           By clicking the Sign up button you agree to Trialcliniq's latest <Link to={privacyPath} className="text-blue-600 hover:underline">Privacy Policy</Link>.
