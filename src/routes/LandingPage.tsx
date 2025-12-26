@@ -14,11 +14,130 @@ export default function LandingPage() {
   const [patientCondition, setPatientCondition] = useState("");
   const [newsletterEmail, setNewsletterEmail] = useState("");
 
+  const [sponsorSubmitting, setSponsorSubmitting] = useState(false);
+  const [patientSubmitting, setPatientSubmitting] = useState(false);
+  const [newsletterSubmitting, setNewsletterSubmitting] = useState(false);
+  const [sponsorMessage, setSponsorMessage] = useState("");
+  const [patientMessage, setPatientMessage] = useState("");
+  const [newsletterMessage, setNewsletterMessage] = useState("");
+
+  const webhookUrl = (import.meta as any).env?.VITE_BOOKING_WEBHOOK_URL as string | undefined;
+
   useEffect(() => {
     if (isAuthenticated && user) {
       navigate("/patients/dashboard", { replace: true });
     }
   }, [isAuthenticated, navigate, user]);
+
+  const submitSponsorForm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!sponsorName || !sponsorEmail || !sponsorOrg) {
+      setSponsorMessage("Please fill in all fields");
+      return;
+    }
+
+    setSponsorSubmitting(true);
+    setSponsorMessage("");
+
+    try {
+      const response = await fetch(webhookUrl || "/.netlify/functions/booking-webhook", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "sponsor_demo",
+          name: sponsorName,
+          email: sponsorEmail,
+          organization: sponsorOrg,
+        }),
+      });
+
+      if (response.ok) {
+        setSponsorMessage("✓ Thanks! We'll be in touch soon to schedule your demo.");
+        setSponsorName("");
+        setSponsorEmail("");
+        setSponsorOrg("");
+      } else {
+        setSponsorMessage("Error submitting form. Please try again.");
+      }
+    } catch (error) {
+      setSponsorMessage("Error submitting form. Please try again.");
+      console.error("Sponsor form error:", error);
+    } finally {
+      setSponsorSubmitting(false);
+    }
+  };
+
+  const submitPatientForm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!patientName || !patientEmail || !patientCondition) {
+      setPatientMessage("Please fill in all fields");
+      return;
+    }
+
+    setPatientSubmitting(true);
+    setPatientMessage("");
+
+    try {
+      const response = await fetch(webhookUrl || "/.netlify/functions/booking-webhook", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "patient_waitlist",
+          name: patientName,
+          email: patientEmail,
+          condition: patientCondition,
+        }),
+      });
+
+      if (response.ok) {
+        setPatientMessage("✓ Welcome to the waitlist! Check your email for next steps.");
+        setPatientName("");
+        setPatientEmail("");
+        setPatientCondition("");
+      } else {
+        setPatientMessage("Error submitting form. Please try again.");
+      }
+    } catch (error) {
+      setPatientMessage("Error submitting form. Please try again.");
+      console.error("Patient form error:", error);
+    } finally {
+      setPatientSubmitting(false);
+    }
+  };
+
+  const submitNewsletterForm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newsletterEmail) {
+      setNewsletterMessage("Please enter your email address");
+      return;
+    }
+
+    setNewsletterSubmitting(true);
+    setNewsletterMessage("");
+
+    try {
+      const response = await fetch(webhookUrl || "/.netlify/functions/booking-webhook", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "newsletter_signup",
+          email: newsletterEmail,
+        }),
+      });
+
+      if (response.ok) {
+        setNewsletterMessage("✓ You're subscribed! Check your email.");
+        setNewsletterEmail("");
+      } else {
+        setNewsletterMessage("Error submitting form. Please try again.");
+      }
+    } catch (error) {
+      setNewsletterMessage("Error submitting form. Please try again.");
+      console.error("Newsletter form error:", error);
+    } finally {
+      setNewsletterSubmitting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white">
