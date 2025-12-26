@@ -106,8 +106,12 @@ export default function LandingPage() {
               </div>
             </div>
           </div>
-          <div className="bg-gradient-to-br from-blue-900 to-blue-700 rounded-2xl h-80 flex items-center justify-center text-white">
-            <div className="text-center" />
+          <div className="rounded-2xl h-80 overflow-hidden">
+            <img
+              src="https://cdn.builder.io/api/v1/image/assets%2F3ef0caf3200f4046b04c16f3c60b68c9%2F318a9ab815c44d8c8942e1b43b6fc8e5?format=webp&width=800"
+              alt="Tech collaboration for clinical trials"
+              className="w-full h-full object-cover"
+            />
           </div>
         </div>
       </section>
