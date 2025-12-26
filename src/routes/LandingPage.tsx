@@ -441,31 +441,43 @@ export default function LandingPage() {
               <p className="text-gray-600 text-sm mb-6">
                 Be first to access our HIE platform and get matched to CNS clinical trials
               </p>
-              <form className="space-y-4">
+              <form className="space-y-4" onSubmit={submitPatientForm}>
                 <input
                   type="text"
                   placeholder="Your Name"
                   value={patientName}
                   onChange={(e) => setPatientName(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  disabled={patientSubmitting}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                 />
                 <input
                   type="email"
                   placeholder="Email Address"
                   value={patientEmail}
                   onChange={(e) => setPatientEmail(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  disabled={patientSubmitting}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                 />
                 <input
                   type="text"
                   placeholder="CNS Research Area (e.g., Alzheimer's)"
                   value={patientCondition}
                   onChange={(e) => setPatientCondition(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  disabled={patientSubmitting}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                 />
-                <button className="w-full bg-teal-600 text-white py-2 rounded-lg font-medium hover:bg-teal-700">
-                  Join Waitlist
+                <button
+                  type="submit"
+                  disabled={patientSubmitting}
+                  className="w-full bg-teal-600 text-white py-2 rounded-lg font-medium hover:bg-teal-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                >
+                  {patientSubmitting ? "Submitting..." : "Join Waitlist"}
                 </button>
+                {patientMessage && (
+                  <p className={`text-sm ${patientMessage.includes("✓") ? "text-green-600" : "text-red-600"}`}>
+                    {patientMessage}
+                  </p>
+                )}
               </form>
             </div>
 
