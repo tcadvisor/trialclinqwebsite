@@ -492,17 +492,27 @@ export default function LandingPage() {
               <p className="text-gray-600 text-sm mb-6">
                 CNS clinical trial insights and trends. Get weekly insights on CNS trial innovations, neuroscience breakthroughs
               </p>
-              <form className="space-y-4">
+              <form className="space-y-4" onSubmit={submitNewsletterForm}>
                 <input
                   type="email"
                   placeholder="Email Address"
                   value={newsletterEmail}
                   onChange={(e) => setNewsletterEmail(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  disabled={newsletterSubmitting}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                 />
-                <button className="w-full bg-purple-600 text-white py-2 rounded-lg font-medium hover:bg-purple-700">
-                  Subscribe
+                <button
+                  type="submit"
+                  disabled={newsletterSubmitting}
+                  className="w-full bg-purple-600 text-white py-2 rounded-lg font-medium hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                >
+                  {newsletterSubmitting ? "Subscribing..." : "Subscribe"}
                 </button>
+                {newsletterMessage && (
+                  <p className={`text-sm ${newsletterMessage.includes("✓") ? "text-green-600" : "text-red-600"}`}>
+                    {newsletterMessage}
+                  </p>
+                )}
                 <ul className="text-xs text-gray-600 space-y-1">
                   <li>✓ CNS trial innovations</li>
                   <li>✓ Neuroscience breakthroughs</li>
