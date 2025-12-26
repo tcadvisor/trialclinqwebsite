@@ -148,13 +148,12 @@ export default function LandingPage() {
                 </div>
               </div>
             </div>
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl h-96 flex items-center justify-center">
-              <div className="text-center">
-                <div className="w-24 h-24 bg-blue-200 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-4xl">💙</span>
-                </div>
-                <p className="text-gray-600 font-medium">Patient-Centered Care</p>
-              </div>
+            <div className="rounded-2xl h-96 overflow-hidden">
+              <img
+                src="https://cdn.builder.io/api/v1/image/assets%2F3ef0caf3200f4046b04c16f3c60b68c9%2F1ad81274c36f413fa0aaf7af86a0c572?format=webp&width=800"
+                alt="Medical records and stethoscope"
+                className="w-full h-full object-cover"
+              />
             </div>
           </div>
         </div>
