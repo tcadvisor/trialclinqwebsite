@@ -14,11 +14,128 @@ export default function LandingPage() {
   const [patientCondition, setPatientCondition] = useState("");
   const [newsletterEmail, setNewsletterEmail] = useState("");
 
+  const [sponsorSubmitting, setSponsorSubmitting] = useState(false);
+  const [patientSubmitting, setPatientSubmitting] = useState(false);
+  const [newsletterSubmitting, setNewsletterSubmitting] = useState(false);
+  const [sponsorMessage, setSponsorMessage] = useState("");
+  const [patientMessage, setPatientMessage] = useState("");
+  const [newsletterMessage, setNewsletterMessage] = useState("");
+
   useEffect(() => {
     if (isAuthenticated && user) {
       navigate("/patients/dashboard", { replace: true });
     }
   }, [isAuthenticated, navigate, user]);
+
+  const submitSponsorForm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!sponsorName || !sponsorEmail || !sponsorOrg) {
+      setSponsorMessage("Please fill in all fields");
+      return;
+    }
+
+    setSponsorSubmitting(true);
+    setSponsorMessage("");
+
+    try {
+      const response = await fetch("/.netlify/functions/book-demo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "sponsor_demo",
+          name: sponsorName,
+          email: sponsorEmail,
+          organization: sponsorOrg,
+        }),
+      });
+
+      if (response.ok) {
+        setSponsorMessage("✓ Thanks! We'll be in touch soon to schedule your demo.");
+        setSponsorName("");
+        setSponsorEmail("");
+        setSponsorOrg("");
+      } else {
+        setSponsorMessage("Error submitting form. Please try again.");
+      }
+    } catch (error) {
+      setSponsorMessage("Error submitting form. Please try again.");
+      console.error("Sponsor form error:", error);
+    } finally {
+      setSponsorSubmitting(false);
+    }
+  };
+
+  const submitPatientForm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!patientName || !patientEmail || !patientCondition) {
+      setPatientMessage("Please fill in all fields");
+      return;
+    }
+
+    setPatientSubmitting(true);
+    setPatientMessage("");
+
+    try {
+      const response = await fetch("/.netlify/functions/book-demo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "patient_waitlist",
+          name: patientName,
+          email: patientEmail,
+          condition: patientCondition,
+        }),
+      });
+
+      if (response.ok) {
+        setPatientMessage("✓ Welcome to the waitlist! Check your email for next steps.");
+        setPatientName("");
+        setPatientEmail("");
+        setPatientCondition("");
+      } else {
+        setPatientMessage("Error submitting form. Please try again.");
+      }
+    } catch (error) {
+      setPatientMessage("Error submitting form. Please try again.");
+      console.error("Patient form error:", error);
+    } finally {
+      setPatientSubmitting(false);
+    }
+  };
+
+  const submitNewsletterForm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newsletterEmail) {
+      setNewsletterMessage("Please enter your email address");
+      return;
+    }
+
+    setNewsletterSubmitting(true);
+    setNewsletterMessage("");
+
+    try {
+      const response = await fetch("/.netlify/functions/book-demo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "newsletter_signup",
+          email: newsletterEmail,
+        }),
+      });
+
+      if (response.ok) {
+        setNewsletterMessage("✓ You're subscribed! Check your email.");
+        setNewsletterEmail("");
+      } else {
+        setNewsletterMessage("Error submitting form. Please try again.");
+      }
+    } catch (error) {
+      setNewsletterMessage("Error submitting form. Please try again.");
+      console.error("Newsletter form error:", error);
+    } finally {
+      setNewsletterSubmitting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -106,8 +223,12 @@ export default function LandingPage() {
               </div>
             </div>
           </div>
-          <div className="bg-gradient-to-br from-blue-900 to-blue-700 rounded-2xl h-80 flex items-center justify-center text-white">
-            <div className="text-center" />
+          <div className="rounded-2xl h-80 overflow-hidden">
+            <img
+              src="https://cdn.builder.io/api/v1/image/assets%2F3ef0caf3200f4046b04c16f3c60b68c9%2F318a9ab815c44d8c8942e1b43b6fc8e5?format=webp&width=800"
+              alt="Tech collaboration for clinical trials"
+              className="w-full h-full object-cover"
+            />
           </div>
         </div>
       </section>
@@ -144,13 +265,12 @@ export default function LandingPage() {
                 </div>
               </div>
             </div>
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl h-96 flex items-center justify-center">
-              <div className="text-center">
-                <div className="w-24 h-24 bg-blue-200 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-4xl">💙</span>
-                </div>
-                <p className="text-gray-600 font-medium">Patient-Centered Care</p>
-              </div>
+            <div className="rounded-2xl h-96 overflow-hidden">
+              <img
+                src="https://cdn.builder.io/api/v1/image/assets%2F3ef0caf3200f4046b04c16f3c60b68c9%2F1ad81274c36f413fa0aaf7af86a0c572?format=webp&width=800"
+                alt="Medical records and stethoscope"
+                className="w-full h-full object-cover"
+              />
             </div>
           </div>
         </div>
@@ -268,31 +388,43 @@ export default function LandingPage() {
               <p className="text-gray-600 text-sm mb-6">
                 See how TrialClinIQ accelerates CNS trial enrollment with pre-screened, consent-ready candidates
               </p>
-              <form className="space-y-4">
+              <form className="space-y-4" onSubmit={submitSponsorForm}>
                 <input
                   type="text"
                   placeholder="Your Name"
                   value={sponsorName}
                   onChange={(e) => setSponsorName(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={sponsorSubmitting}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                 />
                 <input
                   type="email"
                   placeholder="Work Email"
                   value={sponsorEmail}
                   onChange={(e) => setSponsorEmail(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={sponsorSubmitting}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                 />
                 <input
                   type="text"
                   placeholder="Organization"
                   value={sponsorOrg}
                   onChange={(e) => setSponsorOrg(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={sponsorSubmitting}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                 />
-                <button className="w-full bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700">
-                  Book Demo Call
+                <button
+                  type="submit"
+                  disabled={sponsorSubmitting}
+                  className="w-full bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                >
+                  {sponsorSubmitting ? "Submitting..." : "Book Demo Call"}
                 </button>
+                {sponsorMessage && (
+                  <p className={`text-sm ${sponsorMessage.includes("✓") ? "text-green-600" : "text-red-600"}`}>
+                    {sponsorMessage}
+                  </p>
+                )}
               </form>
             </div>
 
@@ -307,31 +439,43 @@ export default function LandingPage() {
               <p className="text-gray-600 text-sm mb-6">
                 Be first to access our HIE platform and get matched to CNS clinical trials
               </p>
-              <form className="space-y-4">
+              <form className="space-y-4" onSubmit={submitPatientForm}>
                 <input
                   type="text"
                   placeholder="Your Name"
                   value={patientName}
                   onChange={(e) => setPatientName(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  disabled={patientSubmitting}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                 />
                 <input
                   type="email"
                   placeholder="Email Address"
                   value={patientEmail}
                   onChange={(e) => setPatientEmail(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  disabled={patientSubmitting}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                 />
                 <input
                   type="text"
                   placeholder="CNS Research Area (e.g., Alzheimer's)"
                   value={patientCondition}
                   onChange={(e) => setPatientCondition(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  disabled={patientSubmitting}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                 />
-                <button className="w-full bg-teal-600 text-white py-2 rounded-lg font-medium hover:bg-teal-700">
-                  Join Waitlist
+                <button
+                  type="submit"
+                  disabled={patientSubmitting}
+                  className="w-full bg-teal-600 text-white py-2 rounded-lg font-medium hover:bg-teal-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                >
+                  {patientSubmitting ? "Submitting..." : "Join Waitlist"}
                 </button>
+                {patientMessage && (
+                  <p className={`text-sm ${patientMessage.includes("✓") ? "text-green-600" : "text-red-600"}`}>
+                    {patientMessage}
+                  </p>
+                )}
               </form>
             </div>
 
@@ -346,17 +490,27 @@ export default function LandingPage() {
               <p className="text-gray-600 text-sm mb-6">
                 CNS clinical trial insights and trends. Get weekly insights on CNS trial innovations, neuroscience breakthroughs
               </p>
-              <form className="space-y-4">
+              <form className="space-y-4" onSubmit={submitNewsletterForm}>
                 <input
                   type="email"
                   placeholder="Email Address"
                   value={newsletterEmail}
                   onChange={(e) => setNewsletterEmail(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  disabled={newsletterSubmitting}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                 />
-                <button className="w-full bg-purple-600 text-white py-2 rounded-lg font-medium hover:bg-purple-700">
-                  Subscribe
+                <button
+                  type="submit"
+                  disabled={newsletterSubmitting}
+                  className="w-full bg-purple-600 text-white py-2 rounded-lg font-medium hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                >
+                  {newsletterSubmitting ? "Subscribing..." : "Subscribe"}
                 </button>
+                {newsletterMessage && (
+                  <p className={`text-sm ${newsletterMessage.includes("✓") ? "text-green-600" : "text-red-600"}`}>
+                    {newsletterMessage}
+                  </p>
+                )}
                 <ul className="text-xs text-gray-600 space-y-1">
                   <li>✓ CNS trial innovations</li>
                   <li>✓ Neuroscience breakthroughs</li>
@@ -390,28 +544,6 @@ export default function LandingPage() {
                   info@trialcliniq.com
                 </a>
               </div>
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-2">
-                  For Partnership Inquiries
-                </h3>
-                <a
-                  href="mailto:partnerships@trialcliniq.com"
-                  className="text-blue-600 hover:text-blue-700"
-                >
-                  partnerships@trialcliniq.com
-                </a>
-              </div>
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-2">
-                  For Patient Support
-                </h3>
-                <a
-                  href="mailto:support@trialcliniq.com"
-                  className="text-blue-600 hover:text-blue-700"
-                >
-                  support@trialcliniq.com
-                </a>
-              </div>
             </div>
           </div>
         </div>
@@ -421,7 +553,7 @@ export default function LandingPage() {
       <footer className="border-t border-gray-200 py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center text-sm text-gray-600">
-            <p>&copy; 2024 TrialClinIQ. All rights reserved.</p>
+            <p>&copy; 2025 TrialClinIQ. All rights reserved.</p>
           </div>
         </div>
       </footer>
