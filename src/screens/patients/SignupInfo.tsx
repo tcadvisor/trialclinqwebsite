@@ -102,7 +102,7 @@ export default function SignupInfo(): JSX.Element {
       localStorage.setItem("pending_role_v1", "patient");
       await signUpUser({
         email: pending.email,
-        password: pending.password || "",
+        password: "",
         firstName: pending.firstName || "",
         lastName: pending.lastName || "",
       });

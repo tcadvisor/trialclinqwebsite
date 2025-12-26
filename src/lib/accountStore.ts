@@ -41,6 +41,12 @@ export function findAccountByEmail(email: string): Account | undefined {
   return read().find((a) => a.email.trim().toLowerCase() === e);
 }
 
+export function verifyAccount(email: string, password: string): Account | null {
+  const account = findAccountByEmail(email);
+  if (!account) return null;
+  return account.password === password ? account : null;
+}
+
 export function upsertAccount(next: Account): void {
   const list = read();
   const e = next.email.trim().toLowerCase();

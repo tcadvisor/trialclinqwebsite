@@ -1,7 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { getCurrentAuthUser, getMsalInstance, signOutUser } from "./entraId";
-import { upsertAccount } from "./accountStore";
 
 export type User = { email: string; role: "patient" | "provider"; firstName: string; lastName: string; userId: string };
 
@@ -15,7 +14,6 @@ type AuthContextValue = {
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
-const STORAGE_KEY = "auth:v1";
 const PENDING_SIGNUP_KEY = "pending_signup_v1";
 const PENDING_ROLE_KEY = "pending_role_v1";
 const PROFILE_KEY = "tc_health_profile_v1";
@@ -157,24 +155,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 firstName = pending.firstName || firstName;
                 lastName = pending.lastName || lastName;
                 mergeProfileFromEligibility(account.username);
-                upsertAccount({
-                  email: account.username,
-                  password: "",
-                  firstName: pending.firstName || firstName,
-                  lastName: pending.lastName || lastName,
-                  phone: pending.phone,
-                  ref: pending.ref,
-                  role,
-                });
               }
-            clearPendingSignup();
-          }
-          clearPendingRole();
-          clearUserScopedDataIfMismatch(account.username);
-          setUser({
-            email: account.username,
-            firstName,
-            lastName,
+              clearPendingSignup();
+            }
+            clearPendingRole();
+            clearUserScopedDataIfMismatch(account.username);
+            setUser({
+              email: account.username,
+              firstName,
+              lastName,
               role,
               userId: account.localAccountId || account.homeAccountId || "",
             });
@@ -197,15 +186,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               firstName = pending.firstName || firstName;
               lastName = pending.lastName || lastName;
               mergeProfileFromEligibility(cognitoUser.email);
-              upsertAccount({
-                email: cognitoUser.email,
-                password: "",
-                firstName: pending.firstName || firstName,
-                lastName: pending.lastName || lastName,
-                phone: pending.phone,
-                ref: pending.ref,
-                role,
-              });
             }
             clearPendingSignup();
           }
@@ -221,9 +201,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return;
         }
 
-        try {
-          localStorage.removeItem(STORAGE_KEY);
-        } catch (_) {}
       } catch (_) {
         // ignore errors, user will need to sign in
       } finally {
@@ -234,7 +211,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loadAuth();
   }, []);
 
-  const signIn = useCallback((next: User) => setUser(next), []);
+  const signIn = useCallback((next: User) => {
+    setUser(next);
+  }, []);
   const signOut = useCallback(async () => {
     try {
       await signOutUser();

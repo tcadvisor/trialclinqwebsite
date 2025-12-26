@@ -108,7 +108,7 @@ export function buildMarkdownAppend(
 export default function ClinicalSummaryUploader(props: ClinicalSummaryUploaderProps): JSX.Element {
   const {
     title = "Summarize Health Record",
-    acceptedTypes = ["application/pdf", "text/plain", "application/json"],
+    acceptedTypes = ["application/pdf", ".pdf"],
     maxFileSizeMB = 25,
     summarizeApiUrl,
     writeProfileApiUrl,
@@ -141,8 +141,14 @@ export default function ClinicalSummaryUploader(props: ClinicalSummaryUploaderPr
 
   const validate = useCallback((f: File | null): string | null => {
     if (!f) return "No file selected";
-    if (acceptedTypes.length > 0 && f.type && !acceptedTypes.includes(f.type)) {
-      return "Unsupported file type";
+    if (acceptedTypes.length > 0) {
+      const ext = f.name.includes(".") ? `.${f.name.split(".").pop()}`.toLowerCase() : "";
+      const hasMime = !!f.type;
+      const mimeAllowed = hasMime && acceptedTypes.includes(f.type);
+      const extAllowed = !!ext && acceptedTypes.includes(ext);
+      if (!mimeAllowed && !extAllowed) {
+        return "Unsupported file type";
+      }
     }
     if (bytesToMB(f.size) > maxFileSizeMB) {
       return "File too large";
@@ -255,12 +261,20 @@ export default function ClinicalSummaryUploader(props: ClinicalSummaryUploaderPr
 
       if (!res.ok) {
         let errorDetail = "Summarization failed";
+        const status = res.status;
         try {
           const errData = await res.json();
           if (errData?.error) {
             errorDetail = `Summarization failed: ${errData.error}`;
           }
         } catch {}
+        if (status === 415) {
+          errorDetail = "Summarization failed: Unsupported file type. Please upload a PDF.";
+        } else if (status === 422) {
+          errorDetail = "Summarization failed: The document looks non-medical or unreadable.";
+        } else {
+          errorDetail = `${errorDetail} (HTTP ${status})`;
+        }
         setError(errorDetail);
         track("clinical_summary_error", { profileId, stage: "summarize", code: res.status, fileName: file.name, fileSize: file.size, uploadId });
         return;

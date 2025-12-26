@@ -75,6 +75,7 @@ export async function signUpUser(input: SignUpInput): Promise<{ userId: string; 
     await msal.loginRedirect({
       ...loginRequest,
       prompt: 'select_account',
+      loginHint: input.email,
     });
 
     return { userId: '', requiresConfirmation: false };
@@ -141,7 +142,7 @@ export async function signInUser(input: SignInInput): Promise<AuthUser | null> {
         }
       }
     } else {
-      await msal.loginRedirect(loginRequest);
+      await msal.loginRedirect({ ...loginRequest, loginHint: input.email });
       return null;
     }
 

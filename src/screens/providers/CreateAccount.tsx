@@ -17,14 +17,12 @@ export default function CreateAccount(): JSX.Element {
       phone: HTMLInputElement;
       firstName: HTMLInputElement;
       lastName: HTMLInputElement;
-      password: HTMLInputElement;
       ref?: HTMLInputElement;
     };
     const email = form.email.value.trim();
     const phone = form.phone.value.trim();
     const firstName = form.firstName.value.trim();
     const lastName = form.lastName.value.trim();
-    const password = form.password.value;
     const ref = form.ref?.value?.trim();
 
     try {
@@ -41,7 +39,7 @@ export default function CreateAccount(): JSX.Element {
       // Sign up with Azure Entra ID
       await signUpUser({
         email,
-        password,
+        password: "",
         firstName,
         lastName,
       });
@@ -60,6 +58,8 @@ export default function CreateAccount(): JSX.Element {
         onSubmit={handleSubmit}
         privacyPath="/patients/privacy"
         signInPath="/providers/login"
+        error={error}
+        isLoading={isLoading}
       />
     </div>
   );

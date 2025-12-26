@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../lib/auth';
-import { AlertCircle, CheckCircle } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
+import { signInUser } from '../lib/entraId';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -11,12 +11,10 @@ interface AuthModalProps {
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultTab = 'login', role = 'patient' }) => {
-  const { signIn } = useAuth();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [loginEmail, setLoginEmail] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
 
   const roleTitle = role === 'provider' ? 'Researcher' : 'Participant';
   const signupPath = role === 'provider' ? '/providers/create' : '/patients/volunteer';
@@ -29,14 +27,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultTa
     setIsLoading(true);
 
     try {
-      signIn({
-        email: loginEmail,
-        role: role,
-        firstName: loginEmail.split('@')[0],
-        lastName: '',
-        userId: loginEmail,
-      });
-      onClose();
+      localStorage.setItem("pending_role_v1", role);
+      const email = loginEmail.trim();
+      await signInUser({ email, password: "" });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to sign in');
     } finally {
@@ -97,27 +90,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultTa
               />
             </div>
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1.5">
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={loginPassword}
-                onChange={(e) => setLoginPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
 
             <button
               type="submit"
               disabled={isLoading}
               className="w-full bg-blue-600 text-white py-2.5 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {isLoading ? 'Signing in...' : 'Sign In'}
+              {isLoading ? 'Redirecting...' : 'Continue with Microsoft'}
             </button>
           </form>
 
