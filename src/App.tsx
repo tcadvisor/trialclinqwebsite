@@ -21,6 +21,7 @@ const Privacy = lazy(() => import("./screens/patients/Privacy"));
 const Volunteer = lazy(() => import("./screens/patients/Volunteer"));
 const Login = lazy(() => import("./screens/patients/Login"));
 const InsiderBlog = lazy(() => import("./screens/sites/InsiderBlog"));
+const BlogArticle = lazy(() => import("./screens/sites/BlogArticle"));
 const VisibilityOptions = lazy(() => import("./screens/sites/VisibilityOptions"));
 const MulticenterListings = lazy(() => import("./screens/sites/MulticenterListings"));
 const InvestigatorSupport = lazy(() => import("./screens/support/InvestigatorSupport"));
