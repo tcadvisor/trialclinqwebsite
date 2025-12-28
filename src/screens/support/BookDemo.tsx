@@ -106,18 +106,21 @@ export default function BookDemo() {
       return;
     }
     setSubmitting(true);
-    const details = buildDetails();
 
-    const webhookSent = await sendViaWebhook(details);
-    if (webhookSent) {
-      setSuccess(true);
+    try {
+      const sent = await sendViaResend();
+      if (sent) {
+        setSuccess(true);
+        setTimeout(() => navigate("/", { replace: true }), 2000);
+        return;
+      }
+      setError("Failed to submit booking request. Please try again.");
+    } catch (err: any) {
+      setError(err?.message || "An error occurred while submitting your booking.");
+      console.error("Submission error:", err);
+    } finally {
       setSubmitting(false);
-      setTimeout(() => navigate("/", { replace: true }), 1400);
-      return;
     }
-
-    setError("We couldn't submit via Zapier. Please email chandler@trialcliniq.com with your booking details.");
-    setSubmitting(false);
   }
 
   return (
