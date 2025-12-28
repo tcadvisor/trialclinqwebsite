@@ -894,9 +894,30 @@ export default function HealthProfile(): JSX.Element {
                       <label className="text-sm text-gray-700">Weight
                         <input value={profile.weight} onChange={(e)=>setProfile(p=>({...p, weight:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2" />
                       </label>
-                      <label className="text-sm text-gray-700">Phone Number
-                        <input value={profile.phone} onChange={(e)=>setProfile(p=>({...p, phone:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2" />
-                      </label>
+                      <div>
+                        <label className="text-sm text-gray-700">Phone Number
+                          <input
+                            value={profile.phone}
+                            onChange={(e) => {
+                              const formatted = formatPhoneNumber(e.target.value, "US");
+                              setProfile(p=>({...p, phone: formatted}));
+                              if (phoneError) {
+                                setPhoneError(null);
+                              }
+                            }}
+                            onBlur={() => {
+                              if (profile.phone.trim()) {
+                                const err = getPhoneValidationError(profile.phone, "US");
+                                setPhoneError(err);
+                              }
+                            }}
+                            className={`mt-1 w-full rounded-md border px-3 py-2 ${phoneError ? "border-red-500" : ""}`}
+                          />
+                        </label>
+                        {phoneError && (
+                          <p className="mt-1 text-sm text-red-600">{phoneError}</p>
+                        )}
+                      </div>
                       <label className="text-sm text-gray-700">Gender
                         <select value={profile.gender} onChange={(e)=>setProfile(p=>({...p, gender:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2 bg-white">
                           <option>Female</option>
