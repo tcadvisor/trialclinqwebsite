@@ -154,7 +154,7 @@ export async function resendMFACode(email: string): Promise<void> {
 export async function signInUser(input: SignInInput): Promise<AuthUser | null> {
   try {
     const msal = getMsalInstance();
-    
+
     if (!msal) {
       throw new Error('Azure Entra ID is not properly configured. Please check your environment variables: VITE_AZURE_CLIENT_ID and VITE_AZURE_TENANT_ID');
     }
@@ -176,8 +176,21 @@ export async function signInUser(input: SignInInput): Promise<AuthUser | null> {
         }
       }
     } else {
-      await msal.loginRedirect({ ...loginRequest, loginHint: input.email, prompt: 'select_account' });
-      return null;
+      // Use popup in iframe, redirect otherwise
+      if (isInIframe()) {
+        response = await msal.loginPopup({
+          ...loginRequest,
+          loginHint: input.email,
+          prompt: 'select_account',
+        });
+      } else {
+        await msal.loginRedirect({
+          ...loginRequest,
+          loginHint: input.email,
+          prompt: 'select_account',
+        });
+        return null;
+      }
     }
 
     if (!response.account) {
@@ -197,12 +210,12 @@ export async function signInUser(input: SignInInput): Promise<AuthUser | null> {
     };
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-    
+
     // Provide helpful error messages
     if (errorMsg.includes('not found') || errorMsg.includes('AADSTS90002')) {
       throw new Error('Azure Entra ID tenant is not configured correctly. Please verify your VITE_AZURE_TENANT_ID environment variable.');
     }
-    
+
     throw new Error(`Sign in failed: ${errorMsg}`);
   }
 }
