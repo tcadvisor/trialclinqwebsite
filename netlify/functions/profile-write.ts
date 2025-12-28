@@ -187,7 +187,32 @@ export const handler: Handler = async (event) => {
     });
   } catch (e: any) {
     console.error("❌ Error saving profile:", e);
-    return cors(500, { 
+
+    // Log authentication/authorization errors
+    if (e.message?.includes('Unauthorized') || e.message?.includes('Missing Authorization')) {
+      try {
+        const authHeader = event.headers?.authorization || event.headers?.Authorization || "";
+        if (authHeader) {
+          const authenticatedUser = await getUserFromAuthHeader(authHeader).catch(() => null);
+          if (authenticatedUser) {
+            await logAuditEvent(
+              authenticatedUser.userId,
+              'PROFILE_UPDATE_FAILED',
+              'patient_profile',
+              payload?.patientId,
+              payload?.patientId,
+              { error: e.message },
+              event.headers?.['x-forwarded-for'] || event.headers?.['x-client-ip'],
+              event.headers?.['user-agent']
+            );
+          }
+        }
+      } catch (_) {
+        // Ignore logging errors
+      }
+    }
+
+    return cors(e.message?.includes('Unauthorized') ? 401 : 500, {
       error: String(e?.message || e || "Unknown error"),
       details: process.env.NODE_ENV === "development" ? e.stack : undefined
     });
