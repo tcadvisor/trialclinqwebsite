@@ -6,15 +6,40 @@ const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
 const RECIPIENT_EMAIL = "chandler@trialcliniq.com";
 const SENDER_EMAIL = "onboarding@resend.dev";
 
-interface FormData {
-  type: string;
+interface BookDemoData {
+  type?: string;
   name?: string;
   email?: string;
   organization?: string;
   condition?: string;
+  phone?: string;
+  affiliation?: string;
+  comments?: string;
+  date?: string;
+  time?: string;
+  timezone?: string;
 }
 
-function generateEmailContent(data: FormData): { subject: string; html: string } {
+function generateEmailContent(data: BookDemoData): { subject: string; html: string } {
+  // Handle demo booking requests
+  if (!data.type || data.type === "demo_booking" || data.date) {
+    return {
+      subject: "New Demo Booking Request - TrialClinIQ",
+      html: `
+        <h2>New Demo Booking Request</h2>
+        <p><strong>Name:</strong> ${data.name || 'N/A'}</p>
+        <p><strong>Email:</strong> ${data.email || 'N/A'}</p>
+        <p><strong>Phone:</strong> ${data.phone || 'Not provided'}</p>
+        <p><strong>Affiliation:</strong> ${data.affiliation || 'Not provided'}</p>
+        <p><strong>Requested Date & Time:</strong> ${data.date ? `${data.date} at ${data.time} ${data.timezone}` : 'Not specified'}</p>
+        ${data.comments ? `<p><strong>Comments:</strong></p><p>${data.comments.replace(/\n/g, '<br>')}</p>` : ''}
+        <p style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd;">
+          <strong>Next Steps:</strong> Please review this booking request and contact the applicant at ${data.email} to confirm the appointment.
+        </p>
+      `,
+    };
+  }
+
   switch (data.type) {
     case "sponsor_demo":
       return {
