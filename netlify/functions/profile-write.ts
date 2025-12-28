@@ -104,51 +104,52 @@ export const handler: Handler = async (event) => {
       additionalInformationAppendMarkdown || ""
     ].filter(Boolean).join("\n\n");
 
-    // Insert or update patient profile in PostgreSQL
+    // Insert or update patient profile in PostgreSQL with user tracking
     const result = await query(
       `
       INSERT INTO patient_profiles (
-        patient_id, email, email_verified, age, weight, phone, gender, race, language,
+        patient_id, user_id, email, email_verified, age, weight, phone, gender, race, language,
         blood_group, genotype, hearing_impaired, vision_impaired, primary_condition,
         diagnosed, allergies, medications, additional_info, ecog, disease_stage,
         biomarkers, prior_therapies, comorbidity_cardiac, comorbidity_renal,
         comorbidity_hepatic, comorbidity_autoimmune, infection_hiv, infection_hbv,
         infection_hcv, created_at, updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, NOW(), NOW())
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, NOW(), NOW())
       ON CONFLICT (patient_id) DO UPDATE SET
-        email = $2,
-        email_verified = $3,
-        age = $4,
-        weight = $5,
-        phone = $6,
-        gender = $7,
-        race = $8,
-        language = $9,
-        blood_group = $10,
-        genotype = $11,
-        hearing_impaired = $12,
-        vision_impaired = $13,
-        primary_condition = $14,
-        diagnosed = $15,
-        allergies = $16,
-        medications = $17,
-        additional_info = $18,
-        ecog = $19,
-        disease_stage = $20,
-        biomarkers = $21,
-        prior_therapies = $22,
-        comorbidity_cardiac = $23,
-        comorbidity_renal = $24,
-        comorbidity_hepatic = $25,
-        comorbidity_autoimmune = $26,
-        infection_hiv = $27,
-        infection_hbv = $28,
-        infection_hcv = $29,
+        user_id = $2,
+        email = $3,
+        email_verified = $4,
+        age = $5,
+        weight = $6,
+        phone = $7,
+        gender = $8,
+        race = $9,
+        language = $10,
+        blood_group = $11,
+        genotype = $12,
+        hearing_impaired = $13,
+        vision_impaired = $14,
+        primary_condition = $15,
+        diagnosed = $16,
+        allergies = $17,
+        medications = $18,
+        additional_info = $19,
+        ecog = $20,
+        disease_stage = $21,
+        biomarkers = $22,
+        prior_therapies = $23,
+        comorbidity_cardiac = $24,
+        comorbidity_renal = $25,
+        comorbidity_hepatic = $26,
+        comorbidity_autoimmune = $27,
+        infection_hiv = $28,
+        infection_hbv = $29,
+        infection_hcv = $30,
         updated_at = NOW()
-      RETURNING id, patient_id, email;
+      RETURNING id, patient_id, user_id, email;
       `,
       [
-        patientId, email, emailVerified || false, age, weight, phone, gender, race, language,
+        patientId, authenticatedUser.userId, email, emailVerified || false, age, weight, phone, gender, race, language,
         bloodGroup, genotype, hearingImpaired || false, visionImpaired || false, primaryCondition,
         diagnosed, allergies ? JSON.stringify(allergies) : null, medications ? JSON.stringify(medications) : null,
         finalAdditionalInfo, ecog, diseaseStage, biomarkers,
@@ -160,14 +161,28 @@ export const handler: Handler = async (event) => {
 
     console.log("✅ Patient profile saved to PostgreSQL:", {
       patientId,
+      userId: authenticatedUser.userId,
       email,
       rowId: result.rows[0]?.id
     });
+
+    // Log audit event
+    await logAuditEvent(
+      authenticatedUser.userId,
+      'PROFILE_UPDATED',
+      'patient_profile',
+      String(result.rows[0]?.id),
+      patientId,
+      { fields_updated: Object.keys(payload).length },
+      event.headers?.['x-forwarded-for'] || event.headers?.['x-client-ip'],
+      event.headers?.['user-agent']
+    );
 
     return cors(200, {
       ok: true,
       message: "Profile saved successfully",
       patientId: result.rows[0]?.patient_id,
+      userId: result.rows[0]?.user_id,
       email: result.rows[0]?.email
     });
   } catch (e: any) {
