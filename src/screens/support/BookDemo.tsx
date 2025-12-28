@@ -3,8 +3,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { Calendar, Clock, Send, Building2, User, Mail, Phone } from "lucide-react";
 import SiteHeader from "../../components/SiteHeader";
 
-const WEBHOOK = import.meta.env.VITE_BOOKING_WEBHOOK_URL as string | undefined;
-
 export default function BookDemo() {
   const navigate = useNavigate();
   const defaultTz = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC", []);
@@ -50,81 +48,36 @@ export default function BookDemo() {
     return null;
   }
 
-  function buildDetails() {
-    const when = date && time ? new Date(`${date}T${time}`) : null;
-    const whenStr = when ? `${when.toDateString()} ${time} (${tz})` : "";
-    const lines = [
-      `Name: ${name}`,
-      `Email: ${email}`,
-      phone ? `Phone: ${phone}` : null,
-      affiliation ? `Affiliation: ${affiliation}` : null,
-      `When: ${whenStr}`,
-      comments ? "\nComments:" : null,
-      comments || null,
-    ].filter(Boolean);
-    return lines.join("\n");
-  }
-
-  async function sendViaWebhook(details: string) {
-    const payloadObj = {
-      subject: "DEMO BOOKING",
-      to: "chandler@trialcliniq.com",
-      details,
+  async function sendViaResend() {
+    const payload = {
       name,
       email,
-      phone,
-      affiliation,
-      comments,
+      phone: phone || undefined,
+      affiliation: affiliation || undefined,
+      comments: comments || undefined,
       date,
       time,
       timezone: tz,
     };
 
-    // First try a same-origin serverless proxy (recommended for CORS-free delivery).
     try {
       const res = await fetch("/.netlify/functions/book-demo", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payloadObj),
+        body: JSON.stringify(payload),
       });
-      if (res.ok) return true;
-      // if 404, fall through to direct webhook attempt (useful in local dev)
-    } catch (err) {
-      // ignore and try direct webhook below
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData?.error || `Request failed with status ${res.status}`);
+      }
+
+      const result = await res.json();
+      return result.ok === true;
+    } catch (err: any) {
+      console.error("Resend submission error:", err);
+      throw new Error(err?.message || "Failed to submit booking request");
     }
-
-    // If no serverless proxy available (local dev), fallback to direct webhook using the client-side env var.
-    if (!WEBHOOK) return false;
-    const payload = JSON.stringify(payloadObj);
-
-    // Try direct normal fetch first (may fail due to CORS)
-    try {
-      const res2 = await fetch(WEBHOOK, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: payload,
-      });
-      if (res2.type === "opaqueredirect" || (res2 as any).type === "opaque" || res2.type === "opaque") return true;
-      if (res2.ok) return true;
-    } catch (err) {
-      // network or CORS error
-    }
-
-    // Try no-cors opaque request as a last resort
-    try {
-      await fetch(WEBHOOK, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: payload });
-      return true;
-    } catch (err) {
-      return false;
-    }
-  }
-
-  function openMailClient(details: string) {
-    const to = encodeURIComponent("chandler@trialcliniq.com");
-    const subject = encodeURIComponent("DEMO BOOKING");
-    const body = encodeURIComponent(details);
-    const mailto = `mailto:${to}?subject=${subject}&body=${body}`;
-    window.location.href = mailto;
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -136,18 +89,21 @@ export default function BookDemo() {
       return;
     }
     setSubmitting(true);
-    const details = buildDetails();
 
-    const webhookSent = await sendViaWebhook(details);
-    if (webhookSent) {
-      setSuccess(true);
+    try {
+      const sent = await sendViaResend();
+      if (sent) {
+        setSuccess(true);
+        setTimeout(() => navigate("/", { replace: true }), 2000);
+        return;
+      }
+      setError("Failed to submit booking request. Please try again.");
+    } catch (err: any) {
+      setError(err?.message || "An error occurred while submitting your booking.");
+      console.error("Submission error:", err);
+    } finally {
       setSubmitting(false);
-      setTimeout(() => navigate("/", { replace: true }), 1400);
-      return;
     }
-
-    setError("We couldn't submit via Zapier. Please email chandler@trialcliniq.com with your booking details.");
-    setSubmitting(false);
   }
 
   return (
