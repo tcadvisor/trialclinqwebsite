@@ -277,7 +277,21 @@ function Documents({ onCountChange }: { onCountChange?: (count: number) => void 
           const parsed = JSON.parse(raw) as any;
           const prev = parsed.additionalInfo || "";
           parsed.additionalInfo = (prev ? prev + "\n\n" : "") + appendMarkdown;
+
+          // Save to localStorage for offline support
           localStorage.setItem(PROFILE_KEY, JSON.stringify(parsed));
+
+          // Save to persistent storage (Azure PostgreSQL)
+          try {
+            await savePatientProfile({
+              ...parsed,
+              additionalInformationAppendMarkdown: appendMarkdown,
+            }, token);
+          } catch (storageError) {
+            console.warn("Warning: Could not save to persistent storage:", storageError);
+            // Continue anyway - localStorage is still updated
+          }
+
           try { window.dispatchEvent(new CustomEvent("tc_profile_updated", { detail: { source: "DocumentsUploader" } })); } catch {}
         }
       } catch {}
