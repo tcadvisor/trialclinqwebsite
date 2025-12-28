@@ -529,6 +529,8 @@ export default function HealthProfile(): JSX.Element {
     try { return !localStorage.getItem(PROFILE_KEY); } catch { return true; }
   });
 
+  const [phoneError, setPhoneError] = useState<string | null>(null);
+
   const [metadata, setMetadata] = useState<HealthProfileMetadata>(() => {
     try {
       const raw = localStorage.getItem(PROFILE_METADATA_KEY);
