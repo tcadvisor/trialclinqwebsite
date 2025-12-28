@@ -8,6 +8,8 @@ export default function EligibleTrials(): JSX.Element {
   const [base, setBase] = React.useState<LiteTrial[]>([]);
   const [whyOpen, setWhyOpen] = React.useState(false);
   const [whyContent, setWhyContent] = React.useState<string>("");
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
   const location = useLocation();
   const offset = React.useMemo(() => {
     const params = new URLSearchParams(location.search);
@@ -17,8 +19,16 @@ export default function EligibleTrials(): JSX.Element {
   React.useEffect(() => {
     let cancelled = false;
     const update = async () => {
-      const list = await getRealMatchedTrialsForCurrentUser(100);
-      if (!cancelled) setBase(list);
+      try {
+        setIsLoading(true);
+        setError(null);
+        const list = await getRealMatchedTrialsForCurrentUser(100);
+        if (!cancelled) setBase(list);
+      } catch (err) {
+        if (!cancelled) setError(err instanceof Error ? err.message : "Failed to load matches");
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
     };
     update();
     const handler = () => update();
@@ -84,6 +94,18 @@ export default function EligibleTrials(): JSX.Element {
             />
           </div>
         </div>
+
+        {isLoading && (
+          <div className="mb-4 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+            Refreshing matches…
+          </div>
+        )}
+
+        {error && (
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {error}
+          </div>
+        )}
 
         {noResultsWithinRadius && base.length === 0 && (
           <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4">

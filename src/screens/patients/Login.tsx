@@ -11,6 +11,7 @@ export default function Login(): JSX.Element {
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const authMessage = (location.state as any)?.authMessage as string | undefined;
 
   React.useEffect(() => {
     if (isAuthenticated) {
@@ -26,21 +27,19 @@ export default function Login(): JSX.Element {
     setIsLoading(true);
 
     try {
+      // Clear any old signup data that could block email checks
+      localStorage.removeItem("pending_signup_v1");
       localStorage.setItem("pending_role_v1", "patient");
 
-      // Sign in with Azure Entra ID
+      // Sign in with Azure Entra ID (redirect flow handled in AuthCallback)
       const authUser = await signInUser({
         email: email.trim(),
         password: "",
       });
 
       if (authUser) {
-        // Update auth context
-        signIn({
-          ...authUser,
-          role: "patient",
-        });
-
+        // Silent return path (already cached)
+        signIn({ ...authUser, role: "patient" });
         const from = (location.state as any)?.from?.pathname || "/patients/dashboard";
         navigate(from, { replace: true });
       }
@@ -56,6 +55,11 @@ export default function Login(): JSX.Element {
       <HomeHeader />
       <main className="max-w-md mx-auto px-4 py-10">
         <h1 className="text-3xl font-semibold mb-6">Participant Login</h1>
+        {authMessage && (
+          <div className="mb-4 rounded border border-amber-300 bg-amber-50 text-amber-800 px-3 py-2 text-sm">
+            {authMessage}
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
             className="w-full border rounded px-3 py-2"

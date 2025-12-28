@@ -4,6 +4,11 @@ import { uploadFileToBlob } from "./azure-storage";
 import { query, getOrCreateUser, logAuditEvent } from "./db";
 import { getUserFromAuthHeader, canAccessPatient } from "./auth-utils";
 
+const MAX_FILE_BYTES = 20 * 1024 * 1024; // 20MB per file
+const MAX_FILES_PER_REQUEST = 5;
+const ALLOWED_MIMES = new Set(["application/pdf", "image/png", "image/jpeg"]);
+const PATIENT_ID_REGEX = /^[A-Za-z0-9._-]+$/;
+
 function cors(statusCode: number, body: any) {
   return {
     statusCode,
@@ -35,11 +40,18 @@ export const handler: Handler = async (event) => {
     try {
       const bb = Busboy({
         headers: event.headers as any,
+        limits: {
+          fileSize: MAX_FILE_BYTES,
+          files: MAX_FILES_PER_REQUEST,
+        },
       });
 
       let patientId = "";
       const uploadedFiles: any[] = [];
-      const fileBuffers: { fieldname: string; filename: string; buffer: Buffer; mimetype: string }[] = [];
+      const fileBuffers: { fieldname: string; filename: string; buffer: Buffer; mimetype: string; size: number }[] = [];
+      const skippedInvalidType: string[] = [];
+      const skippedOversized: string[] = [];
+      let filesLimitHit = false;
 
       bb.on("field", (fieldname: string, val: string) => {
         if (fieldname === "patientId") {
@@ -48,22 +60,49 @@ export const handler: Handler = async (event) => {
       });
 
       bb.on("file", (fieldname: string, file: any, info: any) => {
-        const { filename, encoding, mimeType } = info;
+        const { filename, mimeType } = info;
         const chunks: Buffer[] = [];
+        let totalBytes = 0;
+        let exceededSize = false;
+
+        if (!ALLOWED_MIMES.has(mimeType)) {
+          skippedInvalidType.push(filename);
+          file.resume();
+          return;
+        }
 
         file.on("data", (data: Buffer) => {
-          chunks.push(data);
+          totalBytes += data.length;
+          if (totalBytes <= MAX_FILE_BYTES) {
+            chunks.push(data);
+          } else {
+            exceededSize = true;
+          }
+        });
+
+        file.on("limit", () => {
+          exceededSize = true;
         });
 
         file.on("end", () => {
+          if (exceededSize) {
+            skippedOversized.push(filename);
+            return;
+          }
+
           const buffer = Buffer.concat(chunks);
           fileBuffers.push({
             fieldname,
             filename,
             buffer,
             mimetype: mimeType,
+            size: buffer.length,
           });
         });
+      });
+
+      bb.on("filesLimit", () => {
+        filesLimitHit = true;
       });
 
       bb.on("close", async () => {
@@ -72,8 +111,17 @@ export const handler: Handler = async (event) => {
             return resolve(cors(400, { error: "Missing patientId" }));
           }
 
+          if (!PATIENT_ID_REGEX.test(patientId)) {
+            return resolve(cors(400, { error: "Invalid patientId format" }));
+          }
+
           if (fileBuffers.length === 0) {
-            return resolve(cors(400, { error: "No files provided" }));
+            const warnings: Record<string, any> = {};
+            if (filesLimitHit) warnings.maxFilesExceeded = { limit: MAX_FILES_PER_REQUEST };
+            if (skippedInvalidType.length) warnings.unsupportedFiles = skippedInvalidType;
+            if (skippedOversized.length) warnings.oversizedFiles = skippedOversized;
+
+            return resolve(cors(400, { error: "No files provided", warnings: Object.keys(warnings).length ? warnings : undefined }));
           }
 
           // Authenticate user
@@ -109,15 +157,15 @@ export const handler: Handler = async (event) => {
           }
 
           // Upload each file to Azure Blob Storage
+          const warnings: Record<string, any> = {};
+          if (filesLimitHit) warnings.maxFilesExceeded = { limit: MAX_FILES_PER_REQUEST };
+          if (skippedInvalidType.length) warnings.unsupportedFiles = skippedInvalidType;
+          if (skippedOversized.length) warnings.oversizedFiles = skippedOversized;
+          const warningsPayload = Object.keys(warnings).length ? warnings : undefined;
+
           for (const fileData of fileBuffers) {
             try {
-              // Validate file type
-              const allowedMimes = new Set(["application/pdf", "image/png", "image/jpeg"]);
-              if (!allowedMimes.has(fileData.mimetype)) {
-                continue; // Skip unsupported file types
-              }
-
-              const { blobName, blobUrl } = await uploadFileToBlob(
+              const { blobName, blobUrl, safeFileName } = await uploadFileToBlob(
                 patientId,
                 fileData.filename,
                 fileData.buffer,
@@ -128,23 +176,23 @@ export const handler: Handler = async (event) => {
               await query(
                 `
                 INSERT INTO patient_documents (
-                  patient_id, user_id, file_name, file_type, file_size, blob_url, blob_container, uploaded_by_user_id, created_at
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW());
+                  patient_id, user_id, file_name, file_type, file_size, blob_url, blob_path, blob_container, uploaded_by_user_id, created_at
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW());
                 `,
-                [patientId, authenticatedUser.userId, fileData.filename, fileData.mimetype, fileData.buffer.length, blobUrl, "medical-documents", authenticatedUser.userId]
+                [patientId, authenticatedUser.userId, safeFileName, fileData.mimetype, fileData.size, blobUrl, blobName, "medical-documents", authenticatedUser.userId]
               );
 
               uploadedFiles.push({
-                filename: fileData.filename,
-                size: fileData.buffer.length,
+                filename: safeFileName,
+                size: fileData.size,
                 url: blobUrl,
                 blobName,
               });
 
               console.log("✅ File uploaded successfully:", {
                 patientId,
-                filename: fileData.filename,
-                size: fileData.buffer.length,
+                filename: safeFileName,
+                size: fileData.size,
               });
             } catch (error: any) {
               console.error("❌ File upload failed:", error.message);
@@ -152,7 +200,7 @@ export const handler: Handler = async (event) => {
           }
 
           if (uploadedFiles.length === 0) {
-            return resolve(cors(400, { error: "No files were successfully uploaded" }));
+            return resolve(cors(400, { error: "No files were successfully uploaded", warnings: warningsPayload }));
           }
 
           // Log audit event for successful upload
@@ -162,7 +210,11 @@ export const handler: Handler = async (event) => {
             'patient_document',
             patientId,
             patientId,
-            { file_count: uploadedFiles.length, total_size: uploadedFiles.reduce((sum: number, f: any) => sum + f.size, 0) },
+            { 
+              file_count: uploadedFiles.length, 
+              total_size: uploadedFiles.reduce((sum: number, f: any) => sum + f.size, 0),
+              warnings: warningsPayload
+            },
             event.headers?.['x-forwarded-for'] || event.headers?.['x-client-ip'],
             event.headers?.['user-agent']
           );
@@ -171,6 +223,7 @@ export const handler: Handler = async (event) => {
             ok: true,
             message: "Files uploaded successfully",
             files: uploadedFiles,
+            warnings: warningsPayload,
             uploadedBy: authenticatedUser.userId,
           }));
         } catch (error: any) {

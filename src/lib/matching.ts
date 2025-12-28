@@ -486,6 +486,13 @@ function isGenderCompatible(userGender: string | null | undefined, s: CtgovStudy
 }
 
 export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<LiteTrial[]> {
+  // Cache per session to avoid re-fetching on every view; clear by updating profile or eligibility
+  const cacheKey = "__tc_cached_matches_v1";
+  const cached = (globalThis as any)[cacheKey] as { data: LiteTrial[]; ts: number } | undefined;
+  if (cached?.data?.length) {
+    return cached.data.slice(0, limit);
+  }
+
   const profile = readCurrentHealthProfile();
   const qPrimary = (profile.primaryCondition || '').trim();
   const qAltTokens = tokenize(profile.additionalInfo || '');
@@ -725,8 +732,10 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
   try {
     const { scoreTopKWithAI } = await import('./aiScoring');
     const rescored = await scoreTopKWithAI(gated, 15, profile);
-    return rescored;
+    (globalThis as any)[cacheKey] = { data: rescored, ts: Date.now() };
+    return rescored.slice(0, limit);
   } catch {
-    return gated;
+    (globalThis as any)[cacheKey] = { data: gated, ts: Date.now() };
+    return gated.slice(0, limit);
   }
 }

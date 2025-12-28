@@ -109,6 +109,7 @@ export async function initializeDatabase() {
         file_type VARCHAR(50),
         file_size INTEGER,
         blob_url VARCHAR(2048),
+        blob_path VARCHAR(1024),
         blob_container VARCHAR(100),
         uploaded_by_user_id VARCHAR(255),
         uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -121,7 +122,14 @@ export async function initializeDatabase() {
       CREATE INDEX IF NOT EXISTS idx_patient_documents_patient_id ON patient_documents(patient_id);
       CREATE INDEX IF NOT EXISTS idx_patient_documents_user_id ON patient_documents(user_id);
       CREATE INDEX IF NOT EXISTS idx_patient_documents_uploaded_by ON patient_documents(uploaded_by_user_id);
+      CREATE INDEX IF NOT EXISTS idx_patient_documents_blob_path ON patient_documents(blob_path);
       CREATE INDEX IF NOT EXISTS idx_patient_documents_uploaded_at ON patient_documents(uploaded_at);
+    `);
+
+    // Ensure new columns exist for existing deployments
+    await client.query(`
+      ALTER TABLE patient_documents ADD COLUMN IF NOT EXISTS blob_path VARCHAR(1024);
+      CREATE INDEX IF NOT EXISTS idx_patient_documents_blob_path ON patient_documents(blob_path);
     `);
 
     // Create audit_log table for tracking all operations
