@@ -3,8 +3,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { Calendar, Clock, Send, Building2, User, Mail, Phone } from "lucide-react";
 import SiteHeader from "../../components/SiteHeader";
 
-const WEBHOOK = import.meta.env.VITE_BOOKING_WEBHOOK_URL as string | undefined;
-
 export default function BookDemo() {
   const navigate = useNavigate();
   const defaultTz = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC", []);
