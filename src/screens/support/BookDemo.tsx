@@ -161,8 +161,19 @@ export default function BookDemo() {
                   <span className="block mb-1">Phone (optional)</span>
                   <div className="relative">
                     <Phone className="h-4 w-4 absolute left-3 top-3 text-gray-400" />
-                    <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full rounded-lg border border-gray-300 pl-9 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="+1 555 000 1111" aria-label="Phone" />
+                    <input
+                      type="tel"
+                      value={phone}
+                      onChange={handlePhoneChange}
+                      onBlur={handlePhoneBlur}
+                      className={`w-full rounded-lg border border-gray-300 pl-9 pr-3 py-2 focus:outline-none focus:ring-2 ${phoneError ? "border-red-500 focus:ring-red-500" : "focus:ring-blue-500"}`}
+                      placeholder="(555) 000-0000"
+                      aria-label="Phone"
+                    />
                   </div>
+                  {phoneError && (
+                    <p className="mt-1 text-sm text-red-600">{phoneError}</p>
+                  )}
                 </label>
                 <label className="text-sm text-gray-700">
                   <span className="block mb-1">Affiliation</span>
