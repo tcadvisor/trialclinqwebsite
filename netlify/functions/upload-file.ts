@@ -155,10 +155,23 @@ export const handler: Handler = async (event) => {
             return resolve(cors(400, { error: "No files were successfully uploaded" }));
           }
 
+          // Log audit event for successful upload
+          await logAuditEvent(
+            authenticatedUser.userId,
+            'FILES_UPLOADED',
+            'patient_document',
+            patientId,
+            patientId,
+            { file_count: uploadedFiles.length, total_size: uploadedFiles.reduce((sum: number, f: any) => sum + f.size, 0) },
+            event.headers?.['x-forwarded-for'] || event.headers?.['x-client-ip'],
+            event.headers?.['user-agent']
+          );
+
           return resolve(cors(200, {
             ok: true,
             message: "Files uploaded successfully",
             files: uploadedFiles,
+            uploadedBy: authenticatedUser.userId,
           }));
         } catch (error: any) {
           console.error("❌ Upload error:", error);
