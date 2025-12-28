@@ -359,8 +359,7 @@ Patient coordinators are the backbone of successful clinical trials. They manage
 - [ ] Schedule screening visit if eligible
 - [ ] Provide site contact information
 
-### Pre-Screen Documentation Template
-
+### Pre-Screen Documentation
 
 Patient Name: _________________
 DOB: _____/____/_____
@@ -396,7 +395,6 @@ NEXT STEPS
 
 NOTES:
 _________________________________
-```
 
 ## Phase 2: Screening Visit
 
@@ -453,9 +451,7 @@ _________________________________
 - [ ] Document any special instructions
 - [ ] Thank patient for participation
 
-### Informed Consent Communication Template
-
-**Key points to cover verbally:**
+### Informed Consent Communication Key Points
 
 "I want to walk through this consent form with you carefully. This explains the study in detail—what you'll do, what we'll do, and any potential risks. Please let me know if any part is unclear.
 
