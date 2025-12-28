@@ -48,21 +48,6 @@ export default function BookDemo() {
     return null;
   }
 
-  function buildDetails() {
-    const when = date && time ? new Date(`${date}T${time}`) : null;
-    const whenStr = when ? `${when.toDateString()} ${time} (${tz})` : "";
-    const lines = [
-      `Name: ${name}`,
-      `Email: ${email}`,
-      phone ? `Phone: ${phone}` : null,
-      affiliation ? `Affiliation: ${affiliation}` : null,
-      `When: ${whenStr}`,
-      comments ? "\nComments:" : null,
-      comments || null,
-    ].filter(Boolean);
-    return lines.join("\n");
-  }
-
   async function sendViaResend() {
     const payload = {
       name,
