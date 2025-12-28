@@ -69,7 +69,17 @@ export default function InvestigatorInformation(): JSX.Element {
 
             <div>
               <label className="block text-sm font-medium mb-1">Investigator Phone<span className="text-gray-500">*</span></label>
-              <input placeholder="Enter the primary phone number for the investigator" className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <input
+                type="tel"
+                value={phone}
+                onChange={handlePhoneChange}
+                onBlur={handlePhoneBlur}
+                placeholder="(555) 000-0000"
+                className={`w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 ${phoneError ? "border-red-500 focus:ring-red-500" : "focus:ring-blue-500"}`}
+              />
+              {phoneError && (
+                <p className="mt-1 text-sm text-red-600">{phoneError}</p>
+              )}
               <label className="mt-2 flex items-center gap-2 text-sm">
                 <input type="radio" name="useMyPhone" className="h-4 w-4" />
                 Use my phone number
