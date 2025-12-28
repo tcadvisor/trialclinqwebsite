@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Calendar, Clock, Send, Building2, User, Mail, Phone } from "lucide-react";
 import SiteHeader from "../../components/SiteHeader";
+import { formatPhoneNumber, getPhoneValidationError, CountryCode } from "../../lib/phoneValidation";
 
 export default function BookDemo() {
   const navigate = useNavigate();
@@ -10,6 +11,7 @@ export default function BookDemo() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [phoneError, setPhoneError] = useState<string | null>(null);
   const [affiliation, setAffiliation] = useState("");
   const [comments, setComments] = useState("");
   const [date, setDate] = useState("");
