@@ -9,18 +9,25 @@ Your healthcare trial app is now configured to use:
 
 ## Environment Variables
 
-All environment variables have been automatically configured with your Azure credentials:
+⚠️ **IMPORTANT: Secrets are stored securely via DevServerControl and are NOT checked into git**
+
+Your environment variables have been automatically configured:
 
 ```
-DATABASE_URL=postgresql://chandler@trialcliniq.com:woofchow1!@trialcliniq-dev.postgres.database.azure.com:5432/postgres?sslmode=require
-PGHOST=trialcliniq-dev.postgres.database.azure.com
-PGUSER=chandler@trialcliniq.com
-PGPASSWORD=woofchow1!
+DATABASE_URL=postgresql://<username>:<password>@<server>.postgres.database.azure.com:5432/postgres?sslmode=require
+PGHOST=<your-postgres-server>.postgres.database.azure.com
+PGUSER=<your-postgres-username>
+PGPASSWORD=<your-postgres-password>
 PGPORT=5432
 PGDATABASE=postgres
-AZURE_STORAGE_ACCOUNT_NAME=trialcliniqdev
-AZURE_STORAGE_ACCOUNT_KEY=Cv8W2+UkBvzS1NrrySJ0gfrPe1GCW6UtfOM2RVfB9+1CtcSYWQ5jHNZ4AMGvf6Mwl7wrPQvYVMjc+ASt7DkFKw==
+AZURE_STORAGE_ACCOUNT_NAME=<your-storage-account-name>
+AZURE_STORAGE_ACCOUNT_KEY=<your-storage-account-key>
 ```
+
+**To view/manage your actual credentials:**
+1. Use DevServerControl in the platform UI
+2. Check the original Azure Portal for your credentials
+3. **Never commit secrets to git** - they are already configured in the development environment
 
 ## Database Schema
 
