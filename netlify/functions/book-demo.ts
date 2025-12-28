@@ -110,27 +110,36 @@ const handler: Handler = async (event) => {
   }
 
   try {
-    const data: FormData = event.body ? JSON.parse(event.body) : {};
+    const data: BookDemoData = event.body ? JSON.parse(event.body) : {};
 
-    if (!data.type) {
+    // Validate required fields for demo booking
+    if (!data.email || !data.name) {
       return {
         statusCode: 400,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ error: "Missing form type" }),
+        body: JSON.stringify({ error: "Missing required fields: name and email" }),
       };
     }
 
     const { subject, html } = generateEmailContent(data);
+
+    console.log("📧 Sending booking email:", {
+      to: RECIPIENT_EMAIL,
+      subject,
+      from: data.name,
+      email: data.email
+    });
 
     const result = await resend.emails.send({
       from: SENDER_EMAIL,
       to: RECIPIENT_EMAIL,
       subject,
       html,
+      reply_to: data.email,
     });
 
     if (result.error) {
-      console.error("Resend error:", result.error);
+      console.error("❌ Resend error:", result.error);
       return {
         statusCode: 502,
         headers: { "Content-Type": "application/json" },
@@ -138,16 +147,22 @@ const handler: Handler = async (event) => {
       };
     }
 
+    console.log("✅ Email sent successfully:", result.data?.id);
+
     return {
       statusCode: 200,
       headers: {
         "Content-Type": "application/json",
         "Access-Control-Allow-Origin": "*",
       },
-      body: JSON.stringify({ ok: true, messageId: result.data?.id }),
+      body: JSON.stringify({
+        ok: true,
+        messageId: result.data?.id,
+        message: "Booking request sent. You'll receive a confirmation email shortly."
+      }),
     };
   } catch (err: any) {
-    console.error("Book demo handler error:", err);
+    console.error("❌ Book demo handler error:", err);
     return {
       statusCode: 500,
       headers: { "Content-Type": "application/json" },
