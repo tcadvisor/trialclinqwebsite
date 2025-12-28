@@ -71,12 +71,16 @@ export async function signUpUser(input: SignUpInput): Promise<{ userId: string; 
       throw new Error('Azure Entra ID is not properly configured. Please check your environment variables: VITE_AZURE_CLIENT_ID and VITE_AZURE_TENANT_ID');
     }
 
-    // For new user registration, redirect to sign-up flow
-    await msal.loginRedirect({
+    // For new user registration, use popup flow (works in iframes)
+    const result = await msal.loginPopup({
       ...loginRequest,
       prompt: 'select_account',
       loginHint: input.email,
     });
+
+    if (result?.account) {
+      return { userId: result.account.localAccountId || result.account.homeAccountId || '', requiresConfirmation: false };
+    }
 
     return { userId: '', requiresConfirmation: false };
   } catch (error) {
@@ -135,15 +139,13 @@ export async function signInUser(input: SignInInput): Promise<AuthUser | null> {
         });
       } catch (error) {
         if (error instanceof InteractionRequiredAuthError) {
-          await msal.loginRedirect(loginRequest);
-          return null;
+          response = await msal.loginPopup(loginRequest);
         } else {
           throw error;
         }
       }
     } else {
-      await msal.loginRedirect({ ...loginRequest, loginHint: input.email });
-      return null;
+      response = await msal.loginPopup({ ...loginRequest, loginHint: input.email });
     }
 
     if (!response.account) {

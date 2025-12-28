@@ -6,15 +6,40 @@ const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
 const RECIPIENT_EMAIL = "chandler@trialcliniq.com";
 const SENDER_EMAIL = "onboarding@resend.dev";
 
-interface FormData {
-  type: string;
+interface BookDemoData {
+  type?: string;
   name?: string;
   email?: string;
   organization?: string;
   condition?: string;
+  phone?: string;
+  affiliation?: string;
+  comments?: string;
+  date?: string;
+  time?: string;
+  timezone?: string;
 }
 
-function generateEmailContent(data: FormData): { subject: string; html: string } {
+function generateEmailContent(data: BookDemoData): { subject: string; html: string } {
+  // Handle demo booking requests
+  if (!data.type || data.type === "demo_booking" || data.date) {
+    return {
+      subject: "New Demo Booking Request - TrialClinIQ",
+      html: `
+        <h2>New Demo Booking Request</h2>
+        <p><strong>Name:</strong> ${data.name || 'N/A'}</p>
+        <p><strong>Email:</strong> ${data.email || 'N/A'}</p>
+        <p><strong>Phone:</strong> ${data.phone || 'Not provided'}</p>
+        <p><strong>Affiliation:</strong> ${data.affiliation || 'Not provided'}</p>
+        <p><strong>Requested Date & Time:</strong> ${data.date ? `${data.date} at ${data.time} ${data.timezone}` : 'Not specified'}</p>
+        ${data.comments ? `<p><strong>Comments:</strong></p><p>${data.comments.replace(/\n/g, '<br>')}</p>` : ''}
+        <p style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd;">
+          <strong>Next Steps:</strong> Please review this booking request and contact the applicant at ${data.email} to confirm the appointment.
+        </p>
+      `,
+    };
+  }
+
   switch (data.type) {
     case "sponsor_demo":
       return {
@@ -85,27 +110,36 @@ const handler: Handler = async (event) => {
   }
 
   try {
-    const data: FormData = event.body ? JSON.parse(event.body) : {};
+    const data: BookDemoData = event.body ? JSON.parse(event.body) : {};
 
-    if (!data.type) {
+    // Validate required fields for demo booking
+    if (!data.email || !data.name) {
       return {
         statusCode: 400,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ error: "Missing form type" }),
+        body: JSON.stringify({ error: "Missing required fields: name and email" }),
       };
     }
 
     const { subject, html } = generateEmailContent(data);
+
+    console.log("📧 Sending booking email:", {
+      to: RECIPIENT_EMAIL,
+      subject,
+      from: data.name,
+      email: data.email
+    });
 
     const result = await resend.emails.send({
       from: SENDER_EMAIL,
       to: RECIPIENT_EMAIL,
       subject,
       html,
+      reply_to: data.email,
     });
 
     if (result.error) {
-      console.error("Resend error:", result.error);
+      console.error("❌ Resend error:", result.error);
       return {
         statusCode: 502,
         headers: { "Content-Type": "application/json" },
@@ -113,16 +147,22 @@ const handler: Handler = async (event) => {
       };
     }
 
+    console.log("✅ Email sent successfully:", result.data?.id);
+
     return {
       statusCode: 200,
       headers: {
         "Content-Type": "application/json",
         "Access-Control-Allow-Origin": "*",
       },
-      body: JSON.stringify({ ok: true, messageId: result.data?.id }),
+      body: JSON.stringify({
+        ok: true,
+        messageId: result.data?.id,
+        message: "Booking request sent. You'll receive a confirmation email shortly."
+      }),
     };
   } catch (err: any) {
-    console.error("Book demo handler error:", err);
+    console.error("❌ Book demo handler error:", err);
     return {
       statusCode: 500,
       headers: { "Content-Type": "application/json" },
