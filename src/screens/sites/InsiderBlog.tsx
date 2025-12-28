@@ -1,22 +1,11 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { Calendar, User, Clock } from "lucide-react";
 import HomeHeader from "../../components/HomeHeader";
+import { getAllArticles } from "../../lib/blogArticles";
 
 export default function InsiderBlog(): JSX.Element {
-  const posts = [
-    {
-      title: "7 tactics to accelerate site recruitment",
-      excerpt: "Practical steps sites are using to cut screening times and improve referral quality.",
-    },
-    {
-      title: "Budgeting digital recruitment for 2025",
-      excerpt: "How to forecast paid, owned, and partner channels for enrollment milestones.",
-    },
-    {
-      title: "Coordinators’ toolkit: from prescreen to consent",
-      excerpt: "Templates and checklists for consistent patient communications and privacy compliance.",
-    },
-  ];
+  const articles = getAllArticles();
 
   return (
     <div className="min-h-screen bg-white text-gray-900">
@@ -25,13 +14,47 @@ export default function InsiderBlog(): JSX.Element {
         <h1 className="text-3xl font-semibold mb-2">Insider Blog</h1>
         <p className="text-gray-600 mb-8">Industry trends, site management tips, and recruitment insights.</p>
         <div className="grid sm:grid-cols-2 gap-6">
-          {posts.map((p) => (
-            <article key={p.title} className="rounded-2xl border p-6 bg-white">
-              <h2 className="text-xl font-semibold mb-2">{p.title}</h2>
-              <p className="text-gray-600 text-sm">{p.excerpt}</p>
-              <button className="mt-4 text-sm text-blue-700 hover:underline">Read article</button>
-            </article>
-          ))}
+          {articles.map((article) => {
+            const formattedDate = new Date(article.publishedDate).toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+            });
+
+            return (
+              <article key={article.id} className="rounded-2xl border p-6 bg-white hover:shadow-lg transition-shadow">
+                <div className="mb-3 flex items-center justify-between">
+                  <span className="inline-block px-2 py-1 bg-blue-50 text-blue-700 text-xs font-medium rounded">
+                    {article.category}
+                  </span>
+                  <span className="text-xs text-gray-500 flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    {article.readTime} min
+                  </span>
+                </div>
+                <h2 className="text-xl font-semibold mb-2">{article.title}</h2>
+                <p className="text-gray-600 text-sm mb-4">{article.excerpt}</p>
+                
+                <div className="flex items-center gap-3 text-xs text-gray-500 mb-4 pb-4 border-t">
+                  <div className="flex items-center gap-1 mt-4">
+                    <User className="w-3 h-3" />
+                    <span>{article.author}</span>
+                  </div>
+                  <div className="flex items-center gap-1 mt-4">
+                    <Calendar className="w-3 h-3" />
+                    <span>{formattedDate}</span>
+                  </div>
+                </div>
+
+                <Link
+                  to={`/sites/blog/${article.id}`}
+                  className="inline-block text-sm text-blue-700 hover:text-blue-800 font-medium hover:underline"
+                >
+                  Read article →
+                </Link>
+              </article>
+            );
+          })}
         </div>
       </main>
     </div>
