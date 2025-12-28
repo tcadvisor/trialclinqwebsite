@@ -873,8 +873,18 @@ export default function HealthProfile(): JSX.Element {
                 <Section title="Personal Details" right={
                   editingPersonal ? (
                     <div className="flex items-center gap-2">
-                      <button onClick={() => setEditingPersonal(false)} className="inline-flex items-center gap-1 text-sm rounded-full border px-3 py-1.5">Cancel</button>
-                      <button onClick={() => setEditingPersonal(false)} className="inline-flex items-center gap-1 text-sm rounded-full bg-gray-900 text-white px-3 py-1.5">Save</button>
+                      <button onClick={() => {setEditingPersonal(false); setPhoneError(null);}} className="inline-flex items-center gap-1 text-sm rounded-full border px-3 py-1.5">Cancel</button>
+                      <button onClick={() => {
+                        if (profile.phone.trim()) {
+                          const err = getPhoneValidationError(profile.phone, "US");
+                          if (err) {
+                            setPhoneError(err);
+                            return;
+                          }
+                        }
+                        setEditingPersonal(false);
+                        setPhoneError(null);
+                      }} className="inline-flex items-center gap-1 text-sm rounded-full bg-gray-900 text-white px-3 py-1.5">Save</button>
                     </div>
                   ) : (
                     <button onClick={() => setEditingPersonal(true)} className="inline-flex items-center gap-1 text-sm rounded-full border px-3 py-1.5"><PencilIcon className="w-4 h-4" /> Edit</button>
