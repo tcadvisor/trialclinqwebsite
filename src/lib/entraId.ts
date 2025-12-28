@@ -139,15 +139,13 @@ export async function signInUser(input: SignInInput): Promise<AuthUser | null> {
         });
       } catch (error) {
         if (error instanceof InteractionRequiredAuthError) {
-          await msal.loginRedirect(loginRequest);
-          return null;
+          response = await msal.loginPopup(loginRequest);
         } else {
           throw error;
         }
       }
     } else {
-      await msal.loginRedirect({ ...loginRequest, loginHint: input.email });
-      return null;
+      response = await msal.loginPopup({ ...loginRequest, loginHint: input.email });
     }
 
     if (!response.account) {
