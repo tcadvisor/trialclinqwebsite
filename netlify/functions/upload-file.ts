@@ -124,14 +124,14 @@ export const handler: Handler = async (event) => {
                 fileData.mimetype
               );
 
-              // Record file metadata in database
+              // Record file metadata in database with user tracking
               await query(
                 `
                 INSERT INTO patient_documents (
-                  patient_id, file_name, file_type, file_size, blob_url, blob_container, created_at
-                ) VALUES ($1, $2, $3, $4, $5, $6, NOW());
+                  patient_id, user_id, file_name, file_type, file_size, blob_url, blob_container, uploaded_by_user_id, created_at
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW());
                 `,
-                [patientId, fileData.filename, fileData.mimetype, fileData.buffer.length, blobUrl, "medical-documents"]
+                [patientId, authenticatedUser.userId, fileData.filename, fileData.mimetype, fileData.buffer.length, blobUrl, "medical-documents", authenticatedUser.userId]
               );
 
               uploadedFiles.push({
