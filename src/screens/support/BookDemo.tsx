@@ -65,66 +65,36 @@ export default function BookDemo() {
     return lines.join("\n");
   }
 
-  async function sendViaWebhook(details: string) {
-    const payloadObj = {
-      subject: "DEMO BOOKING",
-      to: "chandler@trialcliniq.com",
-      details,
+  async function sendViaResend() {
+    const payload = {
       name,
       email,
-      phone,
-      affiliation,
-      comments,
+      phone: phone || undefined,
+      affiliation: affiliation || undefined,
+      comments: comments || undefined,
       date,
       time,
       timezone: tz,
     };
 
-    // First try a same-origin serverless proxy (recommended for CORS-free delivery).
     try {
       const res = await fetch("/.netlify/functions/book-demo", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payloadObj),
+        body: JSON.stringify(payload),
       });
-      if (res.ok) return true;
-      // if 404, fall through to direct webhook attempt (useful in local dev)
-    } catch (err) {
-      // ignore and try direct webhook below
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData?.error || `Request failed with status ${res.status}`);
+      }
+
+      const result = await res.json();
+      return result.ok === true;
+    } catch (err: any) {
+      console.error("Resend submission error:", err);
+      throw new Error(err?.message || "Failed to submit booking request");
     }
-
-    // If no serverless proxy available (local dev), fallback to direct webhook using the client-side env var.
-    if (!WEBHOOK) return false;
-    const payload = JSON.stringify(payloadObj);
-
-    // Try direct normal fetch first (may fail due to CORS)
-    try {
-      const res2 = await fetch(WEBHOOK, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: payload,
-      });
-      if (res2.type === "opaqueredirect" || (res2 as any).type === "opaque" || res2.type === "opaque") return true;
-      if (res2.ok) return true;
-    } catch (err) {
-      // network or CORS error
-    }
-
-    // Try no-cors opaque request as a last resort
-    try {
-      await fetch(WEBHOOK, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: payload });
-      return true;
-    } catch (err) {
-      return false;
-    }
-  }
-
-  function openMailClient(details: string) {
-    const to = encodeURIComponent("chandler@trialcliniq.com");
-    const subject = encodeURIComponent("DEMO BOOKING");
-    const body = encodeURIComponent(details);
-    const mailto = `mailto:${to}?subject=${subject}&body=${body}`;
-    window.location.href = mailto;
   }
 
   async function handleSubmit(e: React.FormEvent) {
