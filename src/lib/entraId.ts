@@ -9,6 +9,17 @@ import { msalConfig, loginRequest, tokenRequest, silentRequest } from './msalCon
 let msalInstance: PublicClientApplication | null = null;
 let initError: string | null = null;
 
+/**
+ * Detect if the app is running in an iframe
+ */
+function isInIframe(): boolean {
+  try {
+    return window.parent !== window;
+  } catch {
+    return false;
+  }
+}
+
 // Initialize MSAL instance with error handling
 export function initMsal(): PublicClientApplication | null {
   if (initError) {
