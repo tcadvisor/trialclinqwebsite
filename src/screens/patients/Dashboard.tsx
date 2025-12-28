@@ -13,20 +13,27 @@ export default function Dashboard(): JSX.Element {
   const [whyOpen, setWhyOpen] = useState(false);
   const [whyContent, setWhyContent] = useState<string>("");
   const [noResultsWithinRadius, setNoResultsWithinRadius] = useState(false);
+  const [isLoadingMatches, setIsLoadingMatches] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     let cancelled = false;
     const update = async () => {
       try {
+        setIsLoadingMatches(true);
+        setError(null);
         const list = await getRealMatchedTrialsForCurrentUser(50);
         if (!cancelled) {
           setItems(list);
           setNoResultsWithinRadius((list as any).__noResultsWithinRadius === true);
         }
-      } catch {
+      } catch (err) {
         if (!cancelled) {
           setItems([]);
           setNoResultsWithinRadius(false);
+          setError(err instanceof Error ? err.message : "Failed to load matches");
         }
+      } finally {
+        if (!cancelled) setIsLoadingMatches(false);
       }
     };
     update();
@@ -166,6 +173,18 @@ export default function Dashboard(): JSX.Element {
               </Link>
             </div>
           </div>
+
+          {isLoadingMatches && (
+            <div className="mt-4 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+              Refreshing matches…
+            </div>
+          )}
+
+          {error && (
+            <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {error}
+            </div>
+          )}
 
           {noResultsWithinRadius && (
             <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4">

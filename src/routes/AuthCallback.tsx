@@ -1,7 +1,8 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
-import { getMsalInstance } from '../lib/entraId';
+import { getMsalInstance, getAccessToken } from '../lib/entraId';
+import { loginRequest } from '../lib/msalConfig';
 
 export default function AuthCallback() {
   const navigate = useNavigate();
@@ -9,10 +10,21 @@ export default function AuthCallback() {
 
   useEffect(() => {
     const handleAuthCallback = async () => {
+      const pendingRole = (localStorage.getItem('pending_role_v1') as 'patient' | 'provider' | null) || 'patient';
+      const pendingSignupRaw = localStorage.getItem('pending_signup_v1');
+      const pendingSignup = pendingSignupRaw ? JSON.parse(pendingSignupRaw) : null;
+      const dashboardPath = pendingRole === 'provider' ? '/providers/dashboard' : '/patients/dashboard';
+      const loginPath = pendingRole === 'provider' ? '/providers/login' : '/patients/login';
+      const retryKey = 'msal_redirect_retry_v1';
+
+      const normalizeEmail = (value?: string) => (value || '').trim().toLowerCase();
+      const pendingEmail = normalizeEmail(pendingSignup?.email);
+
       try {
         const msal = getMsalInstance();
         if (!msal) {
-          navigate('/', { replace: true });
+          localStorage.removeItem('pending_role_v1');
+          navigate(loginPath, { replace: true, state: { authMessage: 'We could not start Microsoft sign-in. Please try again or create an account.' } });
           return;
         }
 
@@ -21,8 +33,28 @@ export default function AuthCallback() {
         const account = result?.account || accounts[0];
 
         if (account) {
-          const storedRole = localStorage.getItem('pending_role_v1') as 'patient' | 'provider' | null;
-          const role = storedRole || 'patient';
+          msal.setActiveAccount(account);
+
+          // Enforce email match to pending signup data
+          const accountEmail = normalizeEmail(account.username);
+          if (pendingEmail && accountEmail && pendingEmail !== accountEmail) {
+            try {
+              msal.setActiveAccount(null);
+              await msal.getTokenCache().clear();
+            } catch (_) {}
+            localStorage.removeItem('pending_role_v1');
+            localStorage.removeItem('pending_signup_v1');
+            sessionStorage.removeItem(retryKey);
+            navigate(loginPath, {
+              replace: true,
+              state: {
+                authMessage: `Please sign in with ${pendingSignup?.email} to finish creating your account.`,
+              },
+            });
+            return;
+          }
+
+          const role = pendingRole;
 
           // Update auth context with user info
           signIn({
@@ -33,15 +65,56 @@ export default function AuthCallback() {
             userId: account.localAccountId || account.homeAccountId || '',
           });
 
-          const dashPath = role === 'provider' ? '/providers/dashboard' : '/patients/dashboard';
-          navigate(dashPath, { replace: true });
+          // Best-effort: sync user record in backend so account exists server-side immediately
+          try {
+            const token = await getAccessToken();
+            if (token) {
+              await fetch("/.netlify/functions/whoami", {
+                method: "GET",
+                headers: { Authorization: `Bearer ${token}` },
+              });
+            }
+          } catch (syncErr) {
+            console.warn("whoami sync failed:", syncErr);
+          }
+
+          localStorage.removeItem('pending_role_v1');
+          localStorage.removeItem('pending_signup_v1');
+          sessionStorage.removeItem(retryKey);
+          navigate(dashboardPath, { replace: true });
         } else {
-          // No account found, redirect to home
-          navigate('/', { replace: true });
+          // Retry once with a forced redirect to capture the account
+          const hasRetried = sessionStorage.getItem(retryKey) === '1';
+          if (!hasRetried) {
+            sessionStorage.setItem(retryKey, '1');
+            await msal.loginRedirect({ ...loginRequest, prompt: 'select_account' });
+            return;
+          }
+
+          // No account found after retry: prompt to sign up
+          localStorage.removeItem('pending_role_v1');
+          localStorage.removeItem('pending_signup_v1');
+          sessionStorage.removeItem(retryKey);
+          navigate(loginPath, {
+            replace: true,
+            state: {
+              authMessage: pendingSignup
+                ? "We couldn't finish creating your TrialCliniq account. Please sign up again or try a different Microsoft login."
+                : "We couldn't find a TrialCliniq account for that Microsoft login. Please sign up or try again.",
+            },
+          });
         }
       } catch (error) {
         console.error('Auth callback error:', error);
-        navigate('/', { replace: true });
+        localStorage.removeItem('pending_role_v1');
+        localStorage.removeItem('pending_signup_v1');
+        sessionStorage.removeItem(retryKey);
+        navigate(loginPath, {
+          replace: true,
+          state: {
+            authMessage: 'Sign-in was not completed. Please try again or create an account.',
+          },
+        });
       }
     };
 

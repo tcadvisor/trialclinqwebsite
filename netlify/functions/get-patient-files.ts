@@ -1,6 +1,9 @@
 import type { Handler } from "@netlify/functions";
-import { listPatientFiles, generateFileAccessUrl } from "./azure-storage";
-import { query } from "./db";
+import { generateFileAccessUrl } from "./azure-storage";
+import { query, getOrCreateUser, logAuditEvent } from "./db";
+import { getUserFromAuthHeader, canAccessPatient } from "./auth-utils";
+
+const PATIENT_ID_REGEX = /^[A-Za-z0-9._-]+$/;
 
 function cors(statusCode: number, body: any) {
   return {
@@ -30,15 +33,45 @@ export const handler: Handler = async (event) => {
   }
 
   try {
-    const patientId = event.queryStringParameters?.patientId;
+    // Authenticate user and ensure database presence
+    const authenticatedUser = await getUserFromAuthHeader(authHeader);
+    await getOrCreateUser(
+      authenticatedUser.userId,
+      authenticatedUser.email,
+      authenticatedUser.oid,
+      authenticatedUser.firstName,
+      authenticatedUser.lastName,
+      authenticatedUser.role
+    );
+
+    const patientId = event.queryStringParameters?.patientId?.trim();
     if (!patientId) {
       return cors(400, { error: "Missing patientId query parameter" });
+    }
+
+    if (!PATIENT_ID_REGEX.test(patientId)) {
+      return cors(400, { error: "Invalid patientId format" });
+    }
+
+    // Patients can only see their own files
+    if (authenticatedUser.role === "patient" && !canAccessPatient(authenticatedUser, patientId)) {
+      await logAuditEvent(
+        authenticatedUser.userId,
+        "UNAUTHORIZED_FILE_LIST",
+        "patient_document",
+        undefined,
+        patientId,
+        { reason: "User attempted to list files for another user" },
+        event.headers?.["x-forwarded-for"] || event.headers?.["x-client-ip"],
+        event.headers?.["user-agent"]
+      );
+      return cors(403, { error: "Unauthorized: You can only view your own files" });
     }
 
     // Get files from database
     const result = await query(
       `
-      SELECT id, file_name, file_size, blob_url, uploaded_at
+      SELECT id, file_name, file_size, blob_url, blob_path, uploaded_at, uploaded_by_user_id
       FROM patient_documents
       WHERE patient_id = $1
       ORDER BY uploaded_at DESC;
@@ -46,12 +79,13 @@ export const handler: Handler = async (event) => {
       [patientId]
     );
 
+    const sasFailures: Array<string | number> = [];
     const files = await Promise.all(
       result.rows.map(async (row: any) => {
         try {
           // Generate temporary access URL with expiry
           const sasUrl = await generateFileAccessUrl(
-            `${patientId}/${row.file_name}`,
+            row.blob_path || row.blob_url || `${patientId}/${row.file_name}`,
             24 // 24 hour expiry
           );
 
@@ -61,8 +95,11 @@ export const handler: Handler = async (event) => {
             size: row.file_size,
             uploadedAt: row.uploaded_at,
             url: sasUrl, // Use SAS URL instead of direct URL
+            blobPath: row.blob_path || undefined,
+            uploadedBy: row.uploaded_by_user_id || undefined,
           };
         } catch (error) {
+          sasFailures.push(row.id || row.file_name);
           // Fallback to direct URL if SAS generation fails
           return {
             id: row.id,
@@ -70,9 +107,22 @@ export const handler: Handler = async (event) => {
             size: row.file_size,
             uploadedAt: row.uploaded_at,
             url: row.blob_url,
+            blobPath: row.blob_path || undefined,
+            uploadedBy: row.uploaded_by_user_id || undefined,
           };
         }
       })
+    );
+
+    await logAuditEvent(
+      authenticatedUser.userId,
+      "FILES_LIST_VIEWED",
+      "patient_document",
+      undefined,
+      patientId,
+      { count: files.length, sas_failures: sasFailures.length || undefined },
+      event.headers?.["x-forwarded-for"] || event.headers?.["x-client-ip"],
+      event.headers?.["user-agent"]
     );
 
     console.log("✅ Patient files retrieved:", {
@@ -84,6 +134,7 @@ export const handler: Handler = async (event) => {
       ok: true,
       patientId,
       files,
+      warnings: sasFailures.length ? { sasGenerationFailedFor: sasFailures } : undefined,
       count: files.length,
     });
   } catch (error: any) {

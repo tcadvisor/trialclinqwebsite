@@ -43,6 +43,7 @@ function readPendingSignup(): PendingSignup | null {
 function clearPendingSignup() {
   try {
     localStorage.removeItem(PENDING_SIGNUP_KEY);
+    localStorage.removeItem(PENDING_ROLE_KEY);
   } catch (_) {}
 }
 
@@ -141,6 +142,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const result = await msal.handleRedirectPromise();
           const account = result?.account;
           if (account) {
+            try {
+              msal.setActiveAccount(account);
+            } catch (_) {}
             const pendingRole = readPendingRole();
             const pending = readPendingSignup();
             const role = pendingRole || pending?.role || "patient";
@@ -148,6 +152,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const accountLastName = account.name?.split(" ").slice(1).join(" ") || "";
             let firstName = accountFirstName;
             let lastName = accountLastName;
+
+            // Block login if signup email doesn't match the Microsoft account used
+            const normalizeEmail = (val?: string) => (val || "").trim().toLowerCase();
+            const pendingEmail = normalizeEmail(pending?.email);
+            const accountEmail = normalizeEmail(account.username);
+            if (pendingEmail && accountEmail && pendingEmail !== accountEmail) {
+              try {
+                msal.setActiveAccount(null);
+                await msal.getTokenCache().clear();
+              } catch (_) {}
+              clearPendingSignup();
+              clearPendingRole();
+              setIsLoading(false);
+              return;
+            }
+
             if (pending) {
               const pendingEmail = (pending.email || "").trim().toLowerCase();
               const accountEmail = (account.username || "").trim().toLowerCase();
@@ -156,8 +176,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 lastName = pending.lastName || lastName;
                 mergeProfileFromEligibility(account.username);
               }
-              clearPendingSignup();
             }
+            clearPendingSignup();
             clearPendingRole();
             clearUserScopedDataIfMismatch(account.username);
             setUser({

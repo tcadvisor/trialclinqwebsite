@@ -71,17 +71,14 @@ export async function signUpUser(input: SignUpInput): Promise<{ userId: string; 
       throw new Error('Azure Entra ID is not properly configured. Please check your environment variables: VITE_AZURE_CLIENT_ID and VITE_AZURE_TENANT_ID');
     }
 
-    // For new user registration, use popup flow (works in iframes)
-    const result = await msal.loginPopup({
+    // Use redirect flow so callback page handles navigation consistently
+    await msal.loginRedirect({
       ...loginRequest,
       prompt: 'select_account',
       loginHint: input.email,
     });
 
-    if (result?.account) {
-      return { userId: result.account.localAccountId || result.account.homeAccountId || '', requiresConfirmation: false };
-    }
-
+    // Control won't reach here because redirect will occur
     return { userId: '', requiresConfirmation: false };
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Unknown error';
@@ -145,12 +142,17 @@ export async function signInUser(input: SignInInput): Promise<AuthUser | null> {
         }
       }
     } else {
-      response = await msal.loginPopup({ ...loginRequest, loginHint: input.email });
+      await msal.loginRedirect({ ...loginRequest, loginHint: input.email, prompt: 'select_account' });
+      return null;
     }
 
     if (!response.account) {
       throw new Error('No account returned from sign-in');
     }
+
+    try {
+      msal.setActiveAccount(response.account);
+    } catch (_) {}
 
     return {
       email: response.account.username || input.email,
@@ -189,6 +191,9 @@ export async function getCurrentAuthUser(): Promise<AuthUser | null> {
     }
 
     const account = accounts[0];
+    try {
+      msal.setActiveAccount(account);
+    } catch (_) {}
     return {
       email: account.username,
       firstName: account.name?.split(' ')[0] || '',
@@ -259,6 +264,11 @@ export async function getAccessToken(): Promise<string | null> {
     }
 
     const accounts = msal.getAllAccounts();
+    if (accounts[0]) {
+      try {
+        msal.setActiveAccount(accounts[0]);
+      } catch (_) {}
+    }
 
     if (accounts.length === 0) {
       return null;
@@ -299,6 +309,11 @@ export async function refreshAccessToken(): Promise<string | null> {
     }
 
     const accounts = msal.getAllAccounts();
+    if (accounts[0]) {
+      try {
+        msal.setActiveAccount(accounts[0]);
+      } catch (_) {}
+    }
 
     if (accounts.length === 0) {
       return null;

@@ -190,6 +190,13 @@ const cached = getCachedProfile('patient-123');
 
 ## Security Features
 
+### Storage Guardrails (Enforced in API)
+1. **Per-patient authorization** - Patients can only list/upload their own files (server-side check).
+2. **Safe blob keys** - Filenames are sanitized and paths include timestamp + random suffix; original name is kept in blob metadata.
+3. **Precise SAS links** - SAS URLs are generated from stored blob paths (fallback to stored URL if SAS generation fails).
+4. **Upload limits** - Max 5 files per request, 20MB per file, and only PDF/PNG/JPEG mimetypes; unsupported/oversized files return warnings.
+5. **Path validation** - Patient IDs are validated to prevent path traversal in blob keys.
+
 ### HIPAA Compliance
 1. **SSL/TLS Encryption** - All data in transit is encrypted
 2. **At-Rest Encryption** - Azure handles encryption for PostgreSQL and Blob Storage
@@ -217,9 +224,10 @@ npm run test:db
 ### 2. Test File Upload
 1. Navigate to the app patient health profile
 2. Click "Upload document"
-3. Select a PDF file
+3. Select a PDF/PNG/JPEG file (≤20MB; up to 5 at once)
 4. Verify the file appears in the documents list
-5. Check Azure Portal → Storage Account → Containers to see the file
+5. Check Azure Portal → Storage Account → Containers to see the file (blob name will be timestamped + random suffix)
+6. Re-query `/.netlify/functions/get-patient-files` and confirm the returned `url` (SAS) downloads correctly; warnings indicate skipped files or SAS fallback
 
 ### 3. Test Profile Persistence
 1. Fill out patient profile fields

@@ -27,6 +27,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultTa
     setIsLoading(true);
 
     try {
+      // Clear any old signup data that could block email checks
+      localStorage.removeItem("pending_signup_v1");
       localStorage.setItem("pending_role_v1", role);
       const email = loginEmail.trim();
       await signInUser({ email, password: "" });
