@@ -26,18 +26,41 @@ export function getPool(): Pool {
 // Initialize database schema
 export async function initializeDatabase() {
   const client = new Client({
-    connectionString: process.env.DATABASE_URL || 
+    connectionString: process.env.DATABASE_URL ||
       `postgresql://${process.env.PGUSER}:${encodeURIComponent(process.env.PGPASSWORD!)}@${process.env.PGHOST}:${process.env.PGPORT}/${process.env.PGDATABASE}?sslmode=require`,
   });
 
   try {
     await client.connect();
 
-    // Create patient_profiles table
+    // Create users table (for tracking researchers, providers, patients)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        user_id VARCHAR(255) UNIQUE NOT NULL,
+        azure_oid VARCHAR(255) UNIQUE,
+        email VARCHAR(255) NOT NULL,
+        first_name VARCHAR(100),
+        last_name VARCHAR(100),
+        role VARCHAR(50) NOT NULL DEFAULT 'patient',
+        organization VARCHAR(255),
+        verified BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_users_user_id ON users(user_id);
+      CREATE INDEX IF NOT EXISTS idx_users_azure_oid ON users(azure_oid);
+      CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+      CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
+    `);
+
+    // Create patient_profiles table with user tracking
     await client.query(`
       CREATE TABLE IF NOT EXISTS patient_profiles (
         id SERIAL PRIMARY KEY,
         patient_id VARCHAR(255) UNIQUE NOT NULL,
+        user_id VARCHAR(255) NOT NULL,
         email VARCHAR(255) NOT NULL,
         email_verified BOOLEAN DEFAULT FALSE,
         age VARCHAR(10),
@@ -67,30 +90,60 @@ export async function initializeDatabase() {
         infection_hbv BOOLEAN DEFAULT FALSE,
         infection_hcv BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
       );
-      
+
       CREATE INDEX IF NOT EXISTS idx_patient_profiles_patient_id ON patient_profiles(patient_id);
+      CREATE INDEX IF NOT EXISTS idx_patient_profiles_user_id ON patient_profiles(user_id);
       CREATE INDEX IF NOT EXISTS idx_patient_profiles_email ON patient_profiles(email);
     `);
 
-    // Create patient_documents table
+    // Create patient_documents table with user tracking
     await client.query(`
       CREATE TABLE IF NOT EXISTS patient_documents (
         id SERIAL PRIMARY KEY,
         patient_id VARCHAR(255) NOT NULL,
+        user_id VARCHAR(255) NOT NULL,
         file_name VARCHAR(500) NOT NULL,
         file_type VARCHAR(50),
         file_size INTEGER,
         blob_url VARCHAR(2048),
         blob_container VARCHAR(100),
+        uploaded_by_user_id VARCHAR(255),
         uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (patient_id) REFERENCES patient_profiles(patient_id) ON DELETE CASCADE
+        FOREIGN KEY (patient_id) REFERENCES patient_profiles(patient_id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+        FOREIGN KEY (uploaded_by_user_id) REFERENCES users(user_id)
       );
-      
+
       CREATE INDEX IF NOT EXISTS idx_patient_documents_patient_id ON patient_documents(patient_id);
+      CREATE INDEX IF NOT EXISTS idx_patient_documents_user_id ON patient_documents(user_id);
+      CREATE INDEX IF NOT EXISTS idx_patient_documents_uploaded_by ON patient_documents(uploaded_by_user_id);
       CREATE INDEX IF NOT EXISTS idx_patient_documents_uploaded_at ON patient_documents(uploaded_at);
+    `);
+
+    // Create audit_log table for tracking all operations
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS audit_logs (
+        id SERIAL PRIMARY KEY,
+        user_id VARCHAR(255) NOT NULL,
+        action VARCHAR(100) NOT NULL,
+        resource_type VARCHAR(50),
+        resource_id VARCHAR(255),
+        patient_id VARCHAR(255),
+        details JSONB,
+        ip_address VARCHAR(45),
+        user_agent VARCHAR(500),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE SET NULL
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_audit_logs_user_id ON audit_logs(user_id);
+      CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action);
+      CREATE INDEX IF NOT EXISTS idx_audit_logs_patient_id ON audit_logs(patient_id);
+      CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at);
     `);
 
     console.log('✅ Database schema initialized successfully');
