@@ -160,3 +160,75 @@ export async function query(sql: string, params?: any[]) {
   const result = await pool.query(sql, params);
   return result;
 }
+
+// Get or create user
+export async function getOrCreateUser(
+  userId: string,
+  email: string,
+  azureOid: string,
+  firstName?: string,
+  lastName?: string,
+  role: string = 'patient'
+) {
+  try {
+    // Check if user exists
+    const existing = await query(
+      'SELECT * FROM users WHERE user_id = $1',
+      [userId]
+    );
+
+    if (existing.rows.length > 0) {
+      return existing.rows[0];
+    }
+
+    // Create new user
+    const result = await query(
+      `
+      INSERT INTO users (user_id, azure_oid, email, first_name, last_name, role, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+      RETURNING id, user_id, azure_oid, email, first_name, last_name, role;
+      `,
+      [userId, azureOid, email, firstName || '', lastName || '', role]
+    );
+
+    console.log('✅ User created:', userId);
+    return result.rows[0];
+  } catch (error: any) {
+    console.error('Error managing user:', error);
+    throw error;
+  }
+}
+
+// Audit log helper
+export async function logAuditEvent(
+  userId: string,
+  action: string,
+  resourceType?: string,
+  resourceId?: string,
+  patientId?: string,
+  details?: any,
+  ipAddress?: string,
+  userAgent?: string
+) {
+  try {
+    await query(
+      `
+      INSERT INTO audit_logs (user_id, action, resource_type, resource_id, patient_id, details, ip_address, user_agent, created_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW());
+      `,
+      [
+        userId,
+        action,
+        resourceType || null,
+        resourceId || null,
+        patientId || null,
+        details ? JSON.stringify(details) : null,
+        ipAddress || null,
+        userAgent || null
+      ]
+    );
+  } catch (error) {
+    console.warn('Failed to log audit event:', error);
+    // Don't throw - audit logging shouldn't break the main operation
+  }
+}
