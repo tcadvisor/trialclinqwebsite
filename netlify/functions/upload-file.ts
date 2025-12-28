@@ -1,7 +1,8 @@
 import type { Handler } from "@netlify/functions";
 import Busboy from "busboy";
 import { uploadFileToBlob } from "./azure-storage";
-import { query } from "./db";
+import { query, getOrCreateUser, logAuditEvent } from "./db";
+import { getUserFromAuthHeader, canAccessPatient } from "./auth-utils";
 
 function cors(statusCode: number, body: any) {
   return {
