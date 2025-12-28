@@ -76,6 +76,38 @@ export const handler: Handler = async (event) => {
             return resolve(cors(400, { error: "No files provided" }));
           }
 
+          // Authenticate user
+          try {
+            var authenticatedUser = await getUserFromAuthHeader(authHeader);
+          } catch (authError: any) {
+            return resolve(cors(401, { error: authError.message || "Unauthorized" }));
+          }
+
+          // Ensure user exists in database
+          await getOrCreateUser(
+            authenticatedUser.userId,
+            authenticatedUser.email,
+            authenticatedUser.oid,
+            authenticatedUser.firstName,
+            authenticatedUser.lastName,
+            authenticatedUser.role
+          );
+
+          // AUTHORIZATION CHECK: Ensure user can upload files for this patient
+          if (authenticatedUser.role === 'patient' && !canAccessPatient(authenticatedUser, patientId)) {
+            await logAuditEvent(
+              authenticatedUser.userId,
+              'UNAUTHORIZED_FILE_UPLOAD',
+              'patient_document',
+              patientId,
+              patientId,
+              { reason: 'User attempted to upload files for another user\'s profile' },
+              event.headers?.['x-forwarded-for'] || event.headers?.['x-client-ip'],
+              event.headers?.['user-agent']
+            );
+            return resolve(cors(403, { error: "Unauthorized: You can only upload files for your own profile" }));
+          }
+
           // Upload each file to Azure Blob Storage
           for (const fileData of fileBuffers) {
             try {
