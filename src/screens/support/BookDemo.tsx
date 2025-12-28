@@ -45,10 +45,31 @@ export default function BookDemo() {
   function validate() {
     if (!name.trim()) return "Please enter your name.";
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "Please enter a valid email.";
+    if (phone.trim()) {
+      const phoneErr = getPhoneValidationError(phone, "US");
+      if (phoneErr) return phoneErr;
+    }
     if (!date) return "Please select a date.";
     if (!time) return "Please select a time.";
     return null;
   }
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    const formatted = formatPhoneNumber(value, "US");
+    setPhone(formatted);
+
+    if (phoneError) {
+      setPhoneError(null);
+    }
+  };
+
+  const handlePhoneBlur = () => {
+    if (phone.trim()) {
+      const err = getPhoneValidationError(phone, "US");
+      setPhoneError(err);
+    }
+  };
 
   async function sendViaResend() {
     const payload = {
