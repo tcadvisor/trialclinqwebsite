@@ -82,6 +82,22 @@ export const handler: Handler = async (event) => {
       return cors(400, { error: "Missing patientId or email" });
     }
 
+    // AUTHORIZATION CHECK: Ensure user can only modify their own profile
+    // Patients can only update their own profile
+    if (authenticatedUser.role === 'patient' && !canAccessPatient(authenticatedUser, patientId)) {
+      await logAuditEvent(
+        authenticatedUser.userId,
+        'UNAUTHORIZED_ACCESS',
+        'patient_profile',
+        patientId,
+        patientId,
+        { reason: 'User attempted to access another user\'s profile' },
+        event.headers?.['x-forwarded-for'] || event.headers?.['x-client-ip'],
+        event.headers?.['user-agent']
+      );
+      return cors(403, { error: "Unauthorized: You can only update your own profile" });
+    }
+
     // Combine additionalInfo and appendMarkdown
     const finalAdditionalInfo = [
       additionalInfo || "",
