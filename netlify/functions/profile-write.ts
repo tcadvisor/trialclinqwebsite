@@ -30,6 +30,19 @@ export const handler: Handler = async (event) => {
   }
 
   try {
+    // Authenticate user from Azure Entra ID token
+    const authenticatedUser = await getUserFromAuthHeader(authHeader);
+
+    // Ensure user exists in database
+    await getOrCreateUser(
+      authenticatedUser.userId,
+      authenticatedUser.email,
+      authenticatedUser.oid,
+      authenticatedUser.firstName,
+      authenticatedUser.lastName,
+      authenticatedUser.role
+    );
+
     const payload = event.body ? JSON.parse(event.body) : {};
     
     const {
