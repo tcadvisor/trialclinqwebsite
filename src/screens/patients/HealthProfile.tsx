@@ -305,28 +305,54 @@ function Documents({ onCountChange }: { onCountChange?: (count: number) => void 
     }
     const valid = list.filter((file) => isAllowedFile(file));
     if (valid.length === 0) return;
-    const uploads: Promise<DocItem>[] = valid.map(async (file) => {
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = () => reject(new Error("Failed to read file"));
-        reader.readAsDataURL(file);
-      });
-      // Fire-and-forget summarize flow; no PHI rendered
-      summarizeAndSave(file);
-      return {
+
+    setOverlay({ mode: "loading", message: "Uploading files to secure storage..." });
+
+    const patientId = resolveProfileId();
+    if (!patientId) {
+      setOverlay({ mode: "error", message: "Patient ID not found" });
+      setTimeout(() => setOverlay(null), 2500);
+      return;
+    }
+
+    try {
+      const w: any = window as any;
+      const getAuthTokenClientFnName = "getAuthToken";
+      const getTok = w?.[getAuthTokenClientFnName];
+      const token = typeof getTok === "function" ? await Promise.resolve(getTok()) : undefined;
+
+      // Upload files to Azure Blob Storage
+      const uploadedFiles = await uploadPatientFiles(patientId, valid, token);
+
+      // Convert to DocItem format
+      const newDocs: DocItem[] = uploadedFiles.map((file: any) => ({
         id: `${Date.now()}_${Math.random().toString(36).slice(2)}`,
-        name: file.name,
+        name: file.filename,
         size: file.size,
-        type: file.type,
+        type: "application/pdf",
         uploadedBy: currentName,
         uploadedAt: Date.now(),
         category,
-        url: dataUrl,
-      };
-    });
-    const newDocs = await Promise.all(uploads);
-    setDocs((prev) => [...newDocs, ...prev]);
+        url: file.url,
+      }));
+
+      setDocs((prev) => [...newDocs, ...prev]);
+
+      // Fire-and-forget summarize flow for each file
+      valid.forEach((file) => summarizeAndSave(file));
+
+      setOverlay({ mode: "success", message: `${uploadedFiles.length} file(s) uploaded successfully` });
+      setTimeout(() => setOverlay(null), 2000);
+
+      // Clear the input after success
+      if (inputRef.current) {
+        inputRef.current.value = "";
+      }
+    } catch (error: any) {
+      console.error("Upload error:", error);
+      setOverlay({ mode: "error", message: error.message || "Failed to upload files" });
+      setTimeout(() => setOverlay(null), 2500);
+    }
   }
 
   function downloadDoc(doc: DocItem) {
