@@ -1,11 +1,42 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import SiteHeader from "../../components/SiteHeader";
+import { formatPhoneNumber, getPhoneValidationError } from "../../lib/phoneValidation";
 
 export default function InvestigatorInformation(): JSX.Element {
   const navigate = useNavigate();
+  const [phone, setPhone] = useState("");
+  const [phoneError, setPhoneError] = useState<string | null>(null);
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    const formatted = formatPhoneNumber(value, "US");
+    setPhone(formatted);
+
+    if (phoneError) {
+      setPhoneError(null);
+    }
+  };
+
+  const handlePhoneBlur = () => {
+    if (phone.trim()) {
+      const err = getPhoneValidationError(phone, "US");
+      setPhoneError(err);
+    }
+  };
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+
+    // Validate phone before submission
+    if (phone.trim()) {
+      const err = getPhoneValidationError(phone, "US");
+      if (err) {
+        setPhoneError(err);
+        return;
+      }
+    }
+
     navigate("/providers/welcome");
   }
 
