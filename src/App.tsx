@@ -90,6 +90,7 @@ function App() {
           <Route path="/patients/result" element={<EligibilityResult />} />
           <Route path="/patients/login" element={<Login />} />
           <Route path="/sites/blog" element={<InsiderBlog />} />
+          <Route path="/sites/blog/:id" element={<BlogArticle />} />
           <Route path="/sites/visibility" element={<VisibilityOptions />} />
           <Route path="/sites/multicenter" element={<MulticenterListings />} />
           <Route path="/support/investigators" element={<InvestigatorSupport />} />
