@@ -7,12 +7,15 @@ import PatientHeader from "../../components/PatientHeader";
 import { generatePatientId } from "../../lib/patientIdUtils";
 
 export default function EligibleTrials(): JSX.Element {
+  const { user } = useAuth();
   const [query, setQuery] = React.useState("");
   const [base, setBase] = React.useState<LiteTrial[]>([]);
   const [whyOpen, setWhyOpen] = React.useState(false);
   const [whyContent, setWhyContent] = React.useState<string>("");
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [interestedTrials, setInterestedTrials] = React.useState<Set<string>>(new Set());
+  const [expressingInterest, setExpressingInterest] = React.useState<Set<string>>(new Set());
   const location = useLocation();
   const offset = React.useMemo(() => {
     const params = new URLSearchParams(location.search);
