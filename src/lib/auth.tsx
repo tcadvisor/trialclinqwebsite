@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { getCurrentAuthUser, getMsalInstance, signOutUser } from "./entraId";
+import { generatePatientId } from "./patientIdUtils";
 
 export type User = { email: string; role: "patient" | "provider"; firstName: string; lastName: string; userId: string };
 
