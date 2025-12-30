@@ -133,25 +133,6 @@ function parsePreferredLocation(loc: string): { city?: string; state?: string; c
   return { city: single };
 }
 
-function tokenizeQuery(input: string): string[] {
-  return input
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, " ")
-    .split(/\s+/)
-    .filter((w) => w.length > 1);
-}
-
-function filterStudiesByQuery(studies: CtgovStudy[], rawQuery: string): CtgovStudy[] {
-  const tokens = tokenizeQuery(rawQuery);
-  if (!tokens.length) return studies;
-  return studies.filter((s) => {
-    const title = (s.protocolSection?.identificationModule?.briefTitle || "").toString().toLowerCase();
-    const conditions = (s.protocolSection?.conditionsModule?.conditions || []).join(" ").toLowerCase();
-    const hay = `${title} ${conditions}`;
-    return tokens.every((t) => hay.includes(t));
-  });
-}
-
 function isCityMatch(a?: string, b?: string): boolean {
   const na = normalizePart(a);
   const nb = normalizePart(b);
@@ -330,7 +311,6 @@ export const SearchResults = (): JSX.Element => {
           const baseLoc = preparedLoc || "";
           const effectiveRadius = radius || "";
           const geoReady = Boolean(baseLoc && effectiveRadius && geo?.lat && geo?.lng);
-          const locationFirst = Boolean(baseLoc && effectiveQuery);
 
           for (const variant of queryVariants) {
             attempts.push({ qq: variant, st: baseStatus, lc: baseLoc });
@@ -340,24 +320,7 @@ export const SearchResults = (): JSX.Element => {
             attempts.push({ qq: normalizedQ, st: baseStatus, lc: baseLoc });
           }
 
-          if (locationFirst) {
-            const r = await fetchStudies({
-              q: "",
-              status: baseStatus,
-              type,
-              loc: geoReady ? "" : baseLoc,
-              lat: geoReady ? geo?.lat : undefined,
-              lng: geoReady ? geo?.lng : undefined,
-              radius: geoReady ? effectiveRadius : undefined,
-              pageSize,
-              pageToken: "",
-            });
-            const filtered = filterStudiesByQuery(r.studies || [], effectiveQuery);
-            res = { ...r, studies: filtered, totalCount: filtered.length, nextPageToken: undefined };
-            used = { qq: effectiveQuery, st: baseStatus, lc: baseLoc };
-            setPage(1);
-            setPageToken("");
-          } else if (page > 1 || pageToken) {
+          if (page > 1 || pageToken) {
             const a = activeQuery || attempts[0];
             used = a;
             res = await fetchStudies({
