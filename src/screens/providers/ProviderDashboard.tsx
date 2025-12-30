@@ -110,9 +110,23 @@ export default function ProviderDashboard(): JSX.Element {
 
           <div className="rounded-2xl border bg-white p-4">
             <div className="text-sm text-gray-500">Newly Matched</div>
-            <div className="mt-4 text-center text-sm text-gray-600 py-6">
-              No newly matched patients
-            </div>
+            {matchedVolunteers.length === 0 ? (
+              <div className="mt-4 text-center text-sm text-gray-600 py-6">
+                No newly matched patients
+              </div>
+            ) : (
+              <ul className="mt-2 space-y-2 text-sm">
+                {matchedVolunteers.slice(0, 4).map((v) => (
+                  <li key={v.id} className="flex items-center justify-between rounded-lg border p-3">
+                    <div>
+                      <div className="font-medium">{v.code}</div>
+                      <div className="text-gray-600 text-xs">{v.title}</div>
+                    </div>
+                    <button className="rounded-full border px-3 py-1 text-xs hover:bg-gray-50">View</button>
+                  </li>
+                ))}
+              </ul>
+            )}
             <Link to="/providers/volunteers" className="mt-3 w-full inline-block text-center rounded-full border px-4 py-2 text-sm hover:bg-gray-50">View All Volunteers</Link>
           </div>
         </div>
