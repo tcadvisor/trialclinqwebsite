@@ -339,11 +339,43 @@ function MultiSelectDropdown({ options, selected, onChange, placeholder, "aria-l
 
 export default function SiteInformation(): JSX.Element {
   const navigate = useNavigate();
+  const [organizationType, setOrganizationType] = useState("");
+  const [organizationAbbrev, setOrganizationAbbrev] = useState("");
+  const [parentOrg, setParentOrg] = useState("");
+  const [siteName, setSiteName] = useState("");
   const [country, setCountry] = useState("");
   const [usState, setUsState] = useState("");
+  const [address, setAddress] = useState("");
+  const [zipcode, setZipcode] = useState("");
+  const [facilityType, setFacilityType] = useState("");
+  const [fundingOrg, setFundingOrg] = useState("");
   const [conditions, setConditions] = useState<string[]>([]);
   const [languages, setLanguages] = useState<string[]>([]);
   const [errors, setErrors] = useState<{ conditions?: string; languages?: string }>({});
+
+  // Load initial data from localStorage if it exists
+  React.useEffect(() => {
+    try {
+      const raw = localStorage.getItem("tc_provider_profile_v1");
+      if (raw) {
+        const profile = JSON.parse(raw);
+        if (profile.organizationType) setOrganizationType(profile.organizationType);
+        if (profile.organizationAbbreviation) setOrganizationAbbrev(profile.organizationAbbreviation);
+        if (profile.parentOrganizations && profile.parentOrganizations.length > 0) setParentOrg(profile.parentOrganizations[0]);
+        if (profile.siteName) setSiteName(profile.siteName);
+        if (profile.country) setCountry(profile.country);
+        if (profile.state) setUsState(profile.state);
+        if (profile.address) setAddress(profile.address);
+        if (profile.zipcode) setZipcode(profile.zipcode);
+        if (profile.facilityType) setFacilityType(profile.facilityType);
+        if (profile.fundingOrganization) setFundingOrg(profile.fundingOrganization);
+        if (profile.acceptedConditions) setConditions(profile.acceptedConditions);
+        if (profile.languages) setLanguages(profile.languages);
+      }
+    } catch (e) {
+      console.error("Error loading provider profile from localStorage:", e);
+    }
+  }, []);
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -352,6 +384,32 @@ export default function SiteInformation(): JSX.Element {
     if (languages.length === 0) nextErrors.languages = "Please add at least one language.";
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
+
+    // Save site information to localStorage
+    try {
+      const raw = localStorage.getItem("tc_provider_profile_v1");
+      const existing = raw ? JSON.parse(raw) : {};
+      const profile = {
+        ...existing,
+        organizationType,
+        organizationAbbreviation: organizationAbbrev,
+        parentOrganizations: parentOrg ? [parentOrg] : [],
+        siteName,
+        country,
+        state: usState,
+        address,
+        zipcode,
+        facilityType,
+        fundingOrganization: fundingOrg,
+        acceptedConditions: conditions,
+        languages,
+      };
+      localStorage.setItem("tc_provider_profile_v1", JSON.stringify(profile));
+      console.log("✅ Site information saved to localStorage");
+    } catch (err) {
+      console.error("Error saving site information:", err);
+    }
+
     navigate("/providers/investigator-information");
   }
 
