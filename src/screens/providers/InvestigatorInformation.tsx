@@ -247,6 +247,17 @@ export default function InvestigatorInformation(): JSX.Element {
           </form>
         </div>
       </main>
+
+      {/* Dev/Testing: Bypass sign-in button */}
+      <div className="fixed bottom-4 left-4">
+        <button
+          onClick={handleBypassSignIn}
+          className="text-xs px-3 py-1.5 rounded-full border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+          title="Skip authentication for testing (dev only)"
+        >
+          Skip Sign-In
+        </button>
+      </div>
     </div>
   );
 }
