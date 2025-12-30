@@ -8,6 +8,7 @@ import { generateProviderId } from "../../lib/providerIdUtils";
 
 export default function InvestigatorInformation(): JSX.Element {
   const navigate = useNavigate();
+  const { signIn } = useAuth();
   const [investigatorName, setInvestigatorName] = useState("");
   const [investigatorPhone, setInvestigatorPhone] = useState("");
   const [phoneError, setPhoneError] = useState<string | null>(null);
