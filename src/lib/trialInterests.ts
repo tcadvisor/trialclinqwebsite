@@ -129,7 +129,7 @@ export async function getTrialInterestedPatients(
 ): Promise<{ ok: boolean; patients: InterestedPatient[]; count: number; message: string }> {
   try {
     const response = await fetch(
-      `/api/get-trial-interests?nctId=${encodeURIComponent(nctId)}`,
+      `/.netlify/functions/get-trial-interests?nctId=${encodeURIComponent(nctId)}`,
       {
         method: "GET",
         headers: {
@@ -139,22 +139,16 @@ export async function getTrialInterestedPatients(
       }
     );
 
-    // Try to parse response as JSON
-    let data: any = {};
-    const contentType = response.headers.get("content-type");
-    if (contentType && contentType.includes("application/json")) {
+    const text = await response.text();
+    let data: any = { ok: false, interestedPatients: [] };
+
+    if (text) {
       try {
-        data = await response.json();
+        data = JSON.parse(text);
       } catch (parseErr) {
         console.error("Failed to parse response JSON:", parseErr);
-        const text = await response.text();
-        console.error("Response text:", text);
         throw new Error("Invalid response from server");
       }
-    } else {
-      const text = await response.text();
-      console.error("Non-JSON response:", text);
-      throw new Error("Server returned non-JSON response");
     }
 
     if (!response.ok) {
@@ -168,12 +162,41 @@ export async function getTrialInterestedPatients(
       message: data.message || "Success",
     };
   } catch (error) {
-    console.error("Error fetching trial interests:", error);
-    return {
-      ok: false,
-      patients: [],
-      count: 0,
-      message: error instanceof Error ? error.message : "Failed to fetch interested patients",
-    };
+    const message = error instanceof Error ? error.message : "Failed to fetch interested patients";
+    console.error("[GetInterests] Error:", message, "- using localStorage fallback");
+
+    // Fallback to localStorage
+    try {
+      const interests = getLocalInterests();
+      const nctIdUpper = nctId.toUpperCase();
+
+      // Convert local interests to patient objects
+      const patients: InterestedPatient[] = [];
+      for (const [patientId, nctIds] of Object.entries(interests)) {
+        if (nctIds.includes(nctIdUpper)) {
+          patients.push({
+            id: Math.random(),
+            patientId,
+            nctId: nctIdUpper,
+            expressedAt: new Date().toISOString(),
+          });
+        }
+      }
+
+      return {
+        ok: true,
+        patients,
+        count: patients.length,
+        message: "Success (offline mode)",
+      };
+    } catch (fallbackErr) {
+      console.error("[GetInterests] Fallback failed:", fallbackErr);
+      return {
+        ok: false,
+        patients: [],
+        count: 0,
+        message: "Could not fetch interested patients",
+      };
+    }
   }
 }
