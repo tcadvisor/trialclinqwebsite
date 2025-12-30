@@ -184,7 +184,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               if (!pendingEmail || pendingEmail === accountEmail) {
                 firstName = pending.firstName || firstName;
                 lastName = pending.lastName || lastName;
-                mergeProfileFromEligibility(account.username);
+                mergeProfileFromEligibility(account.username, {
+                  email: account.username,
+                  firstName,
+                  lastName,
+                  userId: account.localAccountId || account.homeAccountId || "",
+                });
               }
             }
             clearPendingSignup();
