@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { getMsalInstance, getAccessToken } from '../lib/entraId';
 import { loginRequest } from '../lib/msalConfig';
+import { generatePatientId } from '../lib/patientIdUtils';
+import { generateProviderId } from '../lib/providerIdUtils';
+import { savePatientProfile, saveProviderProfile } from '../lib/storage';
 
 export default function AuthCallback() {
   const navigate = useNavigate();
