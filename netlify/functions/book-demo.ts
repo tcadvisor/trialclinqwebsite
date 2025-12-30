@@ -18,6 +18,8 @@ interface BookDemoData {
   date?: string;
   time?: string;
   timezone?: string;
+  subject?: string;
+  message?: string;
 }
 
 function generateEmailContent(data: BookDemoData): { subject: string; html: string } {
@@ -70,6 +72,21 @@ function generateEmailContent(data: BookDemoData): { subject: string; html: stri
           <h2>New Newsletter Subscriber</h2>
           <p><strong>Email:</strong> ${data.email}</p>
           <p>A new subscriber has joined the newsletter.</p>
+        `,
+      };
+    case "contact_form":
+      return {
+        subject: `New Contact Form Message - ${data.subject || 'TrialClinIQ'}`,
+        html: `
+          <h2>New Contact Form Submission</h2>
+          <p><strong>Name:</strong> ${data.name}</p>
+          <p><strong>Email:</strong> ${data.email}</p>
+          <p><strong>Subject:</strong> ${data.subject}</p>
+          <p><strong>Message:</strong></p>
+          <p>${data.message ? data.message.replace(/\n/g, '<br>') : 'No message provided'}</p>
+          <p style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd;">
+            <strong>Reply To:</strong> ${data.email}
+          </p>
         `,
       };
     default:

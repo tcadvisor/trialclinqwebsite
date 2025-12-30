@@ -9,6 +9,8 @@ export default function ContactPage() {
     subject: "",
     message: "",
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -20,13 +22,41 @@ export default function ContactPage() {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle form submission
-    console.log("Form submitted:", formData);
-    // Reset form
-    setFormData({ name: "", email: "", subject: "", message: "" });
-    alert("Thank you for contacting us! We'll get back to you soon.");
+    setIsSubmitting(true);
+    setSubmitStatus("idle");
+
+    try {
+      const response = await fetch("/.netlify/functions/book-demo", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          type: "contact_form",
+          name: formData.name,
+          email: formData.email,
+          subject: formData.subject,
+          message: formData.message,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to send message");
+      }
+
+      setSubmitStatus("success");
+      setFormData({ name: "", email: "", subject: "", message: "" });
+      setTimeout(() => setSubmitStatus("idle"), 5000);
+    } catch (error) {
+      console.error("Form submission error:", error);
+      setSubmitStatus("error");
+      setTimeout(() => setSubmitStatus("idle"), 5000);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -94,12 +124,6 @@ export default function ContactPage() {
               <p className="text-gray-600 text-sm mb-4">
                 Questions about our platform and services
               </p>
-              <a
-                href="mailto:info@trialcliniq.com"
-                className="text-blue-600 hover:text-blue-700 font-medium text-sm"
-              >
-                info@trialcliniq.com
-              </a>
             </div>
 
             {/* Partnership Inquiries */}
@@ -113,12 +137,6 @@ export default function ContactPage() {
               <p className="text-gray-600 text-sm mb-4">
                 For sponsors, sites, and business partnerships
               </p>
-              <a
-                href="mailto:partnerships@trialcliniq.com"
-                className="text-blue-600 hover:text-blue-700 font-medium text-sm"
-              >
-                partnerships@trialcliniq.com
-              </a>
             </div>
 
             {/* Patient Support */}
@@ -132,12 +150,6 @@ export default function ContactPage() {
               <p className="text-gray-600 text-sm mb-4">
                 Help with your patient account and trials
               </p>
-              <a
-                href="mailto:support@trialcliniq.com"
-                className="text-blue-600 hover:text-blue-700 font-medium text-sm"
-              >
-                support@trialcliniq.com
-              </a>
             </div>
           </div>
 
@@ -210,10 +222,21 @@ export default function ContactPage() {
 
               <button
                 type="submit"
-                className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                disabled={isSubmitting}
+                className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:bg-blue-400 disabled:cursor-not-allowed"
               >
-                Send Message
+                {isSubmitting ? "Sending..." : "Send Message"}
               </button>
+              {submitStatus === "success" && (
+                <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg text-sm">
+                  Thank you for your message! We'll get back to you soon.
+                </div>
+              )}
+              {submitStatus === "error" && (
+                <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg text-sm">
+                  Failed to send message. Please try again.
+                </div>
+              )}
             </form>
           </div>
 
