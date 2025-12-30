@@ -1,10 +1,12 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../lib/auth";
 import HomeHeader from "../../components/HomeHeader";
 import SignUpForm from "../../components/SignUpForm";
 
 export default function CreateAccount(): JSX.Element {
   const navigate = useNavigate();
+  const { signIn } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
