@@ -6,6 +6,7 @@ import SignUpForm from "../../components/SignUpForm";
 
 export default function Volunteer(): JSX.Element {
   const navigate = useNavigate();
+  const { signIn } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
