@@ -23,7 +23,7 @@ export async function expressInterestInTrial(
   try {
     console.log("[ExpressInterest] Starting request", { nctId, patientId, userId });
 
-    const response = await fetch("/.netlify/functions/express-interest", {
+    const response = await fetch("/api/express-interest", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
