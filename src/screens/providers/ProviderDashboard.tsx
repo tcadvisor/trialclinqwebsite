@@ -2,6 +2,8 @@ import React from "react";
 import SiteHeader from "../../components/SiteHeader";
 import { Link } from "react-router-dom";
 import { getAddedTrials, AddedTrial } from "../../lib/providerTrials";
+import { getAppointments, Appointment } from "../../lib/providerAppointments";
+import { getMatchedVolunteers, MatchedVolunteer } from "../../lib/providerMatches";
 import { useAuth } from "../../lib/auth";
 
 export default function ProviderDashboard(): JSX.Element {
