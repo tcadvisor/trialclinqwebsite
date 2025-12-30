@@ -50,6 +50,18 @@ export default function Login(): JSX.Element {
     }
   };
 
+  const handleDemoLogin = () => {
+    const demoUser = {
+      email: "demo.patient@example.com",
+      firstName: "Demo",
+      lastName: "Patient",
+      userId: "demo-patient-12345",
+      role: "patient" as const,
+    };
+    signIn(demoUser);
+    navigate("/patients/eligible-trials");
+  };
+
   return (
     <div className="min-h-screen bg-white text-gray-900">
       <HomeHeader />
