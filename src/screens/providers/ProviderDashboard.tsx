@@ -20,6 +20,7 @@ export default function ProviderDashboard(): JSX.Element {
   const [matchedVolunteers, setMatchedVolunteers] = React.useState<MatchedVolunteer[]>(() =>
     userId ? getMatchedVolunteers(userId) : []
   );
+  const [interestedPatientsByTrial, setInterestedPatientsByTrial] = React.useState<Map<string, InterestedPatient[]>>(new Map());
 
   React.useEffect(() => {
     if (!userId) return;
