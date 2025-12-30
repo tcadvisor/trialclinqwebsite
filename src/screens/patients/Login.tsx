@@ -90,6 +90,16 @@ export default function Login(): JSX.Element {
           </button>
         </form>
         <p className="text-sm text-gray-600 mt-4">No account? <Link to="/patients/volunteer" className="text-blue-600 hover:underline">Sign up</Link></p>
+
+        <div className="mt-8 pt-8 border-t">
+          <p className="text-sm text-gray-600 mb-3 text-center">For testing purposes:</p>
+          <button
+            onClick={handleDemoLogin}
+            className="w-full inline-block rounded-full bg-gray-200 hover:bg-gray-300 text-gray-900 px-6 py-2 text-sm font-medium transition"
+          >
+            Login as Demo Patient
+          </button>
+        </div>
       </main>
     </div>
   );
