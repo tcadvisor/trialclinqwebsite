@@ -2,6 +2,7 @@ import React from "react";
 import { useLocation } from "react-router-dom";
 import SiteHeader from "../../components/SiteHeader";
 import { signUpUser } from "../../lib/entraId";
+import { generatePatientId } from "../../lib/patientIdUtils";
 
 export default function SignupInfo(): JSX.Element {
   const { search } = useLocation();
