@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Calendar, Clock, Send, Building2, User, Mail, Phone } from "lucide-react";
 import SiteHeader from "../../components/SiteHeader";
+import { formatPhoneNumber, getPhoneValidationError, CountryCode } from "../../lib/phoneValidation";
 
 export default function BookDemo() {
   const navigate = useNavigate();
@@ -10,6 +11,7 @@ export default function BookDemo() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [phoneError, setPhoneError] = useState<string | null>(null);
   const [affiliation, setAffiliation] = useState("");
   const [comments, setComments] = useState("");
   const [date, setDate] = useState("");
@@ -43,10 +45,31 @@ export default function BookDemo() {
   function validate() {
     if (!name.trim()) return "Please enter your name.";
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "Please enter a valid email.";
+    if (phone.trim()) {
+      const phoneErr = getPhoneValidationError(phone, "US");
+      if (phoneErr) return phoneErr;
+    }
     if (!date) return "Please select a date.";
     if (!time) return "Please select a time.";
     return null;
   }
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    const formatted = formatPhoneNumber(value, "US");
+    setPhone(formatted);
+
+    if (phoneError) {
+      setPhoneError(null);
+    }
+  };
+
+  const handlePhoneBlur = () => {
+    if (phone.trim()) {
+      const err = getPhoneValidationError(phone, "US");
+      setPhoneError(err);
+    }
+  };
 
   async function sendViaResend() {
     const payload = {
@@ -138,8 +161,19 @@ export default function BookDemo() {
                   <span className="block mb-1">Phone (optional)</span>
                   <div className="relative">
                     <Phone className="h-4 w-4 absolute left-3 top-3 text-gray-400" />
-                    <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full rounded-lg border border-gray-300 pl-9 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="+1 555 000 1111" aria-label="Phone" />
+                    <input
+                      type="tel"
+                      value={phone}
+                      onChange={handlePhoneChange}
+                      onBlur={handlePhoneBlur}
+                      className={`w-full rounded-lg border border-gray-300 pl-9 pr-3 py-2 focus:outline-none focus:ring-2 ${phoneError ? "border-red-500 focus:ring-red-500" : "focus:ring-blue-500"}`}
+                      placeholder="(555) 000-0000"
+                      aria-label="Phone"
+                    />
                   </div>
+                  {phoneError && (
+                    <p className="mt-1 text-sm text-red-600">{phoneError}</p>
+                  )}
                 </label>
                 <label className="text-sm text-gray-700">
                   <span className="block mb-1">Affiliation</span>
