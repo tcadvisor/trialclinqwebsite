@@ -129,6 +129,7 @@ function mergeProfileFromEligibility(currentEmail: string, currentUser?: { email
     };
 
     if (!next.email) next.email = currentEmail;
+    if ((!next.patientId || next.patientId === "") && patientId) next.patientId = patientId;
     if (!next.primaryCondition && eligibility?.condition) next.primaryCondition = String(eligibility.condition);
     if (!next.diagnosed && eligibility?.year) next.diagnosed = String(eligibility.year);
     if ((!Array.isArray(next.medications) || next.medications.length === 0) && Array.isArray(eligibility?.medications)) {
