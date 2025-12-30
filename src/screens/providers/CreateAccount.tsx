@@ -50,6 +50,18 @@ export default function CreateAccount(): JSX.Element {
     }
   }
 
+  function handleDemoLogin() {
+    const demoUser = {
+      email: "demo.researcher@example.com",
+      firstName: "Demo",
+      lastName: "Researcher",
+      userId: "demo-user-12345",
+      role: "provider" as const,
+    };
+    signIn(demoUser);
+    navigate("/providers/dashboard");
+  }
+
   return (
     <div className="min-h-screen bg-white text-gray-900">
       <HomeHeader />
