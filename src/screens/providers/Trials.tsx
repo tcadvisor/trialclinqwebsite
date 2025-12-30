@@ -121,7 +121,7 @@ export default function ProviderTrials(): JSX.Element {
                     const nearest = formatNearestSitePreview(s);
                     const key = `${nctId || "idx"}-${i}`;
                     const inSelected = !!(nctId && selected.some((t) => t.nctId === nctId));
-                    const already = nctId ? (added[nctId] || isTrialAdded(nctId)) : false;
+                    const already = nctId && userId ? (added[nctId] || isTrialAdded(userId, nctId)) : false;
                     return (
                       <li key={key} className="flex items-center justify-between px-4 py-3 border-t first:border-t-0 bg-white hover:bg-gray-50">
                         <div className="min-w-0">
