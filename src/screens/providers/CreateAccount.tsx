@@ -1,10 +1,12 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../lib/auth";
 import HomeHeader from "../../components/HomeHeader";
 import SignUpForm from "../../components/SignUpForm";
 
 export default function CreateAccount(): JSX.Element {
   const navigate = useNavigate();
+  const { signIn } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,6 +50,18 @@ export default function CreateAccount(): JSX.Element {
     }
   }
 
+  function handleDemoLogin() {
+    const demoUser = {
+      email: "demo.researcher@example.com",
+      firstName: "Demo",
+      lastName: "Researcher",
+      userId: "demo-user-12345",
+      role: "provider" as const,
+    };
+    signIn(demoUser);
+    navigate("/providers/dashboard");
+  }
+
   return (
     <div className="min-h-screen bg-white text-gray-900">
       <HomeHeader />
@@ -59,6 +73,17 @@ export default function CreateAccount(): JSX.Element {
         error={error}
         isLoading={isLoading}
       />
+      <div className="max-w-2xl mx-auto px-4 py-8">
+        <div className="text-center">
+          <p className="text-sm text-gray-600 mb-3">For testing purposes:</p>
+          <button
+            onClick={handleDemoLogin}
+            className="inline-block rounded-full bg-gray-200 hover:bg-gray-300 text-gray-900 px-6 py-2 text-sm font-medium transition"
+          >
+            Login as Demo Researcher
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

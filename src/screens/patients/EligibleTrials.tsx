@@ -1,15 +1,21 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { getRealMatchedTrialsForCurrentUser, type LiteTrial } from "../../lib/matching";
+import { expressInterestInTrial } from "../../lib/trialInterests";
+import { useAuth } from "../../lib/auth";
 import PatientHeader from "../../components/PatientHeader";
+import { generatePatientId } from "../../lib/patientIdUtils";
 
 export default function EligibleTrials(): JSX.Element {
+  const { user } = useAuth();
   const [query, setQuery] = React.useState("");
   const [base, setBase] = React.useState<LiteTrial[]>([]);
   const [whyOpen, setWhyOpen] = React.useState(false);
   const [whyContent, setWhyContent] = React.useState<string>("");
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [interestedTrials, setInterestedTrials] = React.useState<Set<string>>(new Set());
+  const [expressingInterest, setExpressingInterest] = React.useState<Set<string>>(new Set());
   const location = useLocation();
   const offset = React.useMemo(() => {
     const params = new URLSearchParams(location.search);
@@ -53,6 +59,48 @@ export default function EligibleTrials(): JSX.Element {
         .includes(q)
     );
   }, [query, base]);
+
+  const handleExpressInterest = async (trial: LiteTrial) => {
+    if (!user?.userId) {
+      alert("Please log in to express interest");
+      return;
+    }
+
+    setExpressingInterest(prev => new Set(prev).add(trial.nctId));
+
+    try {
+      const patientId = generatePatientId({
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        userId: user.userId,
+        role: "patient",
+      });
+
+      const result = await expressInterestInTrial(
+        trial.nctId,
+        trial.title,
+        patientId,
+        user.userId
+      );
+
+      if (result.ok) {
+        setInterestedTrials(prev => new Set(prev).add(trial.nctId));
+        alert("Interest expressed successfully! Researchers will be able to see your interest in this trial.");
+      } else {
+        alert(result.message || "Failed to express interest");
+      }
+    } catch (err) {
+      console.error("Error expressing interest:", err);
+      alert("Failed to express interest");
+    } finally {
+      setExpressingInterest(prev => {
+        const next = new Set(prev);
+        next.delete(trial.nctId);
+        return next;
+      });
+    }
+  };
 
   // Pagination
   const pageSize = 25;
@@ -173,14 +221,34 @@ export default function EligibleTrials(): JSX.Element {
                   </td>
                   <td className="px-4 py-3 text-gray-600">{t.interventions.join(' / ')}</td>
                   <td className="px-4 py-3 text-right">
-                    <a
-                      href={`https://clinicaltrials.gov/study/${encodeURIComponent(t.nctId)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs hover:bg-gray-50"
-                    >
-                      View on ClinicalTrials.gov
-                    </a>
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => handleExpressInterest(t)}
+                        disabled={expressingInterest.has(t.nctId) || interestedTrials.has(t.nctId)}
+                        className={`inline-flex items-center rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                          interestedTrials.has(t.nctId)
+                            ? "bg-green-100 text-green-700 border border-green-300"
+                            : expressingInterest.has(t.nctId)
+                            ? "border bg-gray-100 text-gray-600"
+                            : "border hover:bg-blue-50 text-blue-600 hover:text-blue-700"
+                        }`}
+                        title="Express your interest in this trial so researchers can see that you're interested"
+                      >
+                        {expressingInterest.has(t.nctId)
+                          ? "Expressing..."
+                          : interestedTrials.has(t.nctId)
+                          ? "✓ Interested"
+                          : "Express Interest"}
+                      </button>
+                      <a
+                        href={`https://clinicaltrials.gov/study/${encodeURIComponent(t.nctId)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs hover:bg-gray-50"
+                      >
+                        View →
+                      </a>
+                    </div>
                   </td>
                 </tr>
               ))}

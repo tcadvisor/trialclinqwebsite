@@ -2,19 +2,68 @@ import React from "react";
 import SiteHeader from "../../components/SiteHeader";
 import { Link } from "react-router-dom";
 import { getAddedTrials, AddedTrial } from "../../lib/providerTrials";
+import { getAppointments, Appointment } from "../../lib/providerAppointments";
+import { getMatchedVolunteers, MatchedVolunteer } from "../../lib/providerMatches";
+import { getTrialInterestedPatients, type InterestedPatient } from "../../lib/trialInterests";
 import { useAuth } from "../../lib/auth";
 
 export default function ProviderDashboard(): JSX.Element {
   const { user } = useAuth();
   const displayName = user ? `${user.firstName} ${user.lastName}` : "";
-  const [trials, setTrials] = React.useState<AddedTrial[]>(() => getAddedTrials());
+  const userId = user?.userId || "";
+  const [trials, setTrials] = React.useState<AddedTrial[]>(() =>
+    userId ? getAddedTrials(userId) : []
+  );
+  const [appointments, setAppointments] = React.useState<Appointment[]>(() =>
+    userId ? getAppointments(userId) : []
+  );
+  const [matchedVolunteers, setMatchedVolunteers] = React.useState<MatchedVolunteer[]>(() =>
+    userId ? getMatchedVolunteers(userId) : []
+  );
+  const [interestedPatientsByTrial, setInterestedPatientsByTrial] = React.useState<Map<string, InterestedPatient[]>>(new Map());
+
   React.useEffect(() => {
+    if (!userId) return;
+
     const onStorage = (e: StorageEvent) => {
-      if (e.key === "provider:trials:v1") setTrials(getAddedTrials());
+      if (e.key === `provider:trials:v1:${userId}`) {
+        setTrials(getAddedTrials(userId));
+      } else if (e.key === `provider:appointments:v1:${userId}`) {
+        setAppointments(getAppointments(userId));
+      } else if (e.key === `provider:matches:v1:${userId}`) {
+        setMatchedVolunteers(getMatchedVolunteers(userId));
+      }
     };
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
-  }, []);
+  }, [userId]);
+
+  // Fetch interested patients for managed trials
+  React.useEffect(() => {
+    if (!userId || trials.length === 0) {
+      setInterestedPatientsByTrial(new Map());
+      return;
+    }
+
+    const fetchInterestedPatients = async () => {
+      const map = new Map<string, InterestedPatient[]>();
+
+      for (const trial of trials) {
+        try {
+          const result = await getTrialInterestedPatients(trial.nctId, userId);
+          if (result.ok && result.patients.length > 0) {
+            map.set(trial.nctId, result.patients);
+          }
+        } catch (err) {
+          console.error(`Failed to fetch interested patients for ${trial.nctId}:`, err);
+        }
+      }
+
+      setInterestedPatientsByTrial(map);
+    };
+
+    fetchInterestedPatients();
+  }, [userId, trials]);
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
       <SiteHeader />
@@ -42,8 +91,13 @@ export default function ProviderDashboard(): JSX.Element {
           <div className="rounded-2xl border bg-white p-5">
             <div className="text-sm text-gray-500">Upcoming Appointments</div>
             <ul className="mt-3 space-y-2 text-sm">
-              <li className="rounded-lg border p-3">Pre-Screening Call with DG-0109 — 11:30–12:00 — Houston, TX</li>
-              <li className="rounded-lg border p-3">Pre-Screening Call with DG-0109 — 11:30–12:00 — Online</li>
+              {appointments.length === 0 ? (
+                <li className="rounded-lg border p-3 text-gray-600">No upcoming appointments</li>
+              ) : (
+                appointments.slice(0, 2).map((apt) => (
+                  <li key={apt.id} className="rounded-lg border p-3">{apt.title} — {apt.time} — {apt.location}</li>
+                ))
+              )}
             </ul>
             <Link to="/providers/appointments" className="mt-3 w-full inline-block rounded-full border px-4 py-2 text-sm hover:bg-gray-50">View All Appointments</Link>
           </div>
@@ -84,24 +138,30 @@ export default function ProviderDashboard(): JSX.Element {
           </div>
 
           <div className="rounded-2xl border bg-white p-4">
-            <div className="text-sm text-gray-500">Newly Matched</div>
-            <ul className="mt-2 space-y-2 text-sm">
-              {[
-                { code: "DR-081", title: "Agorain, New Treatment for Chronic Neuropathy" },
-                { code: "AG-002", title: "Investigating Non-Opioid Therapies for Migraine" },
-                { code: "MN-290", title: "Agorain, New Treatment for Chronic Neuropathy" },
-                { code: "MN-290", title: "Exploring Novel Interventions for Diabetic Peripheral Neuropathy" },
-              ].map((r, i) => (
-                <li key={`${r.code}-${i}`} className="flex items-center justify-between rounded-lg border p-3">
-                  <div>
-                    <div className="font-medium">{r.code}</div>
-                    <div className="text-gray-600 text-xs">{r.title}</div>
-                  </div>
-                  <button className="rounded-full border px-3 py-1 text-xs hover:bg-gray-50">View</button>
-                </li>
-              ))}
-            </ul>
-            <Link to="/providers/volunteers" className="mt-3 w-full inline-block text-center rounded-full border px-4 py-2 text-sm hover:bg-gray-50">View All Volunteers</Link>
+            <div className="text-sm text-gray-500">Interested Patients</div>
+            {interestedPatientsByTrial.size === 0 ? (
+              <div className="mt-4 text-center text-sm text-gray-600 py-6">
+                No patients have expressed interest yet
+              </div>
+            ) : (
+              <ul className="mt-2 space-y-2 text-sm">
+                {Array.from(interestedPatientsByTrial.entries())
+                  .flatMap(([nctId, patients]) =>
+                    patients.slice(0, 4).map((p) => (
+                      <li key={`${p.patientId}-${nctId}`} className="flex items-center justify-between rounded-lg border p-3">
+                        <div>
+                          <div className="font-medium text-gray-900">{p.email?.split("@")[0] || "Patient"}</div>
+                          <div className="text-gray-600 text-xs">{p.primaryCondition || p.gender || "No condition info"}</div>
+                          <div className="text-gray-500 text-xs mt-0.5">{nctId}</div>
+                        </div>
+                        <button className="rounded-full border px-3 py-1 text-xs hover:bg-gray-50">Contact</button>
+                      </li>
+                    ))
+                  )
+                  .slice(0, 4)}
+              </ul>
+            )}
+            <Link to="/providers/volunteers" className="mt-3 w-full inline-block text-center rounded-full border px-4 py-2 text-sm hover:bg-gray-50">View All Interested Patients</Link>
           </div>
         </div>
       </main>

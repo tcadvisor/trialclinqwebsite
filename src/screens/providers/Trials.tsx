@@ -5,15 +5,20 @@ import SiteHeader from "../../components/SiteHeader";
 import { CtgovStudy, fetchStudies, ctgovStudyDetailUrl, formatNearestSitePreview, fetchStudyByNctId } from "../../lib/ctgov";
 import { addTrial, getAddedTrials, isTrialAdded } from "../../lib/providerTrials";
 import { buildSmartCondQuery, buildLooseCondQuery } from "../../lib/searchQuery";
+import { useAuth } from "../../lib/auth";
 
 export default function ProviderTrials(): JSX.Element {
+  const { user } = useAuth();
+  const userId = user?.userId || "";
   const [query, setQuery] = React.useState("");
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string>("");
   const [studies, setStudies] = React.useState<CtgovStudy[]>([]);
   const [added, setAdded] = React.useState<Record<string, boolean>>(() => {
     const map: Record<string, boolean> = {};
-    getAddedTrials().forEach((t) => { if (t.nctId) map[t.nctId] = true; });
+    if (userId) {
+      getAddedTrials(userId).forEach((t) => { if (t.nctId) map[t.nctId] = true; });
+    }
     return map;
   });
   const [selected, setSelected] = React.useState<{ nctId: string; title: string; status?: string }[]>([]);
@@ -116,7 +121,7 @@ export default function ProviderTrials(): JSX.Element {
                     const nearest = formatNearestSitePreview(s);
                     const key = `${nctId || "idx"}-${i}`;
                     const inSelected = !!(nctId && selected.some((t) => t.nctId === nctId));
-                    const already = nctId ? (added[nctId] || isTrialAdded(nctId)) : false;
+                    const already = nctId && userId ? (added[nctId] || isTrialAdded(userId, nctId)) : false;
                     return (
                       <li key={key} className="flex items-center justify-between px-4 py-3 border-t first:border-t-0 bg-white hover:bg-gray-50">
                         <div className="min-w-0">
@@ -193,11 +198,13 @@ export default function ProviderTrials(): JSX.Element {
                   <button
                     type="button"
                     onClick={() => {
-                      selected.forEach((t) => addTrial({ nctId: t.nctId, title: t.title, status: t.status }));
-                      const map: Record<string, boolean> = {};
-                      selected.forEach((t) => { map[t.nctId] = true; });
-                      setAdded((m) => ({ ...m, ...map }));
-                      setSelected([]);
+                      if (userId) {
+                        selected.forEach((t) => addTrial(userId, { nctId: t.nctId, title: t.title, status: t.status }));
+                        const map: Record<string, boolean> = {};
+                        selected.forEach((t) => { map[t.nctId] = true; });
+                        setAdded((m) => ({ ...m, ...map }));
+                        setSelected([]);
+                      }
                     }}
                     className="w-full inline-flex items-center justify-center rounded-full bg-[#1033e5] px-4 py-3 text-white text-sm font-medium hover:bg-blue-700"
                   >

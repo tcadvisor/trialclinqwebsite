@@ -50,6 +50,59 @@ export default function Login(): JSX.Element {
     }
   };
 
+  const handleDemoLogin = () => {
+    const demoUser = {
+      email: "demo.patient@example.com",
+      firstName: "Demo",
+      lastName: "Patient",
+      userId: "demo-patient-12345",
+      role: "patient" as const,
+    };
+
+    // Set up a demo profile so they can see trials
+    localStorage.setItem("tc_health_profile_v1", JSON.stringify({
+      patientId: "demo-patient-12345",
+      email: "demo.patient@example.com",
+      emailVerified: true,
+      age: "45",
+      weight: "75",
+      phone: "+1-555-0123",
+      gender: "Male",
+      race: "Caucasian",
+      language: "English",
+      bloodGroup: "O",
+      genotype: "Unknown",
+      hearingImpaired: false,
+      visionImpaired: false,
+      primaryCondition: "Diabetes",
+      diagnosed: "2020",
+      allergies: [],
+      medications: [{ name: "Metformin", dose: "500mg" }],
+      additionalInfo: "Type 2 diabetes management",
+      ecog: "0",
+      diseaseStage: "Stage 2",
+      biomarkers: "HbA1c 7.5%",
+      priorTherapies: [],
+      comorbidityCardiac: false,
+      comorbidityRenal: false,
+      comorbidityHepatic: false,
+      comorbidityAutoimmune: false,
+      infectionHIV: false,
+      infectionHBV: false,
+      infectionHCV: false,
+    }));
+
+    localStorage.setItem("tc_health_profile_metadata_v1", JSON.stringify({
+      location: "San Francisco, CA",
+      radius: "50 miles",
+      lat: 37.7749,
+      lng: -122.4194,
+    }));
+
+    signIn(demoUser);
+    navigate("/patients/eligible");
+  };
+
   return (
     <div className="min-h-screen bg-white text-gray-900">
       <HomeHeader />
@@ -78,6 +131,16 @@ export default function Login(): JSX.Element {
           </button>
         </form>
         <p className="text-sm text-gray-600 mt-4">No account? <Link to="/patients/volunteer" className="text-blue-600 hover:underline">Sign up</Link></p>
+
+        <div className="mt-8 pt-8 border-t">
+          <p className="text-sm text-gray-600 mb-3 text-center">For testing purposes:</p>
+          <button
+            onClick={handleDemoLogin}
+            className="w-full inline-block rounded-full bg-gray-200 hover:bg-gray-300 text-gray-900 px-6 py-2 text-sm font-medium transition"
+          >
+            Login as Demo Patient
+          </button>
+        </div>
       </main>
     </div>
   );
