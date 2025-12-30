@@ -546,7 +546,7 @@ export default function HealthProfile(): JSX.Element {
       if (raw) return JSON.parse(raw) as HealthProfileData;
     } catch {}
     return {
-      patientId: "CUS_j2kthfmgv3bzr5r",
+      patientId: "", // Will be set from authenticated user
       email: "",
       emailVerified: false,
       age: "",
