@@ -94,12 +94,6 @@ export default function ContactPage() {
               <p className="text-gray-600 text-sm mb-4">
                 Questions about our platform and services
               </p>
-              <a
-                href="mailto:info@trialcliniq.com"
-                className="text-blue-600 hover:text-blue-700 font-medium text-sm"
-              >
-                info@trialcliniq.com
-              </a>
             </div>
 
             {/* Partnership Inquiries */}
@@ -113,12 +107,6 @@ export default function ContactPage() {
               <p className="text-gray-600 text-sm mb-4">
                 For sponsors, sites, and business partnerships
               </p>
-              <a
-                href="mailto:partnerships@trialcliniq.com"
-                className="text-blue-600 hover:text-blue-700 font-medium text-sm"
-              >
-                partnerships@trialcliniq.com
-              </a>
             </div>
 
             {/* Patient Support */}
@@ -132,12 +120,6 @@ export default function ContactPage() {
               <p className="text-gray-600 text-sm mb-4">
                 Help with your patient account and trials
               </p>
-              <a
-                href="mailto:support@trialcliniq.com"
-                className="text-blue-600 hover:text-blue-700 font-medium text-sm"
-              >
-                support@trialcliniq.com
-              </a>
             </div>
           </div>
 
