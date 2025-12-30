@@ -13,6 +13,12 @@ export default function ProviderDashboard(): JSX.Element {
   const [trials, setTrials] = React.useState<AddedTrial[]>(() =>
     userId ? getAddedTrials(userId) : []
   );
+  const [appointments, setAppointments] = React.useState<Appointment[]>(() =>
+    userId ? getAppointments(userId) : []
+  );
+  const [matchedVolunteers, setMatchedVolunteers] = React.useState<MatchedVolunteer[]>(() =>
+    userId ? getMatchedVolunteers(userId) : []
+  );
 
   React.useEffect(() => {
     if (!userId) return;
@@ -20,6 +26,10 @@ export default function ProviderDashboard(): JSX.Element {
     const onStorage = (e: StorageEvent) => {
       if (e.key === `provider:trials:v1:${userId}`) {
         setTrials(getAddedTrials(userId));
+      } else if (e.key === `provider:appointments:v1:${userId}`) {
+        setAppointments(getAppointments(userId));
+      } else if (e.key === `provider:matches:v1:${userId}`) {
+        setMatchedVolunteers(getMatchedVolunteers(userId));
       }
     };
     window.addEventListener("storage", onStorage);
