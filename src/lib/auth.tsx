@@ -220,7 +220,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (!pendingEmail || pendingEmail === accountEmail) {
               firstName = pending.firstName || firstName;
               lastName = pending.lastName || lastName;
-              mergeProfileFromEligibility(cognitoUser.email);
+              mergeProfileFromEligibility(cognitoUser.email, {
+                email: cognitoUser.email,
+                firstName,
+                lastName,
+                userId: cognitoUser.userId || "",
+              });
             }
             clearPendingSignup();
           }
