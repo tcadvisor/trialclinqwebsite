@@ -2,16 +2,58 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import SiteHeader from "../../components/SiteHeader";
 import { formatPhoneNumber, getPhoneValidationError } from "../../lib/phoneValidation";
+import { signUpUser } from "../../lib/entraId";
 
 export default function InvestigatorInformation(): JSX.Element {
   const navigate = useNavigate();
-  const [phone, setPhone] = useState("");
+  const [investigatorName, setInvestigatorName] = useState("");
+  const [investigatorPhone, setInvestigatorPhone] = useState("");
   const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [investigatorEmail, setInvestigatorEmail] = useState("");
+  const [affiliatedOrg, setAffiliatedOrg] = useState("");
+  const [regulatoryAuthority, setRegulatoryAuthority] = useState("");
+  const [regulatoryAddress, setRegulatoryAddress] = useState("");
+  const [useMyName, setUseMyName] = useState(false);
+  const [useMyPhone, setUseMyPhone] = useState(false);
+  const [useMyEmail, setUseMyEmail] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Load initial data from localStorage if it exists
+  React.useEffect(() => {
+    try {
+      const raw = localStorage.getItem("tc_provider_profile_v1");
+      if (raw) {
+        const profile = JSON.parse(raw);
+        if (profile.investigatorName) setInvestigatorName(profile.investigatorName);
+        if (profile.investigatorPhone) setInvestigatorPhone(profile.investigatorPhone);
+        if (profile.investigatorEmail) setInvestigatorEmail(profile.investigatorEmail);
+        if (profile.affiliatedOrganization) setAffiliatedOrg(profile.affiliatedOrganization);
+        if (profile.regulatoryAuthority) setRegulatoryAuthority(profile.regulatoryAuthority);
+      }
+      // Auto-populate from pending signup if available
+      const pending = localStorage.getItem("pending_signup_v1");
+      if (pending) {
+        const pendingData = JSON.parse(pending);
+        if (useMyName && pendingData.firstName && pendingData.lastName) {
+          setInvestigatorName(`${pendingData.firstName} ${pendingData.lastName}`);
+        }
+        if (useMyPhone && pendingData.phone) {
+          setInvestigatorPhone(pendingData.phone);
+        }
+        if (useMyEmail && pendingData.email) {
+          setInvestigatorEmail(pendingData.email);
+        }
+      }
+    } catch (e) {
+      console.error("Error loading provider profile from localStorage:", e);
+    }
+  }, []);
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     const formatted = formatPhoneNumber(value, "US");
-    setPhone(formatted);
+    setInvestigatorPhone(formatted);
 
     if (phoneError) {
       setPhoneError(null);
@@ -19,25 +61,59 @@ export default function InvestigatorInformation(): JSX.Element {
   };
 
   const handlePhoneBlur = () => {
-    if (phone.trim()) {
-      const err = getPhoneValidationError(phone, "US");
+    if (investigatorPhone.trim()) {
+      const err = getPhoneValidationError(investigatorPhone, "US");
       setPhoneError(err);
     }
   };
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    setError(null);
 
     // Validate phone before submission
-    if (phone.trim()) {
-      const err = getPhoneValidationError(phone, "US");
+    if (investigatorPhone.trim()) {
+      const err = getPhoneValidationError(investigatorPhone, "US");
       if (err) {
         setPhoneError(err);
         return;
       }
     }
 
-    navigate("/providers/welcome");
+    setIsLoading(true);
+
+    try {
+      // Save investigator information to localStorage
+      const raw = localStorage.getItem("tc_provider_profile_v1");
+      const existing = raw ? JSON.parse(raw) : {};
+      const profile = {
+        ...existing,
+        investigatorName,
+        investigatorPhone,
+        investigatorEmail,
+        affiliatedOrganization: affiliatedOrg,
+        regulatoryAuthority,
+        regulatoryAuthorityAddress: regulatoryAddress,
+      };
+      localStorage.setItem("tc_provider_profile_v1", JSON.stringify(profile));
+      console.log("✅ Investigator information saved to localStorage");
+
+      // Get pending signup info
+      const pendingRaw = localStorage.getItem("pending_signup_v1");
+      const pending = pendingRaw ? JSON.parse(pendingRaw) : {};
+
+      // Now trigger Azure signup (mirrors patient flow after SignupInfo)
+      await signUpUser({
+        email: pending.email || "",
+        password: "",
+        firstName: pending.firstName || "",
+        lastName: pending.lastName || "",
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Sign up failed. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
