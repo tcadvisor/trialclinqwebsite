@@ -19,19 +19,27 @@ type Trial = {
 const TRIALS: Trial[] = [];
 
 export default function AllTrials(): JSX.Element {
+  const { user } = useAuth();
+  const userId = user?.userId || "";
   const [status, setStatus] = React.useState<string>("All");
   const [phase, setPhase] = React.useState<string>("All");
   const [q, setQ] = React.useState<string>("");
-  const [trials, setTrials] = React.useState<Trial[]>(() => getAddedTrials().map((t) => ({ title: t.title, id: t.nctId, status: t.status, sponsor: t.sponsor })));
+  const [trials, setTrials] = React.useState<Trial[]>(() =>
+    userId ? getAddedTrials(userId).map((t) => ({ title: t.title, id: t.nctId, status: t.status, sponsor: t.sponsor })) : []
+  );
   const [menuId, setMenuId] = React.useState<string | null>(null);
 
   React.useEffect(() => {
+    if (!userId) return;
+
     const onStorage = (e: StorageEvent) => {
-      if (e.key === "provider:trials:v1") setTrials(getAddedTrials().map((t) => ({ title: t.title, id: t.nctId, status: t.status, sponsor: t.sponsor })));
+      if (e.key === `provider:trials:v1:${userId}`) {
+        setTrials(getAddedTrials(userId).map((t) => ({ title: t.title, id: t.nctId, status: t.status, sponsor: t.sponsor })));
+      }
     };
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
-  }, []);
+  }, [userId]);
 
   const filtered = React.useMemo(() => {
     return trials.filter((t) =>
