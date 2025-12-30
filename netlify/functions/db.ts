@@ -132,6 +132,47 @@ export async function initializeDatabase() {
       CREATE INDEX IF NOT EXISTS idx_patient_documents_blob_path ON patient_documents(blob_path);
     `);
 
+    // Create provider_profiles table with user tracking (mirrors patient_profiles structure)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS provider_profiles (
+        id SERIAL PRIMARY KEY,
+        provider_id VARCHAR(255) UNIQUE NOT NULL,
+        user_id VARCHAR(255) NOT NULL,
+        email VARCHAR(255) NOT NULL,
+        email_verified BOOLEAN DEFAULT FALSE,
+        site_name VARCHAR(500),
+        organization VARCHAR(500),
+        organization_type VARCHAR(100),
+        organization_abbreviation VARCHAR(50),
+        parent_organizations JSONB,
+        address VARCHAR(500),
+        city VARCHAR(100),
+        state VARCHAR(50),
+        zipcode VARCHAR(20),
+        country VARCHAR(100),
+        facility_type VARCHAR(100),
+        funding_organization VARCHAR(500),
+        accepted_conditions JSONB,
+        languages JSONB,
+        investigator_name VARCHAR(255),
+        investigator_phone VARCHAR(20),
+        investigator_email VARCHAR(255),
+        affiliated_organization VARCHAR(500),
+        regulatory_authority VARCHAR(255),
+        regulatory_authority_address VARCHAR(500),
+        consents_accepted JSONB,
+        additional_info TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_provider_profiles_provider_id ON provider_profiles(provider_id);
+      CREATE INDEX IF NOT EXISTS idx_provider_profiles_user_id ON provider_profiles(user_id);
+      CREATE INDEX IF NOT EXISTS idx_provider_profiles_email ON provider_profiles(email);
+      CREATE INDEX IF NOT EXISTS idx_provider_profiles_site_name ON provider_profiles(site_name);
+    `);
+
     // Create audit_log table for tracking all operations
     await client.query(`
       CREATE TABLE IF NOT EXISTS audit_logs (

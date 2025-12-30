@@ -1,9 +1,10 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import HomeHeader from "../../components/HomeHeader";
 import SignUpForm from "../../components/SignUpForm";
-import { signUpUser } from "../../lib/entraId";
 
 export default function CreateAccount(): JSX.Element {
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,6 +27,7 @@ export default function CreateAccount(): JSX.Element {
     const ref = form.ref?.value?.trim();
 
     try {
+      // Store pending signup (same as patient flow)
       localStorage.setItem("pending_signup_v1", JSON.stringify({
         email,
         firstName,
@@ -36,13 +38,9 @@ export default function CreateAccount(): JSX.Element {
       }));
       localStorage.setItem("pending_role_v1", "provider");
 
-      // Sign up with Azure Entra ID
-      await signUpUser({
-        email,
-        password: "",
-        firstName,
-        lastName,
-      });
+      // Navigate to SiteInformation (mirrors patient flow to SignupInfo)
+      // Azure signup will happen after InvestigatorInformation form
+      navigate("/providers/site-information");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Sign up failed. Please try again.");
     } finally {

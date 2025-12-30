@@ -58,8 +58,9 @@ export default function SignupInfo(): JSX.Element {
     if (m < 0 || (m === 0 && today.getDate() < dobDate.getDate())) calculatedAge--;
 
     // Save to health profile (tc_health_profile_v1)
+    // Note: patientId will be set after authentication with proper Azure OID
     const healthProfile = {
-      patientId: "CUS_j2kthfmgv3bzr5r",
+      patientId: "", // Will be set after user authenticates with Azure
       email: pending?.email || "",
       emailVerified: false,
       age: String(calculatedAge),

@@ -1,17 +1,62 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import SiteHeader from "../../components/SiteHeader";
 import { formatPhoneNumber, getPhoneValidationError } from "../../lib/phoneValidation";
+import { signUpUser } from "../../lib/entraId";
+import { useAuth } from "../../lib/auth";
+import { generateProviderId } from "../../lib/providerIdUtils";
 
 export default function InvestigatorInformation(): JSX.Element {
   const navigate = useNavigate();
-  const [phone, setPhone] = useState("");
+  const { signIn } = useAuth();
+  const [investigatorName, setInvestigatorName] = useState("");
+  const [investigatorPhone, setInvestigatorPhone] = useState("");
   const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [investigatorEmail, setInvestigatorEmail] = useState("");
+  const [affiliatedOrg, setAffiliatedOrg] = useState("");
+  const [regulatoryAuthority, setRegulatoryAuthority] = useState("");
+  const [regulatoryAddress, setRegulatoryAddress] = useState("");
+  const [useMyName, setUseMyName] = useState(false);
+  const [useMyPhone, setUseMyPhone] = useState(false);
+  const [useMyEmail, setUseMyEmail] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Load initial data from localStorage if it exists
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("tc_provider_profile_v1");
+      if (raw) {
+        const profile = JSON.parse(raw);
+        if (profile.investigatorName) setInvestigatorName(profile.investigatorName);
+        if (profile.investigatorPhone) setInvestigatorPhone(profile.investigatorPhone);
+        if (profile.investigatorEmail) setInvestigatorEmail(profile.investigatorEmail);
+        if (profile.affiliatedOrganization) setAffiliatedOrg(profile.affiliatedOrganization);
+        if (profile.regulatoryAuthority) setRegulatoryAuthority(profile.regulatoryAuthority);
+      }
+      // Auto-populate from pending signup if available
+      const pending = localStorage.getItem("pending_signup_v1");
+      if (pending) {
+        const pendingData = JSON.parse(pending);
+        if (useMyName && pendingData.firstName && pendingData.lastName) {
+          setInvestigatorName(`${pendingData.firstName} ${pendingData.lastName}`);
+        }
+        if (useMyPhone && pendingData.phone) {
+          setInvestigatorPhone(pendingData.phone);
+        }
+        if (useMyEmail && pendingData.email) {
+          setInvestigatorEmail(pendingData.email);
+        }
+      }
+    } catch (e) {
+      console.error("Error loading provider profile from localStorage:", e);
+    }
+  }, []);
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     const formatted = formatPhoneNumber(value, "US");
-    setPhone(formatted);
+    setInvestigatorPhone(formatted);
 
     if (phoneError) {
       setPhoneError(null);
@@ -19,25 +64,93 @@ export default function InvestigatorInformation(): JSX.Element {
   };
 
   const handlePhoneBlur = () => {
-    if (phone.trim()) {
-      const err = getPhoneValidationError(phone, "US");
+    if (investigatorPhone.trim()) {
+      const err = getPhoneValidationError(investigatorPhone, "US");
       setPhoneError(err);
     }
   };
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    setError(null);
 
     // Validate phone before submission
-    if (phone.trim()) {
-      const err = getPhoneValidationError(phone, "US");
+    if (investigatorPhone.trim()) {
+      const err = getPhoneValidationError(investigatorPhone, "US");
       if (err) {
         setPhoneError(err);
         return;
       }
     }
 
-    navigate("/providers/welcome");
+    setIsLoading(true);
+
+    try {
+      // Save investigator information to localStorage
+      const raw = localStorage.getItem("tc_provider_profile_v1");
+      const existing = raw ? JSON.parse(raw) : {};
+      const profile = {
+        ...existing,
+        investigatorName,
+        investigatorPhone,
+        investigatorEmail,
+        affiliatedOrganization: affiliatedOrg,
+        regulatoryAuthority,
+        regulatoryAuthorityAddress: regulatoryAddress,
+      };
+      localStorage.setItem("tc_provider_profile_v1", JSON.stringify(profile));
+      console.log("✅ Investigator information saved to localStorage");
+
+      // Get pending signup info
+      const pendingRaw = localStorage.getItem("pending_signup_v1");
+      const pending = pendingRaw ? JSON.parse(pendingRaw) : {};
+
+      // Now trigger Azure signup (mirrors patient flow after SignupInfo)
+      await signUpUser({
+        email: pending.email || "",
+        password: "",
+        firstName: pending.firstName || "",
+        lastName: pending.lastName || "",
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Sign up failed. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  // Bypass sign-in for testing (dev only)
+  function handleBypassSignIn() {
+    try {
+      const pendingRaw = localStorage.getItem("pending_signup_v1");
+      const pending = pendingRaw ? JSON.parse(pendingRaw) : {};
+
+      // Create mock user and sign in
+      const mockUserId = `dev-provider-${Date.now()}`;
+      signIn({
+        email: pending.email || "test@example.com",
+        firstName: pending.firstName || "Test",
+        lastName: pending.lastName || "Provider",
+        role: "provider",
+        userId: mockUserId,
+      });
+
+      // Save provider profile with mock user
+      const raw = localStorage.getItem("tc_provider_profile_v1");
+      const profile = raw ? JSON.parse(raw) : {};
+      const providerId = mockUserId;
+      localStorage.setItem("tc_provider_profile_v1", JSON.stringify({
+        ...profile,
+        providerId,
+        email: pending.email || "test@example.com",
+      }));
+
+      // Navigate to dashboard
+      navigate("/providers/dashboard", { replace: true });
+    } catch (err) {
+      console.error("Bypass failed:", err);
+      setError("Bypass failed. Please try again.");
+    }
   }
 
   return (
@@ -48,61 +161,63 @@ export default function InvestigatorInformation(): JSX.Element {
         <p className="text-center text-gray-600 mt-2">Enter your site's contact and location details for trial coordination</p>
 
         <div className="mt-8 rounded-2xl border shadow-sm bg-white p-6 md:p-8">
+          {error && (
+            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {error}
+            </div>
+          )}
           <form className="space-y-5" onSubmit={handleSubmit}>
             <div>
               <label className="block text-sm font-medium mb-1">Investigator Name<span className="text-red-500">*</span></label>
-              <input placeholder="Enter full name of the site investigator" className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" required />
+              <input value={investigatorName} onChange={(e) => setInvestigatorName(e.target.value)} placeholder="Enter full name of the site investigator" className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" required />
               <label className="mt-2 flex items-center gap-2 text-sm">
-                <input type="radio" name="useMyName" className="h-4 w-4" />
+                <input type="checkbox" checked={useMyName} onChange={(e) => setUseMyName(e.target.checked)} className="h-4 w-4" />
                 Use my name as investigator
               </label>
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">Affiliated Organization Name<span className="text-gray-500">*</span></label>
-              <input placeholder="Enter the affiliated organization name" className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              <label className="mt-2 flex items-center gap-2 text-sm">
-                <input type="radio" name="sameOrg" className="h-4 w-4" />
-                Same as sponsoring organization
-              </label>
+              <label className="block text-sm font-medium mb-1">Affiliated Organization Name<span className="text-red-500">*</span></label>
+              <input value={affiliatedOrg} onChange={(e) => setAffiliatedOrg(e.target.value)} placeholder="Enter the affiliated organization name" className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" required />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">Investigator Phone<span className="text-gray-500">*</span></label>
+              <label className="block text-sm font-medium mb-1">Investigator Phone<span className="text-red-500">*</span></label>
               <input
                 type="tel"
-                value={phone}
+                value={investigatorPhone}
                 onChange={handlePhoneChange}
                 onBlur={handlePhoneBlur}
                 placeholder="(555) 000-0000"
                 className={`w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 ${phoneError ? "border-red-500 focus:ring-red-500" : "focus:ring-blue-500"}`}
+                required
               />
               {phoneError && (
                 <p className="mt-1 text-sm text-red-600">{phoneError}</p>
               )}
               <label className="mt-2 flex items-center gap-2 text-sm">
-                <input type="radio" name="useMyPhone" className="h-4 w-4" />
+                <input type="checkbox" checked={useMyPhone} onChange={(e) => setUseMyPhone(e.target.checked)} className="h-4 w-4" />
                 Use my phone number
               </label>
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">Investigator Email<span className="text-gray-500">*</span></label>
-              <input type="email" placeholder="Enter the primary email address for the investigator" className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <label className="block text-sm font-medium mb-1">Investigator Email<span className="text-red-500">*</span></label>
+              <input type="email" value={investigatorEmail} onChange={(e) => setInvestigatorEmail(e.target.value)} placeholder="Enter the primary email address for the investigator" className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" required />
               <label className="mt-2 flex items-center gap-2 text-sm">
-                <input type="radio" name="useMyEmail" className="h-4 w-4" />
+                <input type="checkbox" checked={useMyEmail} onChange={(e) => setUseMyEmail(e.target.checked)} className="h-4 w-4" />
                 Use my email address
               </label>
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">Regulatory Authority</label>
-              <input placeholder="Enter the regulatory authority overseeing the trials" className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <label className="block text-sm font-medium mb-1">Regulatory Authority<span className="text-red-500">*</span></label>
+              <input value={regulatoryAuthority} onChange={(e) => setRegulatoryAuthority(e.target.value)} placeholder="Enter the regulatory authority overseeing the trials" className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" required />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">Regulatory Authority Address</label>
-              <input placeholder="Enter the full mailing address of the regulatory authority" className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <label className="block text-sm font-medium mb-1">Regulatory Authority Address<span className="text-red-500">*</span></label>
+              <input value={regulatoryAddress} onChange={(e) => setRegulatoryAddress(e.target.value)} placeholder="Enter the full mailing address of the regulatory authority" className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" required />
             </div>
 
             <div className="space-y-3 text-sm text-gray-700">
@@ -123,7 +238,7 @@ export default function InvestigatorInformation(): JSX.Element {
               </p>
             </div>
 
-            <button type="submit" className="mt-2 w-full px-6 py-3 rounded-full bg-blue-600 text-white hover:bg-blue-700">Create Account</button>
+            <button type="submit" disabled={isLoading} className="mt-2 w-full px-6 py-3 rounded-full bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">{isLoading ? "Creating Account..." : "Create Account"}</button>
 
             <p className="text-xs text-gray-500 flex items-center gap-2 mt-2">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M12 2a9 9 0 1 0 9 9A9.01 9.01 0 0 0 12 2Zm1 13h-2v-2h2Zm0-4h-2V7h2Z"/></svg>
@@ -132,6 +247,17 @@ export default function InvestigatorInformation(): JSX.Element {
           </form>
         </div>
       </main>
+
+      {/* Dev/Testing: Bypass sign-in button */}
+      <div className="fixed bottom-4 left-4">
+        <button
+          onClick={handleBypassSignIn}
+          className="text-xs px-3 py-1.5 rounded-full border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+          title="Skip authentication for testing (dev only)"
+        >
+          Skip Sign-In
+        </button>
+      </div>
     </div>
   );
 }
