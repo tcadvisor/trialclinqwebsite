@@ -6,11 +6,16 @@ export type AddedTrial = {
   nearest?: string;
 };
 
-const KEY = "provider:trials:v1";
+const KEY_PREFIX = "provider:trials:v1:";
 
-function read(): AddedTrial[] {
+function getStorageKey(userId: string): string {
+  return `${KEY_PREFIX}${userId}`;
+}
+
+function read(userId: string): AddedTrial[] {
   try {
-    const raw = localStorage.getItem(KEY);
+    const key = getStorageKey(userId);
+    const raw = localStorage.getItem(key);
     if (!raw) return [];
     const arr = JSON.parse(raw);
     return Array.isArray(arr) ? (arr as AddedTrial[]) : [];
@@ -19,26 +24,27 @@ function read(): AddedTrial[] {
   }
 }
 
-function write(list: AddedTrial[]): void {
+function write(userId: string, list: AddedTrial[]): void {
   try {
-    localStorage.setItem(KEY, JSON.stringify(list));
-    window.dispatchEvent(new StorageEvent("storage", { key: KEY }));
+    const key = getStorageKey(userId);
+    localStorage.setItem(key, JSON.stringify(list));
+    window.dispatchEvent(new StorageEvent("storage", { key }));
   } catch {
     // ignore
   }
 }
 
-export function getAddedTrials(): AddedTrial[] {
-  return read();
+export function getAddedTrials(userId: string): AddedTrial[] {
+  return read(userId);
 }
 
-export function isTrialAdded(nctId: string): boolean {
+export function isTrialAdded(userId: string, nctId: string): boolean {
   const id = nctId.trim().toUpperCase();
-  return read().some((t) => (t.nctId || "").trim().toUpperCase() === id);
+  return read(userId).some((t) => (t.nctId || "").trim().toUpperCase() === id);
 }
 
-export function addTrial(trial: AddedTrial): void {
-  const list = read();
+export function addTrial(userId: string, trial: AddedTrial): void {
+  const list = read(userId);
   const id = trial.nctId.trim().toUpperCase();
   const exists = list.findIndex((t) => (t.nctId || "").trim().toUpperCase() === id);
   if (exists >= 0) {
@@ -46,10 +52,10 @@ export function addTrial(trial: AddedTrial): void {
   } else {
     list.unshift({ ...trial, nctId: id });
   }
-  write(list);
+  write(userId, list);
 }
 
-export function removeTrial(nctId: string): void {
+export function removeTrial(userId: string, nctId: string): void {
   const id = nctId.trim().toUpperCase();
-  write(read().filter((t) => (t.nctId || "").trim().toUpperCase() !== id));
+  write(userId, read(userId).filter((t) => (t.nctId || "").trim().toUpperCase() !== id));
 }
