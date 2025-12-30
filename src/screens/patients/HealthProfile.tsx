@@ -656,6 +656,15 @@ export default function HealthProfile(): JSX.Element {
   useEffect(() => {
     setProfile((prev) => {
       let next = { ...prev };
+
+      // Set patient ID from authenticated user
+      if (user) {
+        const patientId = generatePatientId(user);
+        if (patientId && (!next.patientId || next.patientId === "")) {
+          next.patientId = patientId;
+        }
+      }
+
       if ((!next.email || next.email === "") && user?.email) next.email = user.email;
       // Eligibility fields
       try {
