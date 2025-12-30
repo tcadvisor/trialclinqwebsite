@@ -124,30 +124,31 @@ export default function InvestigatorInformation(): JSX.Element {
         <p className="text-center text-gray-600 mt-2">Enter your site's contact and location details for trial coordination</p>
 
         <div className="mt-8 rounded-2xl border shadow-sm bg-white p-6 md:p-8">
+          {error && (
+            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {error}
+            </div>
+          )}
           <form className="space-y-5" onSubmit={handleSubmit}>
             <div>
               <label className="block text-sm font-medium mb-1">Investigator Name<span className="text-red-500">*</span></label>
-              <input placeholder="Enter full name of the site investigator" className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" required />
+              <input value={investigatorName} onChange={(e) => setInvestigatorName(e.target.value)} placeholder="Enter full name of the site investigator" className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" required />
               <label className="mt-2 flex items-center gap-2 text-sm">
-                <input type="radio" name="useMyName" className="h-4 w-4" />
+                <input type="checkbox" checked={useMyName} onChange={(e) => setUseMyName(e.target.checked)} className="h-4 w-4" />
                 Use my name as investigator
               </label>
             </div>
 
             <div>
               <label className="block text-sm font-medium mb-1">Affiliated Organization Name<span className="text-gray-500">*</span></label>
-              <input placeholder="Enter the affiliated organization name" className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              <label className="mt-2 flex items-center gap-2 text-sm">
-                <input type="radio" name="sameOrg" className="h-4 w-4" />
-                Same as sponsoring organization
-              </label>
+              <input value={affiliatedOrg} onChange={(e) => setAffiliatedOrg(e.target.value)} placeholder="Enter the affiliated organization name" className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
 
             <div>
               <label className="block text-sm font-medium mb-1">Investigator Phone<span className="text-gray-500">*</span></label>
               <input
                 type="tel"
-                value={phone}
+                value={investigatorPhone}
                 onChange={handlePhoneChange}
                 onBlur={handlePhoneBlur}
                 placeholder="(555) 000-0000"
@@ -157,23 +158,23 @@ export default function InvestigatorInformation(): JSX.Element {
                 <p className="mt-1 text-sm text-red-600">{phoneError}</p>
               )}
               <label className="mt-2 flex items-center gap-2 text-sm">
-                <input type="radio" name="useMyPhone" className="h-4 w-4" />
+                <input type="checkbox" checked={useMyPhone} onChange={(e) => setUseMyPhone(e.target.checked)} className="h-4 w-4" />
                 Use my phone number
               </label>
             </div>
 
             <div>
               <label className="block text-sm font-medium mb-1">Investigator Email<span className="text-gray-500">*</span></label>
-              <input type="email" placeholder="Enter the primary email address for the investigator" className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <input type="email" value={investigatorEmail} onChange={(e) => setInvestigatorEmail(e.target.value)} placeholder="Enter the primary email address for the investigator" className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
               <label className="mt-2 flex items-center gap-2 text-sm">
-                <input type="radio" name="useMyEmail" className="h-4 w-4" />
+                <input type="checkbox" checked={useMyEmail} onChange={(e) => setUseMyEmail(e.target.checked)} className="h-4 w-4" />
                 Use my email address
               </label>
             </div>
 
             <div>
               <label className="block text-sm font-medium mb-1">Regulatory Authority</label>
-              <input placeholder="Enter the regulatory authority overseeing the trials" className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <input value={regulatoryAuthority} onChange={(e) => setRegulatoryAuthority(e.target.value)} placeholder="Enter the regulatory authority overseeing the trials" className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
 
             <div>
