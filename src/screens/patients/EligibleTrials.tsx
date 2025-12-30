@@ -60,6 +60,48 @@ export default function EligibleTrials(): JSX.Element {
     );
   }, [query, base]);
 
+  const handleExpressInterest = async (trial: LiteTrial) => {
+    if (!user?.userId) {
+      alert("Please log in to express interest");
+      return;
+    }
+
+    setExpressingInterest(prev => new Set(prev).add(trial.nctId));
+
+    try {
+      const patientId = generatePatientId({
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        userId: user.userId,
+        role: "patient",
+      });
+
+      const result = await expressInterestInTrial(
+        trial.nctId,
+        trial.title,
+        patientId,
+        user.userId
+      );
+
+      if (result.ok) {
+        setInterestedTrials(prev => new Set(prev).add(trial.nctId));
+        alert("Interest expressed successfully! Researchers will be able to see your interest in this trial.");
+      } else {
+        alert(result.message || "Failed to express interest");
+      }
+    } catch (err) {
+      console.error("Error expressing interest:", err);
+      alert("Failed to express interest");
+    } finally {
+      setExpressingInterest(prev => {
+        const next = new Set(prev);
+        next.delete(trial.nctId);
+        return next;
+      });
+    }
+  };
+
   // Pagination
   const pageSize = 25;
   const page = React.useMemo(() => {
