@@ -37,6 +37,33 @@ export default function ProviderDashboard(): JSX.Element {
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
   }, [userId]);
+
+  // Fetch interested patients for managed trials
+  React.useEffect(() => {
+    if (!userId || trials.length === 0) {
+      setInterestedPatientsByTrial(new Map());
+      return;
+    }
+
+    const fetchInterestedPatients = async () => {
+      const map = new Map<string, InterestedPatient[]>();
+
+      for (const trial of trials) {
+        try {
+          const result = await getTrialInterestedPatients(trial.nctId, userId);
+          if (result.ok && result.patients.length > 0) {
+            map.set(trial.nctId, result.patients);
+          }
+        } catch (err) {
+          console.error(`Failed to fetch interested patients for ${trial.nctId}:`, err);
+        }
+      }
+
+      setInterestedPatientsByTrial(map);
+    };
+
+    fetchInterestedPatients();
+  }, [userId, trials]);
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
       <SiteHeader />
