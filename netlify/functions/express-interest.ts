@@ -7,95 +7,127 @@ interface RequestBody {
   patientId?: string;
 }
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Content-Type": "application/json",
+};
+
+const errorResponse = (statusCode: number, message: string) => ({
+  statusCode,
+  headers: corsHeaders,
+  body: JSON.stringify({
+    ok: false,
+    message,
+  }),
+});
+
+const successResponse = (statusCode: number, data: any) => ({
+  statusCode,
+  headers: corsHeaders,
+  body: JSON.stringify(data),
+});
+
 const handler: Handler = async (event, context) => {
-  // Initialize database schema on first call
-  try {
-    await initializeDatabase();
-  } catch (err) {
-    console.error('Database initialization warning:', err);
-  }
-
-  if (event.httpMethod === "OPTIONS") {
-    return {
-      statusCode: 200,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization",
-      },
-      body: JSON.stringify({ ok: true }),
-    };
-  }
-
-  if (event.httpMethod !== "POST") {
-    return {
-      statusCode: 405,
-      body: JSON.stringify({ ok: false, message: "Method not allowed" }),
-    };
-  }
-
-  const corsHeaders = {
-    "Access-Control-Allow-Origin": "*",
-    "Content-Type": "application/json",
-  };
+  console.log("=== Express Interest Request ===");
+  console.log("Method:", event.httpMethod);
+  console.log("Headers:", Object.keys(event.headers || {}));
 
   try {
-    // Get auth info from headers
-    const userId = (event.headers["x-user-id"] as string) || (context.clientContext?.user?.sub as string);
-    const patientId = (event.headers["x-patient-id"] as string) || (context.clientContext?.user?.sub as string);
+    // OPTIONS request
+    if (event.httpMethod === "OPTIONS") {
+      return {
+        statusCode: 200,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "POST, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type, Authorization, x-user-id, x-patient-id",
+        },
+        body: JSON.stringify({ ok: true }),
+      };
+    }
+
+    // Only allow POST
+    if (event.httpMethod !== "POST") {
+      return errorResponse(405, "Method not allowed");
+    }
+
+    // Initialize database
+    try {
+      console.log("Initializing database...");
+      await initializeDatabase();
+      console.log("Database initialized");
+    } catch (err) {
+      console.warn("Database init warning:", err instanceof Error ? err.message : String(err));
+    }
+
+    // Get auth from headers
+    const userId = event.headers["x-user-id"];
+    const patientId = event.headers["x-patient-id"];
+
+    console.log("Auth check - userId:", !!userId, "patientId:", !!patientId);
 
     if (!userId || !patientId) {
-      return {
-        statusCode: 401,
-        headers: corsHeaders,
-        body: JSON.stringify({ ok: false, message: "Unauthorized - missing user or patient ID" }),
-      };
+      return errorResponse(401, "Missing x-user-id or x-patient-id header");
     }
 
-    const body: RequestBody = JSON.parse(event.body || "{}");
-    const { nctId, trialTitle } = body;
+    // Parse request body
+    let nctId = "";
+    let trialTitle = "";
+    
+    try {
+      const body = JSON.parse(event.body || "{}") as RequestBody;
+      nctId = body.nctId || "";
+      trialTitle = body.trialTitle || "";
+    } catch (parseErr) {
+      console.error("Failed to parse request body:", parseErr);
+      return errorResponse(400, "Invalid JSON in request body");
+    }
 
+    console.log("Request data - nctId:", nctId, "trialTitle:", trialTitle ? trialTitle.substring(0, 50) : "");
+
+    // Validate NCT ID format
     if (!nctId || !nctId.match(/^NCT\d{8}$/)) {
-      return {
-        statusCode: 400,
-        headers: corsHeaders,
-        body: JSON.stringify({ ok: false, message: "Invalid NCT ID format" }),
-      };
+      return errorResponse(400, `Invalid NCT ID format: ${nctId}`);
     }
 
-    // Check if patient already expressed interest
+    const nctIdUpper = nctId.toUpperCase();
+
+    // Check if already interested
+    console.log("Checking existing interest for patient:", patientId, "trial:", nctIdUpper);
+    
     try {
       const existing = await query(
         "SELECT id FROM trial_interests WHERE patient_id = $1 AND nct_id = $2",
-        [patientId, nctId.toUpperCase()]
+        [patientId, nctIdUpper]
       );
 
-      if (existing && existing.rows && existing.rows.length > 0) {
-        return {
-          statusCode: 200,
-          headers: corsHeaders,
-          body: JSON.stringify({
-            ok: true,
-            message: "Interest already expressed",
-            alreadyInterested: true,
-          }),
-        };
+      if (existing?.rows?.length > 0) {
+        console.log("Patient already interested");
+        return successResponse(200, {
+          ok: true,
+          message: "Interest already expressed",
+          alreadyInterested: true,
+        });
       }
-    } catch (dbErr: any) {
-      console.warn("Error checking existing interest (may be schema not ready):", dbErr.message);
-      // Continue - schema might not be initialized yet
+    } catch (checkErr: any) {
+      console.warn("Error checking existing interest:", checkErr.message);
+      // Continue - table might not exist yet
     }
 
-    // Insert interest record
+    // Insert new interest
+    console.log("Inserting new trial interest...");
+    
     try {
       const result = await query(
         `INSERT INTO trial_interests (patient_id, user_id, nct_id, trial_title, expressed_at, created_at)
          VALUES ($1, $2, $3, $4, NOW(), NOW())
          RETURNING id, patient_id, nct_id, trial_title, expressed_at`,
-        [patientId, userId, nctId.toUpperCase(), trialTitle || null]
+        [patientId, userId, nctIdUpper, trialTitle || null]
       );
 
-      // Log audit event
+      console.log("Interest inserted successfully, id:", result?.rows?.[0]?.id);
+
+      // Log audit event (non-blocking)
       try {
         await logAuditEvent(
           userId,
@@ -103,46 +135,24 @@ const handler: Handler = async (event, context) => {
           "trial_interest",
           result.rows[0].id,
           patientId,
-          { nctId, trialTitle }
+          { nctId: nctIdUpper, trialTitle }
         );
       } catch (auditErr) {
-        console.warn("Failed to log audit event:", auditErr);
-        // Don't fail the request just because audit logging failed
+        console.warn("Audit log failed (non-blocking):", auditErr instanceof Error ? auditErr.message : String(auditErr));
       }
 
-      return {
-        statusCode: 201,
-        headers: corsHeaders,
-        body: JSON.stringify({
-          ok: true,
-          message: "Interest expressed successfully",
-          data: result.rows[0],
-        }),
-      };
-    } catch (dbErr: any) {
-      console.error("Database error expressing interest:", dbErr);
-      return {
-        statusCode: 500,
-        headers: corsHeaders,
-        body: JSON.stringify({
-          ok: false,
-          message: "Database error: " + (dbErr.message || "Failed to express interest"),
-        }),
-      };
+      return successResponse(201, {
+        ok: true,
+        message: "Interest expressed successfully",
+        data: result.rows[0],
+      });
+    } catch (insertErr: any) {
+      console.error("Database insert error:", insertErr);
+      return errorResponse(500, `Database error: ${insertErr.message || "Insert failed"}`);
     }
-  } catch (error: any) {
-    console.error("Error expressing interest:", error);
-    return {
-      statusCode: 500,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        ok: false,
-        message: error.message || "Failed to express interest",
-      }),
-    };
+  } catch (err: any) {
+    console.error("Unexpected error:", err);
+    return errorResponse(500, err.message || "Internal server error");
   }
 };
 
