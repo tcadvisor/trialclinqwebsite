@@ -173,6 +173,27 @@ export async function initializeDatabase() {
       CREATE INDEX IF NOT EXISTS idx_provider_profiles_site_name ON provider_profiles(site_name);
     `);
 
+    // Create trial_interests table for tracking patient interest in clinical trials
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS trial_interests (
+        id SERIAL PRIMARY KEY,
+        patient_id VARCHAR(255) NOT NULL,
+        user_id VARCHAR(255) NOT NULL,
+        nct_id VARCHAR(20) NOT NULL,
+        trial_title VARCHAR(500),
+        expressed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(patient_id, nct_id),
+        FOREIGN KEY (patient_id) REFERENCES patient_profiles(patient_id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_trial_interests_patient_id ON trial_interests(patient_id);
+      CREATE INDEX IF NOT EXISTS idx_trial_interests_user_id ON trial_interests(user_id);
+      CREATE INDEX IF NOT EXISTS idx_trial_interests_nct_id ON trial_interests(nct_id);
+      CREATE INDEX IF NOT EXISTS idx_trial_interests_expressed_at ON trial_interests(expressed_at);
+    `);
+
     // Create audit_log table for tracking all operations
     await client.query(`
       CREATE TABLE IF NOT EXISTS audit_logs (
