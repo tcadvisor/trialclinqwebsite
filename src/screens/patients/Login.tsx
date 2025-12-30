@@ -59,7 +59,7 @@ export default function Login(): JSX.Element {
       role: "patient" as const,
     };
     signIn(demoUser);
-    navigate("/patients/eligible-trials");
+    navigate("/patients/eligible");
   };
 
   return (
