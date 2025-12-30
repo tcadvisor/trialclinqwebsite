@@ -18,6 +18,8 @@ interface BookDemoData {
   date?: string;
   time?: string;
   timezone?: string;
+  subject?: string;
+  message?: string;
 }
 
 function generateEmailContent(data: BookDemoData): { subject: string; html: string } {
