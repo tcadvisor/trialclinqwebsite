@@ -162,3 +162,74 @@ export function clearLocalCache(): void {
   localStorage.removeItem('tc_profile_sync_time');
   localStorage.removeItem('tc_docs');
 }
+
+interface ProviderProfile {
+  providerId: string;
+  email: string;
+  emailVerified?: boolean;
+  siteName?: string;
+  organization?: string;
+  organizationType?: string;
+  organizationAbbreviation?: string;
+  parentOrganizations?: string[];
+  address?: string;
+  city?: string;
+  state?: string;
+  zipcode?: string;
+  country?: string;
+  facilityType?: string;
+  fundingOrganization?: string;
+  acceptedConditions?: string[];
+  languages?: string[];
+  investigatorName?: string;
+  investigatorPhone?: string;
+  investigatorEmail?: string;
+  affiliatedOrganization?: string;
+  regulatoryAuthority?: string;
+  regulatoryAuthorityAddress?: string;
+  consentsAccepted?: Record<string, boolean>;
+  additionalInfo?: string;
+}
+
+// Save provider profile to persistent storage
+export async function saveProviderProfile(profile: ProviderProfile, authToken?: string): Promise<void> {
+  const authHeader = toAuthHeader(authToken);
+  const response = await fetch(`${API_BASE}/provider-write`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': authHeader,
+    },
+    body: JSON.stringify(profile),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to save provider profile');
+  }
+
+  console.log('✅ Provider profile saved to persistent storage');
+  return response.json();
+}
+
+// Cache provider profile locally
+export function cacheProviderProfileLocally(profile: ProviderProfile): void {
+  localStorage.setItem('tc_provider_profile_v1', JSON.stringify(profile));
+  localStorage.setItem('tc_provider_sync_time', new Date().toISOString());
+}
+
+// Retrieve cached provider profile
+export function getCachedProviderProfile(providerId: string): ProviderProfile | null {
+  try {
+    const cached = localStorage.getItem('tc_provider_profile_v1');
+    if (cached) {
+      const profile = JSON.parse(cached);
+      if (profile.providerId === providerId) {
+        return profile;
+      }
+    }
+  } catch (error) {
+    console.error('Error reading cached provider profile:', error);
+  }
+  return null;
+}
