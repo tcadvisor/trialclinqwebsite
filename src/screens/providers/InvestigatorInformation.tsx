@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import SiteHeader from "../../components/SiteHeader";
 import { formatPhoneNumber, getPhoneValidationError } from "../../lib/phoneValidation";
 import { signUpUser } from "../../lib/entraId";
+import { useAuth } from "../../lib/auth";
+import { generateProviderId } from "../../lib/providerIdUtils";
 
 export default function InvestigatorInformation(): JSX.Element {
   const navigate = useNavigate();
