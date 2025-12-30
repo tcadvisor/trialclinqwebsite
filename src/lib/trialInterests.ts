@@ -62,7 +62,12 @@ export async function expressInterestInTrial(
     });
 
     const text = await response.text();
-    console.log("[ExpressInterest] Response text:", text || "(empty)");
+
+    // Check if we got HTML instead of JSON (404 page)
+    if (text.includes("<!DOCTYPE") || text.includes("<html")) {
+      console.warn("[ExpressInterest] Got HTML response - functions not available");
+      throw new Error("Functions not deployed");
+    }
 
     let data: any = { ok: false };
 
@@ -71,7 +76,7 @@ export async function expressInterestInTrial(
         data = JSON.parse(text);
       } catch (parseErr) {
         console.error("[ExpressInterest] Failed to parse JSON:", parseErr);
-        throw new Error(`Invalid JSON response: ${text.substring(0, 100)}`);
+        throw new Error(`Invalid JSON response`);
       }
     }
 
@@ -86,7 +91,7 @@ export async function expressInterestInTrial(
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to express interest";
-    console.error("[ExpressInterest] Error:", message, "- using localStorage fallback");
+    console.warn("[ExpressInterest] Using localStorage fallback");
 
     // Fallback to localStorage when function is unavailable (e.g., in dev without netlify dev)
     try {
@@ -108,13 +113,13 @@ export async function expressInterestInTrial(
       return {
         ok: true,
         alreadyInterested: false,
-        message: "Interest expressed successfully (offline mode)",
+        message: "Interest expressed successfully (local)",
       };
     } catch (fallbackErr) {
       console.error("[ExpressInterest] Fallback failed:", fallbackErr);
       return {
         ok: false,
-        message: "Could not express interest - please ensure functions are deployed",
+        message: "Could not express interest",
       };
     }
   }
