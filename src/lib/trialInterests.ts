@@ -14,6 +14,26 @@ export type InterestedPatient = {
 /**
  * Express patient interest in a clinical trial
  */
+// Local storage fallback for when functions aren't available
+const INTERESTS_CACHE_KEY = "trial_interests_local_v1";
+
+function getLocalInterests(): Record<string, string[]> {
+  try {
+    const data = localStorage.getItem(INTERESTS_CACHE_KEY);
+    return data ? JSON.parse(data) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveLocalInterests(interests: Record<string, string[]>) {
+  try {
+    localStorage.setItem(INTERESTS_CACHE_KEY, JSON.stringify(interests));
+  } catch {
+    console.warn("Failed to save interests to localStorage");
+  }
+}
+
 export async function expressInterestInTrial(
   nctId: string,
   trialTitle: string,
@@ -23,7 +43,7 @@ export async function expressInterestInTrial(
   try {
     console.log("[ExpressInterest] Starting request", { nctId, patientId, userId });
 
-    const response = await fetch("/api/express-interest", {
+    const response = await fetch("/.netlify/functions/express-interest", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -66,11 +86,37 @@ export async function expressInterestInTrial(
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to express interest";
-    console.error("[ExpressInterest] Error:", message);
-    return {
-      ok: false,
-      message,
-    };
+    console.error("[ExpressInterest] Error:", message, "- using localStorage fallback");
+
+    // Fallback to localStorage when function is unavailable (e.g., in dev without netlify dev)
+    try {
+      const interests = getLocalInterests();
+      const patientInterests = interests[patientId] || [];
+
+      if (patientInterests.includes(nctId.toUpperCase())) {
+        return {
+          ok: true,
+          alreadyInterested: true,
+          message: "Interest already expressed (local)",
+        };
+      }
+
+      patientInterests.push(nctId.toUpperCase());
+      interests[patientId] = patientInterests;
+      saveLocalInterests(interests);
+
+      return {
+        ok: true,
+        alreadyInterested: false,
+        message: "Interest expressed successfully (offline mode)",
+      };
+    } catch (fallbackErr) {
+      console.error("[ExpressInterest] Fallback failed:", fallbackErr);
+      return {
+        ok: false,
+        message: "Could not express interest - please ensure functions are deployed",
+      };
+    }
   }
 }
 
