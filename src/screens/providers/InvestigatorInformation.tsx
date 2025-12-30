@@ -119,6 +119,40 @@ export default function InvestigatorInformation(): JSX.Element {
     }
   }
 
+  // Bypass sign-in for testing (dev only)
+  function handleBypassSignIn() {
+    try {
+      const pendingRaw = localStorage.getItem("pending_signup_v1");
+      const pending = pendingRaw ? JSON.parse(pendingRaw) : {};
+
+      // Create mock user and sign in
+      const mockUserId = `dev-provider-${Date.now()}`;
+      signIn({
+        email: pending.email || "test@example.com",
+        firstName: pending.firstName || "Test",
+        lastName: pending.lastName || "Provider",
+        role: "provider",
+        userId: mockUserId,
+      });
+
+      // Save provider profile with mock user
+      const raw = localStorage.getItem("tc_provider_profile_v1");
+      const profile = raw ? JSON.parse(raw) : {};
+      const providerId = mockUserId;
+      localStorage.setItem("tc_provider_profile_v1", JSON.stringify({
+        ...profile,
+        providerId,
+        email: pending.email || "test@example.com",
+      }));
+
+      // Navigate to dashboard
+      navigate("/providers/dashboard", { replace: true });
+    } catch (err) {
+      console.error("Bypass failed:", err);
+      setError("Bypass failed. Please try again.");
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
       <SiteHeader active={undefined} />
