@@ -8,68 +8,82 @@ export type InterestedPatient = {
   expressedAt: string;
 };
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Content-Type": "application/json",
+};
+
+const errorResponse = (statusCode: number, message: string) => ({
+  statusCode,
+  headers: corsHeaders,
+  body: JSON.stringify({
+    ok: false,
+    message,
+  }),
+});
+
+const successResponse = (statusCode: number, data: any) => ({
+  statusCode,
+  headers: corsHeaders,
+  body: JSON.stringify(data),
+});
+
 const handler: Handler = async (event, context) => {
-  // Initialize database schema on first call
-  try {
-    await initializeDatabase();
-  } catch (err) {
-    console.error('Database initialization warning:', err);
-  }
-
-  if (event.httpMethod === "OPTIONS") {
-    return {
-      statusCode: 200,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization",
-      },
-      body: JSON.stringify({ ok: true }),
-    };
-  }
-
-  if (event.httpMethod !== "GET") {
-    return {
-      statusCode: 405,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ ok: false, message: "Method not allowed" }),
-    };
-  }
-
-  const corsHeaders = {
-    "Access-Control-Allow-Origin": "*",
-    "Content-Type": "application/json",
-  };
+  console.log("=== Get Trial Interests Request ===");
+  console.log("Method:", event.httpMethod);
 
   try {
-    // Get auth info from headers
-    const userId = (event.headers["x-user-id"] as string) || (context.clientContext?.user?.sub as string);
+    // OPTIONS request
+    if (event.httpMethod === "OPTIONS") {
+      return {
+        statusCode: 200,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "GET, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type, Authorization, x-user-id",
+        },
+        body: JSON.stringify({ ok: true }),
+      };
+    }
+
+    // Only allow GET
+    if (event.httpMethod !== "GET") {
+      return errorResponse(405, "Method not allowed");
+    }
+
+    // Initialize database
+    try {
+      console.log("Initializing database...");
+      await initializeDatabase();
+      console.log("Database initialized");
+    } catch (err) {
+      console.warn("Database init warning:", err instanceof Error ? err.message : String(err));
+    }
+
+    // Get auth from headers
+    const userId = event.headers["x-user-id"];
+    console.log("Auth check - userId:", !!userId);
 
     if (!userId) {
-      return {
-        statusCode: 401,
-        headers: corsHeaders,
-        body: JSON.stringify({ ok: false, message: "Unauthorized - missing user ID" }),
-      };
+      return errorResponse(401, "Missing x-user-id header");
     }
 
+    // Get NCT ID from query params
     const nctId = event.queryStringParameters?.nctId as string;
+    console.log("Query params - nctId:", nctId);
 
     if (!nctId || !nctId.match(/^NCT\d{8}$/)) {
-      return {
-        statusCode: 400,
-        headers: corsHeaders,
-        body: JSON.stringify({ ok: false, message: "Invalid NCT ID format" }),
-      };
+      return errorResponse(400, `Invalid NCT ID format: ${nctId}`);
     }
 
-    // Fetch interested patients for this trial
+    const nctIdUpper = nctId.toUpperCase();
+
+    // Fetch interested patients
+    console.log("Fetching interested patients for trial:", nctIdUpper);
+
     try {
       const result = await query(
-        `SELECT
+        `SELECT 
           ti.id,
           ti.patient_id as "patientId",
           ti.nct_id as "nctId",
@@ -84,43 +98,24 @@ const handler: Handler = async (event, context) => {
          LEFT JOIN patient_profiles pp ON ti.patient_id = pp.patient_id
          WHERE ti.nct_id = $1
          ORDER BY ti.expressed_at DESC`,
-        [nctId.toUpperCase()]
+        [nctIdUpper]
       );
 
-      return {
-        statusCode: 200,
-        headers: corsHeaders,
-        body: JSON.stringify({
-          ok: true,
-          nctId: nctId.toUpperCase(),
-          count: result.rows.length,
-          interestedPatients: result.rows,
-        }),
-      };
+      console.log("Found interested patients:", result?.rows?.length || 0);
+
+      return successResponse(200, {
+        ok: true,
+        nctId: nctIdUpper,
+        count: result?.rows?.length || 0,
+        interestedPatients: result?.rows || [],
+      });
     } catch (dbErr: any) {
       console.error("Database error fetching trial interests:", dbErr);
-      return {
-        statusCode: 500,
-        headers: corsHeaders,
-        body: JSON.stringify({
-          ok: false,
-          message: "Database error: " + (dbErr.message || "Failed to fetch trial interests"),
-        }),
-      };
+      return errorResponse(500, `Database error: ${dbErr.message || "Query failed"}`);
     }
-  } catch (error: any) {
-    console.error("Error fetching trial interests:", error);
-    return {
-      statusCode: 500,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        ok: false,
-        message: error.message || "Failed to fetch trial interests",
-      }),
-    };
+  } catch (err: any) {
+    console.error("Unexpected error:", err);
+    return errorResponse(500, err.message || "Internal server error");
   }
 };
 
