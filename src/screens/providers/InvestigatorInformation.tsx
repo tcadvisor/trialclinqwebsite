@@ -20,7 +20,7 @@ export default function InvestigatorInformation(): JSX.Element {
   const [isLoading, setIsLoading] = useState(false);
 
   // Load initial data from localStorage if it exists
-  React.useEffect(() => {
+  useEffect(() => {
     try {
       const raw = localStorage.getItem("tc_provider_profile_v1");
       if (raw) {
