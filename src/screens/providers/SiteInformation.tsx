@@ -354,7 +354,7 @@ export default function SiteInformation(): JSX.Element {
   const [errors, setErrors] = useState<{ conditions?: string; languages?: string }>({});
 
   // Load initial data from localStorage if it exists
-  React.useEffect(() => {
+  useEffect(() => {
     try {
       const raw = localStorage.getItem("tc_provider_profile_v1");
       if (raw) {
