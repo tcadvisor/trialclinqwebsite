@@ -145,14 +145,21 @@ export async function getTrialInterestedPatients(
     );
 
     const text = await response.text();
+
+    // Check if we got HTML instead of JSON (404 page)
+    if (text.includes("<!DOCTYPE") || text.includes("<html")) {
+      console.warn("[GetInterests] Got HTML response - functions not available");
+      throw new Error("Functions not deployed");
+    }
+
     let data: any = { ok: false, interestedPatients: [] };
 
     if (text) {
       try {
         data = JSON.parse(text);
       } catch (parseErr) {
-        console.error("Failed to parse response JSON:", parseErr);
-        throw new Error("Invalid response from server");
+        console.error("[GetInterests] Failed to parse JSON:", parseErr);
+        throw new Error("Invalid response format");
       }
     }
 
@@ -167,8 +174,7 @@ export async function getTrialInterestedPatients(
       message: data.message || "Success",
     };
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to fetch interested patients";
-    console.error("[GetInterests] Error:", message, "- using localStorage fallback");
+    console.warn("[GetInterests] Using localStorage fallback");
 
     // Fallback to localStorage
     try {
@@ -192,7 +198,7 @@ export async function getTrialInterestedPatients(
         ok: true,
         patients,
         count: patients.length,
-        message: "Success (offline mode)",
+        message: patients.length > 0 ? "Success (local)" : "No interested patients",
       };
     } catch (fallbackErr) {
       console.error("[GetInterests] Fallback failed:", fallbackErr);
