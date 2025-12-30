@@ -79,7 +79,7 @@ function clearUserScopedDataIfMismatch(currentEmail: string) {
   } catch (_) {}
 }
 
-function mergeProfileFromEligibility(currentEmail: string) {
+function mergeProfileFromEligibility(currentEmail: string, currentUser?: { email: string; firstName?: string; lastName?: string; userId?: string }) {
   try {
     const rawProfile = localStorage.getItem(PROFILE_KEY);
     const rawEligibility = localStorage.getItem(ELIGIBILITY_KEY);
@@ -87,8 +87,17 @@ function mergeProfileFromEligibility(currentEmail: string) {
     const eligibility = JSON.parse(rawEligibility) as any;
     const profile = rawProfile ? (JSON.parse(rawProfile) as any) : null;
 
+    // Generate patient ID from current user info
+    const patientId = currentUser ? generatePatientId({
+      email: currentUser.email,
+      firstName: currentUser.firstName || "",
+      lastName: currentUser.lastName || "",
+      userId: currentUser.userId || "",
+      role: "patient",
+    } as any) : ""; // Will be set later if user info is available
+
     const next = profile || {
-      patientId: "CUS_j2kthfmgv3bzr5r",
+      patientId,
       email: currentEmail,
       emailVerified: false,
       age: "",
