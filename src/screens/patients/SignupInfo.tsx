@@ -58,13 +58,10 @@ export default function SignupInfo(): JSX.Element {
     const m = today.getMonth() - dobDate.getMonth();
     if (m < 0 || (m === 0 && today.getDate() < dobDate.getDate())) calculatedAge--;
 
-    // Generate patient ID from pending signup (will be consistent with authenticated user)
-    const emailPrefix = (pending?.email || "").split('@')[0].replace(/[^a-zA-Z0-9._-]/g, '');
-    const patientId = emailPrefix ? `pat-${emailPrefix}` : '';
-
     // Save to health profile (tc_health_profile_v1)
+    // Note: patientId will be set after authentication with proper Azure OID
     const healthProfile = {
-      patientId,
+      patientId: "", // Will be set after user authenticates with Azure
       email: pending?.email || "",
       emailVerified: false,
       age: String(calculatedAge),
