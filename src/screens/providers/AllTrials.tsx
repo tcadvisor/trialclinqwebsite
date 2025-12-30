@@ -140,9 +140,11 @@ export default function AllTrials(): JSX.Element {
                             <button
                               className="block w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-gray-50"
                               onClick={() => {
-                                removeTrial(t.id);
-                                setTrials((prev) => prev.filter((x) => x.id !== t.id));
-                                setMenuId(null);
+                                if (userId) {
+                                  removeTrial(userId, t.id);
+                                  setTrials((prev) => prev.filter((x) => x.id !== t.id));
+                                  setMenuId(null);
+                                }
                               }}
                             >
                               Delete trial
