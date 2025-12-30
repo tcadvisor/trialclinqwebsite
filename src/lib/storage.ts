@@ -43,13 +43,20 @@ interface PatientFile {
   url: string;
 }
 
+function toAuthHeader(token?: string): string {
+  const raw = (token || "").trim();
+  if (!raw) throw new Error("Not authenticated. Please sign in and try again.");
+  return raw.toLowerCase().startsWith("bearer ") ? raw : `Bearer ${raw}`;
+}
+
 // Save patient profile to persistent storage
 export async function savePatientProfile(profile: HealthProfile, authToken?: string): Promise<void> {
+  const authHeader = toAuthHeader(authToken);
   const response = await fetch(`${API_BASE}/profile-write`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': authToken || `Bearer anonymous`,
+      'Authorization': authHeader,
     },
     body: JSON.stringify(profile),
   });
@@ -69,6 +76,7 @@ export async function uploadPatientFiles(
   files: File[],
   authToken?: string
 ): Promise<any[]> {
+  const authHeader = toAuthHeader(authToken);
   const formData = new FormData();
   formData.append('patientId', patientId);
 
@@ -79,7 +87,7 @@ export async function uploadPatientFiles(
   const response = await fetch(`${API_BASE}/upload-file`, {
     method: 'POST',
     headers: {
-      'Authorization': authToken || `Bearer anonymous`,
+      'Authorization': authHeader,
     },
     body: formData,
   });
@@ -96,10 +104,11 @@ export async function uploadPatientFiles(
 
 // Get patient files from Azure Blob Storage
 export async function getPatientFiles(patientId: string, authToken?: string): Promise<PatientFile[]> {
+  const authHeader = toAuthHeader(authToken);
   const response = await fetch(`${API_BASE}/get-patient-files?patientId=${encodeURIComponent(patientId)}`, {
     method: 'GET',
     headers: {
-      'Authorization': authToken || `Bearer anonymous`,
+      'Authorization': authHeader,
     },
   });
 
