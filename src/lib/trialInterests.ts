@@ -21,7 +21,7 @@ export async function expressInterestInTrial(
   userId: string
 ): Promise<{ ok: boolean; alreadyInterested?: boolean; message: string }> {
   try {
-    console.log("Expressing interest in trial:", { nctId, patientId, userId });
+    console.log("[ExpressInterest] Starting request", { nctId, patientId, userId });
 
     const response = await fetch("/.netlify/functions/express-interest", {
       method: "POST",
@@ -36,40 +36,27 @@ export async function expressInterestInTrial(
       }),
     });
 
-    console.log("Response status:", response.status);
-    console.log("Response headers:", {
+    console.log("[ExpressInterest] Response received", {
+      status: response.status,
       contentType: response.headers.get("content-type"),
-      contentLength: response.headers.get("content-length"),
     });
 
-    // Always try to parse as JSON first
-    let data: any = {};
     const text = await response.text();
+    console.log("[ExpressInterest] Response text:", text || "(empty)");
 
-    console.log("Response text:", text || "(empty)");
+    let data: any = { ok: false };
 
-    if (!text) {
-      console.warn("Empty response received from server");
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: Empty response from server`);
+    if (text) {
+      try {
+        data = JSON.parse(text);
+      } catch (parseErr) {
+        console.error("[ExpressInterest] Failed to parse JSON:", parseErr);
+        throw new Error(`Invalid JSON response: ${text.substring(0, 100)}`);
       }
-      return {
-        ok: true,
-        alreadyInterested: false,
-        message: "Interest expressed successfully",
-      };
-    }
-
-    try {
-      data = JSON.parse(text);
-    } catch (parseErr) {
-      console.error("Failed to parse response as JSON:", parseErr);
-      console.error("Response text was:", text);
-      throw new Error(`Invalid JSON response from server: ${text.substring(0, 100)}`);
     }
 
     if (!response.ok) {
-      throw new Error(data.message || `HTTP ${response.status}: Failed to express interest`);
+      throw new Error(data.message || `HTTP ${response.status} error`);
     }
 
     return {
@@ -78,10 +65,11 @@ export async function expressInterestInTrial(
       message: data.message || "Interest expressed successfully",
     };
   } catch (error) {
-    console.error("Error expressing interest:", error);
+    const message = error instanceof Error ? error.message : "Failed to express interest";
+    console.error("[ExpressInterest] Error:", message);
     return {
       ok: false,
-      message: error instanceof Error ? error.message : "Failed to express interest",
+      message,
     };
   }
 }
