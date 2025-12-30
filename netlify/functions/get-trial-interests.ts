@@ -31,17 +31,27 @@ const handler: Handler = async (event, context) => {
   if (event.httpMethod !== "GET") {
     return {
       statusCode: 405,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({ ok: false, message: "Method not allowed" }),
     };
   }
 
+  const corsHeaders = {
+    "Access-Control-Allow-Origin": "*",
+    "Content-Type": "application/json",
+  };
+
   try {
-    // Get auth info from context
-    const userId = context.clientContext?.user?.sub || (event.headers["x-user-id"] as string);
+    // Get auth info from headers
+    const userId = (event.headers["x-user-id"] as string) || (context.clientContext?.user?.sub as string);
 
     if (!userId) {
       return {
         statusCode: 401,
+        headers: corsHeaders,
         body: JSON.stringify({ ok: false, message: "Unauthorized - missing user ID" }),
       };
     }
@@ -51,43 +61,53 @@ const handler: Handler = async (event, context) => {
     if (!nctId || !nctId.match(/^NCT\d{8}$/)) {
       return {
         statusCode: 400,
+        headers: corsHeaders,
         body: JSON.stringify({ ok: false, message: "Invalid NCT ID format" }),
       };
     }
 
     // Fetch interested patients for this trial
-    const result = await query(
-      `SELECT 
-        ti.id,
-        ti.patient_id as "patientId",
-        ti.nct_id as "nctId",
-        ti.trial_title as "trialTitle",
-        ti.expressed_at as "expressedAt",
-        pp.email,
-        pp.age,
-        pp.gender,
-        pp.primary_condition as "primaryCondition",
-        pp.phone
-       FROM trial_interests ti
-       LEFT JOIN patient_profiles pp ON ti.patient_id = pp.patient_id
-       WHERE ti.nct_id = $1
-       ORDER BY ti.expressed_at DESC`,
-      [nctId.toUpperCase()]
-    );
+    try {
+      const result = await query(
+        `SELECT
+          ti.id,
+          ti.patient_id as "patientId",
+          ti.nct_id as "nctId",
+          ti.trial_title as "trialTitle",
+          ti.expressed_at as "expressedAt",
+          pp.email,
+          pp.age,
+          pp.gender,
+          pp.primary_condition as "primaryCondition",
+          pp.phone
+         FROM trial_interests ti
+         LEFT JOIN patient_profiles pp ON ti.patient_id = pp.patient_id
+         WHERE ti.nct_id = $1
+         ORDER BY ti.expressed_at DESC`,
+        [nctId.toUpperCase()]
+      );
 
-    return {
-      statusCode: 200,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        ok: true,
-        nctId: nctId.toUpperCase(),
-        count: result.rows.length,
-        interestedPatients: result.rows,
-      }),
-    };
+      return {
+        statusCode: 200,
+        headers: corsHeaders,
+        body: JSON.stringify({
+          ok: true,
+          nctId: nctId.toUpperCase(),
+          count: result.rows.length,
+          interestedPatients: result.rows,
+        }),
+      };
+    } catch (dbErr: any) {
+      console.error("Database error fetching trial interests:", dbErr);
+      return {
+        statusCode: 500,
+        headers: corsHeaders,
+        body: JSON.stringify({
+          ok: false,
+          message: "Database error: " + (dbErr.message || "Failed to fetch trial interests"),
+        }),
+      };
+    }
   } catch (error: any) {
     console.error("Error fetching trial interests:", error);
     return {
