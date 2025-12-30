@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../lib/auth";
 import HomeHeader from "../../components/HomeHeader";
 import SignUpForm from "../../components/SignUpForm";
 
