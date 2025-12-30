@@ -89,10 +89,26 @@ export async function getTrialInterestedPatients(
       }
     );
 
-    const data = await response.json();
+    // Try to parse response as JSON
+    let data: any = {};
+    const contentType = response.headers.get("content-type");
+    if (contentType && contentType.includes("application/json")) {
+      try {
+        data = await response.json();
+      } catch (parseErr) {
+        console.error("Failed to parse response JSON:", parseErr);
+        const text = await response.text();
+        console.error("Response text:", text);
+        throw new Error("Invalid response from server");
+      }
+    } else {
+      const text = await response.text();
+      console.error("Non-JSON response:", text);
+      throw new Error("Server returned non-JSON response");
+    }
 
     if (!response.ok) {
-      throw new Error(data.message || "Failed to fetch interested patients");
+      throw new Error(data.message || `HTTP ${response.status}: Failed to fetch interested patients`);
     }
 
     return {
