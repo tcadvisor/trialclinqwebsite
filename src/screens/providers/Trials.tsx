@@ -5,15 +5,20 @@ import SiteHeader from "../../components/SiteHeader";
 import { CtgovStudy, fetchStudies, ctgovStudyDetailUrl, formatNearestSitePreview, fetchStudyByNctId } from "../../lib/ctgov";
 import { addTrial, getAddedTrials, isTrialAdded } from "../../lib/providerTrials";
 import { buildSmartCondQuery, buildLooseCondQuery } from "../../lib/searchQuery";
+import { useAuth } from "../../lib/auth";
 
 export default function ProviderTrials(): JSX.Element {
+  const { user } = useAuth();
+  const userId = user?.userId || "";
   const [query, setQuery] = React.useState("");
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string>("");
   const [studies, setStudies] = React.useState<CtgovStudy[]>([]);
   const [added, setAdded] = React.useState<Record<string, boolean>>(() => {
     const map: Record<string, boolean> = {};
-    getAddedTrials().forEach((t) => { if (t.nctId) map[t.nctId] = true; });
+    if (userId) {
+      getAddedTrials(userId).forEach((t) => { if (t.nctId) map[t.nctId] = true; });
+    }
     return map;
   });
   const [selected, setSelected] = React.useState<{ nctId: string; title: string; status?: string }[]>([]);
