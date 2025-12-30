@@ -83,7 +83,7 @@ export async function getTrialInterestedPatients(
 ): Promise<{ ok: boolean; patients: InterestedPatient[]; count: number; message: string }> {
   try {
     const response = await fetch(
-      `/.netlify/functions/get-trial-interests?nctId=${encodeURIComponent(nctId)}`,
+      `/api/get-trial-interests?nctId=${encodeURIComponent(nctId)}`,
       {
         method: "GET",
         headers: {
