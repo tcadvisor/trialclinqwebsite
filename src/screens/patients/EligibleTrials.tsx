@@ -221,14 +221,34 @@ export default function EligibleTrials(): JSX.Element {
                   </td>
                   <td className="px-4 py-3 text-gray-600">{t.interventions.join(' / ')}</td>
                   <td className="px-4 py-3 text-right">
-                    <a
-                      href={`https://clinicaltrials.gov/study/${encodeURIComponent(t.nctId)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs hover:bg-gray-50"
-                    >
-                      View on ClinicalTrials.gov
-                    </a>
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => handleExpressInterest(t)}
+                        disabled={expressingInterest.has(t.nctId) || interestedTrials.has(t.nctId)}
+                        className={`inline-flex items-center rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                          interestedTrials.has(t.nctId)
+                            ? "bg-green-100 text-green-700 border border-green-300"
+                            : expressingInterest.has(t.nctId)
+                            ? "border bg-gray-100 text-gray-600"
+                            : "border hover:bg-blue-50 text-blue-600 hover:text-blue-700"
+                        }`}
+                        title="Express your interest in this trial so researchers can see that you're interested"
+                      >
+                        {expressingInterest.has(t.nctId)
+                          ? "Expressing..."
+                          : interestedTrials.has(t.nctId)
+                          ? "✓ Interested"
+                          : "Express Interest"}
+                      </button>
+                      <a
+                        href={`https://clinicaltrials.gov/study/${encodeURIComponent(t.nctId)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs hover:bg-gray-50"
+                      >
+                        View →
+                      </a>
+                    </div>
                   </td>
                 </tr>
               ))}
