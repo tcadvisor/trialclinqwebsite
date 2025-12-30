@@ -179,7 +179,7 @@ export default function InvestigatorInformation(): JSX.Element {
 
             <div>
               <label className="block text-sm font-medium mb-1">Regulatory Authority Address</label>
-              <input placeholder="Enter the full mailing address of the regulatory authority" className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <input value={regulatoryAddress} onChange={(e) => setRegulatoryAddress(e.target.value)} placeholder="Enter the full mailing address of the regulatory authority" className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
 
             <div className="space-y-3 text-sm text-gray-700">
@@ -200,7 +200,7 @@ export default function InvestigatorInformation(): JSX.Element {
               </p>
             </div>
 
-            <button type="submit" className="mt-2 w-full px-6 py-3 rounded-full bg-blue-600 text-white hover:bg-blue-700">Create Account</button>
+            <button type="submit" disabled={isLoading} className="mt-2 w-full px-6 py-3 rounded-full bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">{isLoading ? "Creating Account..." : "Create Account"}</button>
 
             <p className="text-xs text-gray-500 flex items-center gap-2 mt-2">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M12 2a9 9 0 1 0 9 9A9.01 9.01 0 0 0 12 2Zm1 13h-2v-2h2Zm0-4h-2V7h2Z"/></svg>
