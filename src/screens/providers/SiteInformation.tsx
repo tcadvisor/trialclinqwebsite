@@ -458,7 +458,7 @@ export default function SiteInformation(): JSX.Element {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Country<span className="text-red-500">*</span></label>
-                <select className="w-full rounded-lg border px-3 py-2 bg-white" value={country} onChange={onCountryChange}>
+                <select className="w-full rounded-lg border px-3 py-2 bg-white" value={country} onChange={onCountryChange} required>
                   <option value="">Select country</option>
                   <option>United States</option>
                   <option>Canada</option>
@@ -481,17 +481,17 @@ export default function SiteInformation(): JSX.Element {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Address<span className="text-red-500">*</span></label>
-                <input placeholder="Enter site full address" className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" required />
+                <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Enter site full address" className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" required />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Zipcode<span className="text-red-500">*</span></label>
-                <input placeholder="Enter zipcode" className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" required />
+                <input value={zipcode} onChange={(e) => setZipcode(e.target.value)} placeholder="Enter zipcode" className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" required />
               </div>
             </div>
 
             <div>
               <label className="block text-sm font-medium mb-1">Facility Type<span className="text-red-500">*</span></label>
-              <select className="w-full rounded-lg border px-3 py-2 bg-white">
+              <select value={facilityType} onChange={(e) => setFacilityType(e.target.value)} className="w-full rounded-lg border px-3 py-2 bg-white" required>
                 <option value="">Select site type</option>
                 <option>Outpatient Clinic</option>
                 <option>Inpatient Facility</option>
@@ -501,7 +501,7 @@ export default function SiteInformation(): JSX.Element {
 
             <div>
               <label className="block text-sm font-medium mb-1">Funding Organization<span className="text-red-500">*</span></label>
-              <select className="w-full rounded-lg border px-3 py-2 bg-white">
+              <select value={fundingOrg} onChange={(e) => setFundingOrg(e.target.value)} className="w-full rounded-lg border px-3 py-2 bg-white" required>
                 <option value="">Select your organization type</option>
                 <option>Public</option>
                 <option>Private</option>
