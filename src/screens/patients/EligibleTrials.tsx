@@ -1,7 +1,10 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { getRealMatchedTrialsForCurrentUser, type LiteTrial } from "../../lib/matching";
+import { expressInterestInTrial } from "../../lib/trialInterests";
+import { useAuth } from "../../lib/auth";
 import PatientHeader from "../../components/PatientHeader";
+import { generatePatientId } from "../../lib/patientIdUtils";
 
 export default function EligibleTrials(): JSX.Element {
   const [query, setQuery] = React.useState("");
