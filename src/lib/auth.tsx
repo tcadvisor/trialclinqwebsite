@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { getCurrentAuthUser, getMsalInstance, signOutUser } from "./entraId";
+import { generatePatientId } from "./patientIdUtils";
 
 export type User = { email: string; role: "patient" | "provider"; firstName: string; lastName: string; userId: string };
 
@@ -78,7 +79,7 @@ function clearUserScopedDataIfMismatch(currentEmail: string) {
   } catch (_) {}
 }
 
-function mergeProfileFromEligibility(currentEmail: string) {
+function mergeProfileFromEligibility(currentEmail: string, currentUser?: { email: string; firstName?: string; lastName?: string; userId?: string }) {
   try {
     const rawProfile = localStorage.getItem(PROFILE_KEY);
     const rawEligibility = localStorage.getItem(ELIGIBILITY_KEY);
@@ -86,8 +87,17 @@ function mergeProfileFromEligibility(currentEmail: string) {
     const eligibility = JSON.parse(rawEligibility) as any;
     const profile = rawProfile ? (JSON.parse(rawProfile) as any) : null;
 
+    // Generate patient ID from current user info
+    const patientId = currentUser ? generatePatientId({
+      email: currentUser.email,
+      firstName: currentUser.firstName || "",
+      lastName: currentUser.lastName || "",
+      userId: currentUser.userId || "",
+      role: "patient",
+    } as any) : ""; // Will be set later if user info is available
+
     const next = profile || {
-      patientId: "CUS_j2kthfmgv3bzr5r",
+      patientId,
       email: currentEmail,
       emailVerified: false,
       age: "",
@@ -119,6 +129,7 @@ function mergeProfileFromEligibility(currentEmail: string) {
     };
 
     if (!next.email) next.email = currentEmail;
+    if ((!next.patientId || next.patientId === "") && patientId) next.patientId = patientId;
     if (!next.primaryCondition && eligibility?.condition) next.primaryCondition = String(eligibility.condition);
     if (!next.diagnosed && eligibility?.year) next.diagnosed = String(eligibility.year);
     if ((!Array.isArray(next.medications) || next.medications.length === 0) && Array.isArray(eligibility?.medications)) {
@@ -174,7 +185,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               if (!pendingEmail || pendingEmail === accountEmail) {
                 firstName = pending.firstName || firstName;
                 lastName = pending.lastName || lastName;
-                mergeProfileFromEligibility(account.username);
+                mergeProfileFromEligibility(account.username, {
+                  email: account.username,
+                  firstName,
+                  lastName,
+                  userId: account.localAccountId || account.homeAccountId || "",
+                });
               }
             }
             clearPendingSignup();
@@ -205,7 +221,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (!pendingEmail || pendingEmail === accountEmail) {
               firstName = pending.firstName || firstName;
               lastName = pending.lastName || lastName;
-              mergeProfileFromEligibility(cognitoUser.email);
+              mergeProfileFromEligibility(cognitoUser.email, {
+                email: cognitoUser.email,
+                firstName,
+                lastName,
+                userId: cognitoUser.userId || "",
+              });
             }
             clearPendingSignup();
           }

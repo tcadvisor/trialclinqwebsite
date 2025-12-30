@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { getMsalInstance, getAccessToken } from '../lib/entraId';
 import { loginRequest } from '../lib/msalConfig';
+import { generatePatientId } from '../lib/patientIdUtils';
+import { generateProviderId } from '../lib/providerIdUtils';
+import { savePatientProfile, saveProviderProfile } from '../lib/storage';
 
 export default function AuthCallback() {
   const navigate = useNavigate();
@@ -73,9 +76,58 @@ export default function AuthCallback() {
                 method: "GET",
                 headers: { Authorization: `Bearer ${token}` },
               });
+
+              // Auto-sync profile data from localStorage to backend (mirrors patient & provider flows)
+              const user = {
+                email: account.username,
+                firstName: account.name?.split(' ')[0] || '',
+                lastName: account.name?.split(' ').slice(1).join(' ') || '',
+                role: role,
+                userId: account.localAccountId || account.homeAccountId || '',
+              };
+
+              if (role === 'patient') {
+                // Sync patient profile if it exists in localStorage
+                try {
+                  const raw = localStorage.getItem('tc_health_profile_v1');
+                  if (raw) {
+                    const profile = JSON.parse(raw);
+                    const patientId = generatePatientId(user);
+                    if (patientId) {
+                      await savePatientProfile({
+                        ...profile,
+                        patientId,
+                        email: account.username,
+                      }, token);
+                      console.log('✅ Patient profile auto-synced to backend');
+                    }
+                  }
+                } catch (err) {
+                  console.warn('Patient profile auto-sync failed:', err);
+                }
+              } else if (role === 'provider') {
+                // Sync provider profile if it exists in localStorage
+                try {
+                  const raw = localStorage.getItem('tc_provider_profile_v1');
+                  if (raw) {
+                    const profile = JSON.parse(raw);
+                    const providerId = generateProviderId(user);
+                    if (providerId) {
+                      await saveProviderProfile({
+                        ...profile,
+                        providerId,
+                        email: account.username,
+                      }, token);
+                      console.log('✅ Provider profile auto-synced to backend');
+                    }
+                  }
+                } catch (err) {
+                  console.warn('Provider profile auto-sync failed:', err);
+                }
+              }
             }
           } catch (syncErr) {
-            console.warn("whoami sync failed:", syncErr);
+            console.warn("Profile sync failed:", syncErr);
           }
 
           localStorage.removeItem('pending_role_v1');

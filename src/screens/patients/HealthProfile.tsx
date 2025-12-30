@@ -19,6 +19,7 @@ import PatientHeader from "../../components/PatientHeader";
 import { buildMarkdownAppend } from "../../components/ClinicalSummaryUploader";
 import { uploadPatientFiles, getPatientFiles, savePatientProfile } from "../../lib/storage";
 import { formatPhoneNumber, getPhoneValidationError } from "../../lib/phoneValidation";
+import { generatePatientId } from "../../lib/patientIdUtils";
 
 // Field source tracking
 type FieldSource = {
@@ -545,7 +546,7 @@ export default function HealthProfile(): JSX.Element {
       if (raw) return JSON.parse(raw) as HealthProfileData;
     } catch {}
     return {
-      patientId: "CUS_j2kthfmgv3bzr5r",
+      patientId: "", // Will be set from authenticated user
       email: "",
       emailVerified: false,
       age: "",
@@ -655,6 +656,15 @@ export default function HealthProfile(): JSX.Element {
   useEffect(() => {
     setProfile((prev) => {
       let next = { ...prev };
+
+      // Set patient ID from authenticated user
+      if (user) {
+        const patientId = generatePatientId(user);
+        if (patientId && (!next.patientId || next.patientId === "")) {
+          next.patientId = patientId;
+        }
+      }
+
       if ((!next.email || next.email === "") && user?.email) next.email = user.email;
       // Eligibility fields
       try {
