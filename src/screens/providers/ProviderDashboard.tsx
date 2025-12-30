@@ -85,22 +85,9 @@ export default function ProviderDashboard(): JSX.Element {
 
           <div className="rounded-2xl border bg-white p-4">
             <div className="text-sm text-gray-500">Newly Matched</div>
-            <ul className="mt-2 space-y-2 text-sm">
-              {[
-                { code: "DR-081", title: "Agorain, New Treatment for Chronic Neuropathy" },
-                { code: "AG-002", title: "Investigating Non-Opioid Therapies for Migraine" },
-                { code: "MN-290", title: "Agorain, New Treatment for Chronic Neuropathy" },
-                { code: "MN-290", title: "Exploring Novel Interventions for Diabetic Peripheral Neuropathy" },
-              ].map((r, i) => (
-                <li key={`${r.code}-${i}`} className="flex items-center justify-between rounded-lg border p-3">
-                  <div>
-                    <div className="font-medium">{r.code}</div>
-                    <div className="text-gray-600 text-xs">{r.title}</div>
-                  </div>
-                  <button className="rounded-full border px-3 py-1 text-xs hover:bg-gray-50">View</button>
-                </li>
-              ))}
-            </ul>
+            <div className="mt-4 text-center text-sm text-gray-600 py-6">
+              No newly matched patients
+            </div>
             <Link to="/providers/volunteers" className="mt-3 w-full inline-block text-center rounded-full border px-4 py-2 text-sm hover:bg-gray-50">View All Volunteers</Link>
           </div>
         </div>
