@@ -62,8 +62,13 @@ export default function ProviderDashboard(): JSX.Element {
           <div className="rounded-2xl border bg-white p-5">
             <div className="text-sm text-gray-500">Upcoming Appointments</div>
             <ul className="mt-3 space-y-2 text-sm">
-              <li className="rounded-lg border p-3">Pre-Screening Call with DG-0109 — 11:30–12:00 — Houston, TX</li>
-              <li className="rounded-lg border p-3">Pre-Screening Call with DG-0109 — 11:30–12:00 — Online</li>
+              {appointments.length === 0 ? (
+                <li className="rounded-lg border p-3 text-gray-600">No upcoming appointments</li>
+              ) : (
+                appointments.slice(0, 2).map((apt) => (
+                  <li key={apt.id} className="rounded-lg border p-3">{apt.title} — {apt.time} — {apt.location}</li>
+                ))
+              )}
             </ul>
             <Link to="/providers/appointments" className="mt-3 w-full inline-block rounded-full border px-4 py-2 text-sm hover:bg-gray-50">View All Appointments</Link>
           </div>
