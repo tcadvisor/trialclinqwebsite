@@ -430,7 +430,7 @@ export default function SiteInformation(): JSX.Element {
           <form className="space-y-5" onSubmit={handleSubmit}>
             <div>
               <label className="block text-sm font-medium mb-1">Sponsoring Organization Type<span className="text-red-500">*</span></label>
-              <select className="w-full rounded-lg border px-3 py-2 bg-white">
+              <select value={organizationType} onChange={(e) => setOrganizationType(e.target.value)} className="w-full rounded-lg border px-3 py-2 bg-white" required>
                 <option value="">Select your organization type</option>
                 <option>Hospital / Health System</option>
                 <option>Academic Medical Center</option>
@@ -442,17 +442,17 @@ export default function SiteInformation(): JSX.Element {
 
             <div>
               <label className="block text-sm font-medium mb-1">Sponsoring Organization Abbreviations</label>
-              <input placeholder="Enter your organization acronym or abbreviation" className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <input value={organizationAbbrev} onChange={(e) => setOrganizationAbbrev(e.target.value)} placeholder="Enter your organization acronym or abbreviation" className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
 
             <div>
               <label className="block text-sm font-medium mb-1">Parent Organizations</label>
-              <input placeholder="Enter your parent organization if applicable" className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <input value={parentOrg} onChange={(e) => setParentOrg(e.target.value)} placeholder="Enter your parent organization if applicable" className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
 
             <div>
               <label className="block text-sm font-medium mb-1">Site Name<span className="text-red-500">*</span></label>
-              <input placeholder="Enter your site name" className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" required />
+              <input value={siteName} onChange={(e) => setSiteName(e.target.value)} placeholder="Enter your site name" className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" required />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
