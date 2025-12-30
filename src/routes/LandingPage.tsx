@@ -521,33 +521,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Contact Section */}
-      <section id="contact" className="bg-gray-50 py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Get in Touch
-            </h2>
-            <p className="text-lg text-gray-600">
-              Have questions? We'd love to hear from you. Contact us today.
-            </p>
-          </div>
-
-          <div className="bg-white rounded-xl border border-gray-200 max-w-2xl mx-auto p-8">
-            <div className="space-y-6">
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-2">Email</h3>
-                <a
-                  href="mailto:info@trialcliniq.com"
-                  className="text-blue-600 hover:text-blue-700"
-                >
-                  info@trialcliniq.com
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* Footer */}
       <footer className="border-t border-gray-200 py-12">
