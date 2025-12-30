@@ -2,6 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import SiteHeader from "../../components/SiteHeader";
 import { getAddedTrials, removeTrial } from "../../lib/providerTrials";
+import { useAuth } from "../../lib/auth";
 
 type Trial = {
   title: string;
