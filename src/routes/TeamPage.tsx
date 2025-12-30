@@ -13,7 +13,7 @@ export default function TeamPage() {
     },
     {
       name: "Chandler Stevenson",
-      role: "CTO",
+      role: "Technical Advisor",
       description:
         "Software engineer and Princeton University PhD candidate with expertise in neural networks and AI.",
       linkedin: "https://www.linkedin.com/in/chandler-stevenson-717436202/",

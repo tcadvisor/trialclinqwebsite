@@ -4,13 +4,19 @@ const origin = typeof window !== 'undefined' ? window.location.origin : undefine
 const defaultRedirect = origin ? `${origin}/auth-callback` : 'http://localhost:5173/auth-callback';
 const defaultLogoutRedirect = origin ? `${origin}/` : 'http://localhost:5173/';
 
+// Use environment variable if set AND it's not the old ngrok URL
+// Otherwise use the current window origin for better development experience
+const envRedirect = import.meta.env.VITE_AZURE_REDIRECT_URI;
+const isOldNgrokUrl = envRedirect && envRedirect.includes('vapourizable-uninterestingly-minerva.ngrok-free.dev');
+const redirectUri = (envRedirect && !isOldNgrokUrl) ? envRedirect : defaultRedirect;
+
 export const msalConfig: Configuration = {
   auth: {
     clientId: import.meta.env.VITE_AZURE_CLIENT_ID || '759d5137-c764-42fb-82c7-40681766c175',
     authority: `https://login.microsoftonline.com/${
       import.meta.env.VITE_AZURE_TENANT_ID || 'e7863f3f-5855-4343-8f1d-6f1aa7ba12f3'
     }`,
-    redirectUri: import.meta.env.VITE_AZURE_REDIRECT_URI || defaultRedirect,
+    redirectUri: redirectUri,
     postLogoutRedirectUri: import.meta.env.VITE_AZURE_LOGOUT_URI || defaultLogoutRedirect,
   },
   cache: {
