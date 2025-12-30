@@ -64,52 +64,72 @@ const handler: Handler = async (event, context) => {
     }
 
     // Check if patient already expressed interest
-    const existing = await query(
-      "SELECT id FROM trial_interests WHERE patient_id = $1 AND nct_id = $2",
-      [patientId, nctId.toUpperCase()]
-    );
+    try {
+      const existing = await query(
+        "SELECT id FROM trial_interests WHERE patient_id = $1 AND nct_id = $2",
+        [patientId, nctId.toUpperCase()]
+      );
 
-    if (existing.rows.length > 0) {
-      return {
-        statusCode: 200,
-        body: JSON.stringify({
-          ok: true,
-          message: "Interest already expressed",
-          alreadyInterested: true,
-        }),
-      };
+      if (existing && existing.rows && existing.rows.length > 0) {
+        return {
+          statusCode: 200,
+          headers: corsHeaders,
+          body: JSON.stringify({
+            ok: true,
+            message: "Interest already expressed",
+            alreadyInterested: true,
+          }),
+        };
+      }
+    } catch (dbErr: any) {
+      console.warn("Error checking existing interest (may be schema not ready):", dbErr.message);
+      // Continue - schema might not be initialized yet
     }
 
     // Insert interest record
-    const result = await query(
-      `INSERT INTO trial_interests (patient_id, user_id, nct_id, trial_title, expressed_at, created_at)
-       VALUES ($1, $2, $3, $4, NOW(), NOW())
-       RETURNING id, patient_id, nct_id, trial_title, expressed_at`,
-      [patientId, userId, nctId.toUpperCase(), trialTitle || null]
-    );
+    try {
+      const result = await query(
+        `INSERT INTO trial_interests (patient_id, user_id, nct_id, trial_title, expressed_at, created_at)
+         VALUES ($1, $2, $3, $4, NOW(), NOW())
+         RETURNING id, patient_id, nct_id, trial_title, expressed_at`,
+        [patientId, userId, nctId.toUpperCase(), trialTitle || null]
+      );
 
-    // Log audit event
-    await logAuditEvent(
-      userId,
-      "PATIENT_EXPRESS_INTEREST",
-      "trial_interest",
-      result.rows[0].id,
-      patientId,
-      { nctId, trialTitle }
-    );
+      // Log audit event
+      try {
+        await logAuditEvent(
+          userId,
+          "PATIENT_EXPRESS_INTEREST",
+          "trial_interest",
+          result.rows[0].id,
+          patientId,
+          { nctId, trialTitle }
+        );
+      } catch (auditErr) {
+        console.warn("Failed to log audit event:", auditErr);
+        // Don't fail the request just because audit logging failed
+      }
 
-    return {
-      statusCode: 201,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        ok: true,
-        message: "Interest expressed successfully",
-        data: result.rows[0],
-      }),
-    };
+      return {
+        statusCode: 201,
+        headers: corsHeaders,
+        body: JSON.stringify({
+          ok: true,
+          message: "Interest expressed successfully",
+          data: result.rows[0],
+        }),
+      };
+    } catch (dbErr: any) {
+      console.error("Database error expressing interest:", dbErr);
+      return {
+        statusCode: 500,
+        headers: corsHeaders,
+        body: JSON.stringify({
+          ok: false,
+          message: "Database error: " + (dbErr.message || "Failed to express interest"),
+        }),
+      };
+    }
   } catch (error: any) {
     console.error("Error expressing interest:", error);
     return {
