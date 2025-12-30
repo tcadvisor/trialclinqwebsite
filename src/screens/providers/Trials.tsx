@@ -198,11 +198,13 @@ export default function ProviderTrials(): JSX.Element {
                   <button
                     type="button"
                     onClick={() => {
-                      selected.forEach((t) => addTrial({ nctId: t.nctId, title: t.title, status: t.status }));
-                      const map: Record<string, boolean> = {};
-                      selected.forEach((t) => { map[t.nctId] = true; });
-                      setAdded((m) => ({ ...m, ...map }));
-                      setSelected([]);
+                      if (userId) {
+                        selected.forEach((t) => addTrial(userId, { nctId: t.nctId, title: t.title, status: t.status }));
+                        const map: Record<string, boolean> = {};
+                        selected.forEach((t) => { map[t.nctId] = true; });
+                        setAdded((m) => ({ ...m, ...map }));
+                        setSelected([]);
+                      }
                     }}
                     className="w-full inline-flex items-center justify-center rounded-full bg-[#1033e5] px-4 py-3 text-white text-sm font-medium hover:bg-blue-700"
                   >
