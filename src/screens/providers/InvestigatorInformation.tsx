@@ -140,12 +140,12 @@ export default function InvestigatorInformation(): JSX.Element {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">Affiliated Organization Name<span className="text-gray-500">*</span></label>
-              <input value={affiliatedOrg} onChange={(e) => setAffiliatedOrg(e.target.value)} placeholder="Enter the affiliated organization name" className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <label className="block text-sm font-medium mb-1">Affiliated Organization Name<span className="text-red-500">*</span></label>
+              <input value={affiliatedOrg} onChange={(e) => setAffiliatedOrg(e.target.value)} placeholder="Enter the affiliated organization name" className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" required />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">Investigator Phone<span className="text-gray-500">*</span></label>
+              <label className="block text-sm font-medium mb-1">Investigator Phone<span className="text-red-500">*</span></label>
               <input
                 type="tel"
                 value={investigatorPhone}
@@ -153,6 +153,7 @@ export default function InvestigatorInformation(): JSX.Element {
                 onBlur={handlePhoneBlur}
                 placeholder="(555) 000-0000"
                 className={`w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 ${phoneError ? "border-red-500 focus:ring-red-500" : "focus:ring-blue-500"}`}
+                required
               />
               {phoneError && (
                 <p className="mt-1 text-sm text-red-600">{phoneError}</p>
@@ -164,8 +165,8 @@ export default function InvestigatorInformation(): JSX.Element {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">Investigator Email<span className="text-gray-500">*</span></label>
-              <input type="email" value={investigatorEmail} onChange={(e) => setInvestigatorEmail(e.target.value)} placeholder="Enter the primary email address for the investigator" className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <label className="block text-sm font-medium mb-1">Investigator Email<span className="text-red-500">*</span></label>
+              <input type="email" value={investigatorEmail} onChange={(e) => setInvestigatorEmail(e.target.value)} placeholder="Enter the primary email address for the investigator" className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" required />
               <label className="mt-2 flex items-center gap-2 text-sm">
                 <input type="checkbox" checked={useMyEmail} onChange={(e) => setUseMyEmail(e.target.checked)} className="h-4 w-4" />
                 Use my email address
@@ -173,13 +174,13 @@ export default function InvestigatorInformation(): JSX.Element {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">Regulatory Authority</label>
-              <input value={regulatoryAuthority} onChange={(e) => setRegulatoryAuthority(e.target.value)} placeholder="Enter the regulatory authority overseeing the trials" className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <label className="block text-sm font-medium mb-1">Regulatory Authority<span className="text-red-500">*</span></label>
+              <input value={regulatoryAuthority} onChange={(e) => setRegulatoryAuthority(e.target.value)} placeholder="Enter the regulatory authority overseeing the trials" className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" required />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">Regulatory Authority Address</label>
-              <input value={regulatoryAddress} onChange={(e) => setRegulatoryAddress(e.target.value)} placeholder="Enter the full mailing address of the regulatory authority" className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <label className="block text-sm font-medium mb-1">Regulatory Authority Address<span className="text-red-500">*</span></label>
+              <input value={regulatoryAddress} onChange={(e) => setRegulatoryAddress(e.target.value)} placeholder="Enter the full mailing address of the regulatory authority" className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" required />
             </div>
 
             <div className="space-y-3 text-sm text-gray-700">
