@@ -34,14 +34,20 @@ const handler: Handler = async (event, context) => {
     };
   }
 
+  const corsHeaders = {
+    "Access-Control-Allow-Origin": "*",
+    "Content-Type": "application/json",
+  };
+
   try {
-    // Get auth info from context
-    const userId = context.clientContext?.user?.sub || (event.headers["x-user-id"] as string);
-    const patientId = context.clientContext?.user?.sub || (event.headers["x-patient-id"] as string);
+    // Get auth info from headers
+    const userId = (event.headers["x-user-id"] as string) || (context.clientContext?.user?.sub as string);
+    const patientId = (event.headers["x-patient-id"] as string) || (context.clientContext?.user?.sub as string);
 
     if (!userId || !patientId) {
       return {
         statusCode: 401,
+        headers: corsHeaders,
         body: JSON.stringify({ ok: false, message: "Unauthorized - missing user or patient ID" }),
       };
     }
@@ -52,6 +58,7 @@ const handler: Handler = async (event, context) => {
     if (!nctId || !nctId.match(/^NCT\d{8}$/)) {
       return {
         statusCode: 400,
+        headers: corsHeaders,
         body: JSON.stringify({ ok: false, message: "Invalid NCT ID format" }),
       };
     }
