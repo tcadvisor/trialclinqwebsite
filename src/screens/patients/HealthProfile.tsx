@@ -903,8 +903,10 @@ export default function HealthProfile(): JSX.Element {
   }
   function removeMedication(index: number) { setProfile((p) => ({ ...p, medications: p.medications.filter((_, i) => i !== index) })); }
 
-  // Ensure profile is initialized before rendering
-  if (!profile || typeof profile !== 'object') {
+  // Ensure profile is initialized and valid before rendering
+  const validProfile = normalizeProfile(profile);
+
+  if (!validProfile || typeof validProfile !== 'object' || !validProfile.patientId !== undefined) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-gray-600">Loading profile...</div>
