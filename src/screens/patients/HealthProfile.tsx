@@ -906,7 +906,7 @@ export default function HealthProfile(): JSX.Element {
   // Ensure profile is initialized and valid before rendering
   const validProfile = normalizeProfile(profile);
 
-  if (!validProfile || typeof validProfile !== 'object' || !validProfile.patientId !== undefined) {
+  if (!validProfile || typeof validProfile !== 'object') {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-gray-600">Loading profile...</div>
