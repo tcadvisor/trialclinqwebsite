@@ -611,7 +611,7 @@ export default function HealthProfile(): JSX.Element {
     return { fieldSources: {} };
   });
 
-  const [profile, setProfile] = useState<HealthProfileData>(() => {
+  const [profile, setProfileState] = useState<HealthProfileData>(() => {
     try {
       const raw = localStorage.getItem(PROFILE_KEY);
       if (raw) {
@@ -623,6 +623,14 @@ export default function HealthProfile(): JSX.Element {
     }
     return normalizeProfile(null);
   });
+
+  // Wrapper to ensure profile is always normalized
+  const setProfile = (updater: HealthProfileData | ((prev: HealthProfileData) => HealthProfileData)) => {
+    setProfileState(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      return normalizeProfile(next);
+    });
+  };
 
   // Load and auto-fill from EPIC data on mount
   useEffect(() => {
