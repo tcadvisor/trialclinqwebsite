@@ -85,6 +85,77 @@ const EpicBadge: React.FC<{ syncedAt?: string }> = ({ syncedAt }) => {
   );
 };
 
+// Ensure profile data is always valid
+function normalizeProfile(profile: any): HealthProfileData {
+  const defaults: HealthProfileData = {
+    patientId: "",
+    email: "",
+    emailVerified: false,
+    age: "",
+    weight: "",
+    phone: "",
+    gender: "",
+    race: "",
+    language: "",
+    bloodGroup: "",
+    genotype: "",
+    hearingImpaired: false,
+    visionImpaired: false,
+    primaryCondition: "",
+    diagnosed: "",
+    allergies: [],
+    medications: [],
+    additionalInfo: "",
+    ecog: "",
+    diseaseStage: "",
+    biomarkers: "",
+    priorTherapies: [],
+    comorbidityCardiac: false,
+    comorbidityRenal: false,
+    comorbidityHepatic: false,
+    comorbidityAutoimmune: false,
+    infectionHIV: false,
+    infectionHBV: false,
+    infectionHCV: false,
+  };
+
+  if (!profile || typeof profile !== 'object') {
+    return defaults;
+  }
+
+  return {
+    patientId: String(profile.patientId || ""),
+    email: String(profile.email || ""),
+    emailVerified: Boolean(profile.emailVerified),
+    age: String(profile.age || ""),
+    weight: String(profile.weight || ""),
+    phone: String(profile.phone || ""),
+    gender: String(profile.gender || ""),
+    race: String(profile.race || ""),
+    language: String(profile.language || ""),
+    bloodGroup: String(profile.bloodGroup || ""),
+    genotype: String(profile.genotype || ""),
+    hearingImpaired: Boolean(profile.hearingImpaired),
+    visionImpaired: Boolean(profile.visionImpaired),
+    primaryCondition: String(profile.primaryCondition || ""),
+    diagnosed: String(profile.diagnosed || ""),
+    allergies: Array.isArray(profile.allergies) ? profile.allergies : [],
+    medications: Array.isArray(profile.medications) ? profile.medications : [],
+    additionalInfo: String(profile.additionalInfo || ""),
+    ecog: String(profile.ecog || ""),
+    diseaseStage: String(profile.diseaseStage || ""),
+    biomarkers: String(profile.biomarkers || ""),
+    priorTherapies: Array.isArray(profile.priorTherapies) ? profile.priorTherapies : [],
+    comorbidityCardiac: Boolean(profile.comorbidityCardiac),
+    comorbidityRenal: Boolean(profile.comorbidityRenal),
+    comorbidityHepatic: Boolean(profile.comorbidityHepatic),
+    comorbidityAutoimmune: Boolean(profile.comorbidityAutoimmune),
+    infectionHIV: Boolean(profile.infectionHIV),
+    infectionHBV: Boolean(profile.infectionHBV),
+    infectionHCV: Boolean(profile.infectionHCV),
+  };
+}
+
 const Section: React.FC<{ title: string; children: React.ReactNode; right?: React.ReactNode }> = ({ title, children, right }) => (
   <div className="rounded-xl border bg-white">
     <div className="flex items-center justify-between px-4 py-3 border-b">
