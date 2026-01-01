@@ -899,6 +899,7 @@ function HealthProfileContent(): JSX.Element {
   }
   function cancelNewMedication() { setNewMedication({ name: "", dose: "", amountDaily: "", schedule: "" }); setAddingMedication(false); }
   function editMedication(index: number) {
+    if (!profile?.medications?.[index]) return;
     const current = profile.medications[index];
     const name = prompt("Edit medication name", current?.name);
     if (!name) return;
