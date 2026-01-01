@@ -85,6 +85,77 @@ const EpicBadge: React.FC<{ syncedAt?: string }> = ({ syncedAt }) => {
   );
 };
 
+// Ensure profile data is always valid
+function normalizeProfile(profile: any): HealthProfileData {
+  const defaults: HealthProfileData = {
+    patientId: "",
+    email: "",
+    emailVerified: false,
+    age: "",
+    weight: "",
+    phone: "",
+    gender: "",
+    race: "",
+    language: "",
+    bloodGroup: "",
+    genotype: "",
+    hearingImpaired: false,
+    visionImpaired: false,
+    primaryCondition: "",
+    diagnosed: "",
+    allergies: [],
+    medications: [],
+    additionalInfo: "",
+    ecog: "",
+    diseaseStage: "",
+    biomarkers: "",
+    priorTherapies: [],
+    comorbidityCardiac: false,
+    comorbidityRenal: false,
+    comorbidityHepatic: false,
+    comorbidityAutoimmune: false,
+    infectionHIV: false,
+    infectionHBV: false,
+    infectionHCV: false,
+  };
+
+  if (!profile || typeof profile !== 'object') {
+    return defaults;
+  }
+
+  return {
+    patientId: String(profile.patientId || ""),
+    email: String(profile.email || ""),
+    emailVerified: Boolean(profile.emailVerified),
+    age: String(profile.age || ""),
+    weight: String(profile.weight || ""),
+    phone: String(profile.phone || ""),
+    gender: String(profile.gender || ""),
+    race: String(profile.race || ""),
+    language: String(profile.language || ""),
+    bloodGroup: String(profile.bloodGroup || ""),
+    genotype: String(profile.genotype || ""),
+    hearingImpaired: Boolean(profile.hearingImpaired),
+    visionImpaired: Boolean(profile.visionImpaired),
+    primaryCondition: String(profile.primaryCondition || ""),
+    diagnosed: String(profile.diagnosed || ""),
+    allergies: Array.isArray(profile.allergies) ? profile.allergies : [],
+    medications: Array.isArray(profile.medications) ? profile.medications : [],
+    additionalInfo: String(profile.additionalInfo || ""),
+    ecog: String(profile.ecog || ""),
+    diseaseStage: String(profile.diseaseStage || ""),
+    biomarkers: String(profile.biomarkers || ""),
+    priorTherapies: Array.isArray(profile.priorTherapies) ? profile.priorTherapies : [],
+    comorbidityCardiac: Boolean(profile.comorbidityCardiac),
+    comorbidityRenal: Boolean(profile.comorbidityRenal),
+    comorbidityHepatic: Boolean(profile.comorbidityHepatic),
+    comorbidityAutoimmune: Boolean(profile.comorbidityAutoimmune),
+    infectionHIV: Boolean(profile.infectionHIV),
+    infectionHBV: Boolean(profile.infectionHBV),
+    infectionHCV: Boolean(profile.infectionHCV),
+  };
+}
+
 const Section: React.FC<{ title: string; children: React.ReactNode; right?: React.ReactNode }> = ({ title, children, right }) => (
   <div className="rounded-xl border bg-white">
     <div className="flex items-center justify-between px-4 py-3 border-b">
@@ -514,8 +585,8 @@ function Documents({ onCountChange }: { onCountChange?: (count: number) => void 
   );
 }
 
-export default function HealthProfile(): JSX.Element {
-  const { user } = useAuth();
+function HealthProfileContent(): JSX.Element {
+  const { user, isLoading } = useAuth();
   const [activeTab, setActiveTab] = useState<"overview" | "documents" | "ehr">("overview");
   const [docCount, setDocCount] = useState<number>(() => {
     try {
@@ -540,43 +611,26 @@ export default function HealthProfile(): JSX.Element {
     return { fieldSources: {} };
   });
 
-  const [profile, setProfile] = useState<HealthProfileData>(() => {
+  const [profile, setProfileState] = useState<HealthProfileData>(() => {
     try {
       const raw = localStorage.getItem(PROFILE_KEY);
-      if (raw) return JSON.parse(raw) as HealthProfileData;
-    } catch {}
-    return {
-      patientId: "", // Will be set from authenticated user
-      email: "",
-      emailVerified: false,
-      age: "",
-      weight: "",
-      phone: "",
-      gender: "",
-      race: "",
-      language: "",
-      bloodGroup: "",
-      genotype: "",
-      hearingImpaired: false,
-      visionImpaired: false,
-      primaryCondition: "",
-      diagnosed: "",
-      allergies: [],
-      medications: [],
-      additionalInfo: "",
-      ecog: "",
-      diseaseStage: "",
-      biomarkers: "",
-      priorTherapies: [],
-      comorbidityCardiac: false,
-      comorbidityRenal: false,
-      comorbidityHepatic: false,
-      comorbidityAutoimmune: false,
-      infectionHIV: false,
-      infectionHBV: false,
-      infectionHCV: false,
-    };
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        return normalizeProfile(parsed);
+      }
+    } catch {
+      // Silently fail and use defaults
+    }
+    return normalizeProfile(null);
   });
+
+  // Wrapper to ensure profile is always normalized
+  const setProfile = (updater: HealthProfileData | ((prev: HealthProfileData) => HealthProfileData)) => {
+    setProfileState(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      return normalizeProfile(next);
+    });
+  };
 
   // Load and auto-fill from EPIC data on mount
   useEffect(() => {
@@ -726,10 +780,10 @@ export default function HealthProfile(): JSX.Element {
       try {
         const raw = localStorage.getItem(PROFILE_KEY);
         if (raw) {
-          const parsed = JSON.parse(raw) as HealthProfileData;
+          const parsed = JSON.parse(raw);
           // Prevent recursive updates from custom events
           if (e instanceof CustomEvent && e.detail?.source === 'HealthProfile') return;
-          setProfile(parsed);
+          setProfile(normalizeProfile(parsed));
         }
       } catch {}
     };
@@ -814,6 +868,7 @@ export default function HealthProfile(): JSX.Element {
     setAddingAllergy(false);
   }
   function editAllergy(index: number) {
+    if (!profile?.allergies?.[index]) return;
     const current = profile.allergies[index];
     const name = prompt("Edit allergy name", current?.name);
     if (!name) return;
@@ -844,6 +899,7 @@ export default function HealthProfile(): JSX.Element {
   }
   function cancelNewMedication() { setNewMedication({ name: "", dose: "", amountDaily: "", schedule: "" }); setAddingMedication(false); }
   function editMedication(index: number) {
+    if (!profile?.medications?.[index]) return;
     const current = profile.medications[index];
     const name = prompt("Edit medication name", current?.name);
     if (!name) return;
@@ -903,21 +959,21 @@ export default function HealthProfile(): JSX.Element {
                   {editingPersonal ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <label className="text-sm text-gray-700">Patient ID
-                        <input value={profile.patientId} onChange={(e)=>setProfile(p=>({...p, patientId:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2" />
+                        <input value={profile?.patientId || ""} onChange={(e)=>setProfile(p=>({...p, patientId:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2" />
                       </label>
                       <label className="text-sm text-gray-700">Email
-                        <input value={profile.email} onChange={(e)=>setProfile(p=>({...p, email:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2" />
+                        <input value={profile?.email || ""} onChange={(e)=>setProfile(p=>({...p, email:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2" />
                       </label>
                       <label className="text-sm text-gray-700">Age
-                        <input value={profile.age} onChange={(e)=>setProfile(p=>({...p, age:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2" />
+                        <input value={profile?.age || ""} onChange={(e)=>setProfile(p=>({...p, age:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2" />
                       </label>
                       <label className="text-sm text-gray-700">Weight
-                        <input value={profile.weight} onChange={(e)=>setProfile(p=>({...p, weight:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2" />
+                        <input value={profile?.weight || ""} onChange={(e)=>setProfile(p=>({...p, weight:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2" />
                       </label>
                       <div>
                         <label className="text-sm text-gray-700">Phone Number
                           <input
-                            value={profile.phone}
+                            value={profile?.phone || ""}
                             onChange={(e) => {
                               const formatted = formatPhoneNumber(e.target.value, "US");
                               setProfile(p=>({...p, phone: formatted}));
@@ -926,8 +982,8 @@ export default function HealthProfile(): JSX.Element {
                               }
                             }}
                             onBlur={() => {
-                              if (profile.phone.trim()) {
-                                const err = getPhoneValidationError(profile.phone, "US");
+                              if ((profile?.phone || "").trim()) {
+                                const err = getPhoneValidationError(profile?.phone || "", "US");
                                 setPhoneError(err);
                               }
                             }}
@@ -986,7 +1042,7 @@ export default function HealthProfile(): JSX.Element {
                   {metadata.fieldSources.allergies?.syncedAt && <EpicBadge syncedAt={metadata.fieldSources.allergies.syncedAt} />}
                 </div>}>
                   <ul className="divide-y">
-                    {profile.allergies.map((a, i) => (
+                    {(profile?.allergies || []).map((a, i) => (
                       <li key={i} className="py-3 flex items-start justify-between">
                         <div>
                           <div className="text-sm font-medium">
@@ -1068,7 +1124,7 @@ export default function HealthProfile(): JSX.Element {
                   {metadata.fieldSources.medications?.syncedAt && <EpicBadge syncedAt={metadata.fieldSources.medications.syncedAt} />}
                 </div>}>
                   <ul className="divide-y">
-                    {profile.medications.map((m, i) => (
+                    {(profile?.medications || []).map((m, i) => (
                       <li key={i} className="py-3 flex items-start justify-between">
                         <div>
                           <div className="text-sm font-medium">{m.name}</div>
@@ -1425,4 +1481,27 @@ export default function HealthProfile(): JSX.Element {
       </footer>
     </div>
   );
+}
+
+export default function HealthProfile(): JSX.Element {
+  // Defensive wrapper to ensure profile state doesn't crash the component
+  try {
+    return <HealthProfileContent />;
+  } catch (error) {
+    console.error('[HealthProfile] Error rendering:', error);
+    return (
+      <div className="min-h-screen bg-gray-50 text-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold mb-2">Unable to load profile</h2>
+          <p className="text-gray-600 mb-4">Please refresh the page or try again later.</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 text-white px-4 py-2 text-sm hover:bg-blue-700"
+          >
+            Refresh Page
+          </button>
+        </div>
+      </div>
+    );
+  }
 }
