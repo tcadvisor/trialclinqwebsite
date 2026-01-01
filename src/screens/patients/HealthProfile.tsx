@@ -922,7 +922,7 @@ export default function HealthProfile(): JSX.Element {
         <h1 className="text-2xl sm:text-3xl font-semibold">Health Profile</h1>
         {(() => { const nm = user ? `${user.firstName} ${user.lastName}` : ""; return (<>
           <div className="mt-1 text-gray-700">{nm}</div>
-          <div className="text-sm text-gray-500">{profile.email}</div>
+          <div className="text-sm text-gray-500">{validProfile.email}</div>
         </>); })()}
 
         <div className="mt-6 flex items-center gap-6 text-sm">
