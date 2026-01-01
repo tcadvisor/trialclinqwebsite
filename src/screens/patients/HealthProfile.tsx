@@ -772,10 +772,10 @@ export default function HealthProfile(): JSX.Element {
       try {
         const raw = localStorage.getItem(PROFILE_KEY);
         if (raw) {
-          const parsed = JSON.parse(raw) as HealthProfileData;
+          const parsed = JSON.parse(raw);
           // Prevent recursive updates from custom events
           if (e instanceof CustomEvent && e.detail?.source === 'HealthProfile') return;
-          setProfile(parsed);
+          setProfile(normalizeProfile(parsed));
         }
       } catch {}
     };
