@@ -27,6 +27,12 @@ export type CtgovStudy = {
     sponsorCollaboratorsModule?: {
       leadSponsor?: { name?: string }
     }
+    eligibilityModule?: {
+      minimumAge?: string
+      maximumAge?: string
+      sex?: string
+      eligibilityCriteria?: string
+    }
   }
 }
 
@@ -61,6 +67,9 @@ export function buildStudiesUrl({ q = '', status = '', type = '', loc = '', lat,
     'protocolSection.sponsorCollaboratorsModule.leadSponsor',
     'protocolSection.statusModule.startDateStruct',
     'protocolSection.statusModule.primaryCompletionDateStruct',
+    'protocolSection.eligibilityModule.minimumAge',
+    'protocolSection.eligibilityModule.maximumAge',
+    'protocolSection.eligibilityModule.sex',
   ].join(',')
 
   const params = new URLSearchParams()
@@ -189,6 +198,9 @@ export async function fetchStudyByNctId(nctId: string, _signal?: AbortSignal): P
           'protocolSection.sponsorCollaboratorsModule.leadSponsor',
           'protocolSection.descriptionModule.briefSummary',
           'protocolSection.eligibilityModule.eligibilityCriteria',
+          'protocolSection.eligibilityModule.minimumAge',
+          'protocolSection.eligibilityModule.maximumAge',
+          'protocolSection.eligibilityModule.sex',
         ].join(',');
         const url = `https://clinicaltrials.gov/api/v2/studies/${encodeURIComponent(nctId)}?format=json&fields=${encodeURIComponent(fields)}`;
         const direct = await safeFetch(url, { method: 'GET', signal: _signal });
@@ -217,6 +229,9 @@ export async function fetchStudyByNctId(nctId: string, _signal?: AbortSignal): P
         'protocolSection.sponsorCollaboratorsModule.leadSponsor',
         'protocolSection.descriptionModule.briefSummary',
         'protocolSection.eligibilityModule.eligibilityCriteria',
+        'protocolSection.eligibilityModule.minimumAge',
+        'protocolSection.eligibilityModule.maximumAge',
+        'protocolSection.eligibilityModule.sex',
       ].join(',');
       const url = `https://clinicaltrials.gov/api/v2/studies/${encodeURIComponent(nctId)}?format=json&fields=${encodeURIComponent(fields)}`;
       const direct = await safeFetch(url, { method: 'GET', signal: _signal });
