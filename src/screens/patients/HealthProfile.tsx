@@ -868,6 +868,7 @@ function HealthProfileContent(): JSX.Element {
     setAddingAllergy(false);
   }
   function editAllergy(index: number) {
+    if (!profile?.allergies?.[index]) return;
     const current = profile.allergies[index];
     const name = prompt("Edit allergy name", current?.name);
     if (!name) return;
