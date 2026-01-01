@@ -585,7 +585,7 @@ function Documents({ onCountChange }: { onCountChange?: (count: number) => void 
   );
 }
 
-export default function HealthProfile(): JSX.Element {
+function HealthProfileContent(): JSX.Element {
   const { user, isLoading } = useAuth();
   const [activeTab, setActiveTab] = useState<"overview" | "documents" | "ehr">("overview");
   const [docCount, setDocCount] = useState<number>(() => {
