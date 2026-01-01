@@ -1122,7 +1122,7 @@ function HealthProfileContent(): JSX.Element {
                   {metadata.fieldSources.medications?.syncedAt && <EpicBadge syncedAt={metadata.fieldSources.medications.syncedAt} />}
                 </div>}>
                   <ul className="divide-y">
-                    {profile.medications.map((m, i) => (
+                    {(profile?.medications || []).map((m, i) => (
                       <li key={i} className="py-3 flex items-start justify-between">
                         <div>
                           <div className="text-sm font-medium">{m.name}</div>
