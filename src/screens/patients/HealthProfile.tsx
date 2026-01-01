@@ -1480,3 +1480,26 @@ function HealthProfileContent(): JSX.Element {
     </div>
   );
 }
+
+export default function HealthProfile(): JSX.Element {
+  // Defensive wrapper to ensure profile state doesn't crash the component
+  try {
+    return <HealthProfileContent />;
+  } catch (error) {
+    console.error('[HealthProfile] Error rendering:', error);
+    return (
+      <div className="min-h-screen bg-gray-50 text-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold mb-2">Unable to load profile</h2>
+          <p className="text-gray-600 mb-4">Please refresh the page or try again later.</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 text-white px-4 py-2 text-sm hover:bg-blue-700"
+          >
+            Refresh Page
+          </button>
+        </div>
+      </div>
+    );
+  }
+}
