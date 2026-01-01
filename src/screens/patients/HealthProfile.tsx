@@ -911,17 +911,6 @@ export default function HealthProfile(): JSX.Element {
   }
   function removeMedication(index: number) { setProfile((p) => ({ ...p, medications: p.medications.filter((_, i) => i !== index) })); }
 
-  // Ensure profile is initialized and valid before rendering
-  const validProfile = normalizeProfile(profile);
-
-  if (!validProfile || typeof validProfile !== 'object') {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-gray-600">Loading profile...</div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
       <PatientHeader />
@@ -930,7 +919,7 @@ export default function HealthProfile(): JSX.Element {
         <h1 className="text-2xl sm:text-3xl font-semibold">Health Profile</h1>
         {(() => { const nm = user ? `${user.firstName} ${user.lastName}` : ""; return (<>
           <div className="mt-1 text-gray-700">{nm}</div>
-          <div className="text-sm text-gray-500">{validProfile.email}</div>
+          <div className="text-sm text-gray-500">{profile.email}</div>
         </>); })()}
 
         <div className="mt-6 flex items-center gap-6 text-sm">
