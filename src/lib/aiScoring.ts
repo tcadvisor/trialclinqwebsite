@@ -1,6 +1,4 @@
 import { fetchStudyByNctId, type CtgovStudy } from './ctgov';
-
-import { fetchStudyByNctId, type CtgovStudy } from './ctgov';
 import { readLocPref } from './geocode';
 
 type MinimalProfile = {
@@ -264,6 +262,15 @@ export async function scoreTopKWithAI<T extends { nctId: string; aiScore: number
   profile: MinimalProfile,
 ): Promise<Array<T & { aiRationale?: string }>> {
   const top = items.slice(0, Math.min(k, items.length));
+
+  // Apply any cached AI scores/rationales immediately for a better first paint.
+  for (const t of top) {
+    const cached = getCachedAiScore(t.nctId, profile);
+    if (cached) {
+      (t as any).aiScore = clamp(Math.round(cached.score));
+      if (cached.rationale) (t as any).aiRationale = cached.rationale;
+    }
+  }
 
   // Run rescoring in background to avoid blocking UI and surfacing fetch errors.
   (async () => {

@@ -121,6 +121,8 @@ const STOPWORDS = new Set([
   "the","a","an","and","or","of","for","to","in","on","with","without","by","at","from","about","into","over","after","before","is","are","be","being","been","this","that","these","those","study","trial","clinical","investigating","investigation","impact","patients","patient","therapy","treatment"
 ]);
 
+type AgeRange = { min?: number; max?: number; maxExclusive?: boolean };
+
 function tokenize(s: string | null | undefined): string[] {
   if (!s) return [];
   return s
@@ -322,6 +324,35 @@ function tokenizeArray(arr?: string[]): string[] {
   return (arr || []).flatMap((x) => tokenize(x));
 }
 
+function parseCtgovAgeString(s?: string): number | undefined {
+  const txt = (s || "").trim().toLowerCase();
+  if (!txt || txt === "n/a" || txt === "na" || txt === "none") return undefined;
+  const m = txt.match(/(\d+(?:\.\d+)?)/);
+  if (!m) return undefined;
+  let v = Number(m[1]);
+  if (!Number.isFinite(v)) return undefined;
+  if (/month/.test(txt)) v = v / 12;
+  else if (/week/.test(txt)) v = v / 52;
+  else if (/day/.test(txt)) v = v / 365;
+  return v;
+}
+
+function structuredAgeRangeFromStudy(study?: CtgovStudy): AgeRange | null {
+  const min = parseCtgovAgeString(study?.protocolSection?.eligibilityModule?.minimumAge);
+  const max = parseCtgovAgeString(study?.protocolSection?.eligibilityModule?.maximumAge);
+  if (min == null && max == null) return null;
+  return { min: min ?? undefined, max: max ?? undefined, maxExclusive: false };
+}
+
+function structuredSexFromStudy(study?: CtgovStudy): 'male' | 'female' | 'all' | null {
+  const raw = (study?.protocolSection?.eligibilityModule?.sex || "").toString().trim().toLowerCase();
+  if (!raw) return null;
+  if (raw === "all") return "all";
+  if (raw.startsWith("female")) return "female";
+  if (raw.startsWith("male")) return "male";
+  return null;
+}
+
 function summarizeReason(study: CtgovStudy, profile: MinimalProfile): string {
   const title = study.protocolSection?.identificationModule?.briefTitle || "";
   const titleToks = tokenize(title);
@@ -377,6 +408,15 @@ function ageLikeBoost(profile: MinimalProfile, study: CtgovStudy): number {
   // Optional minor boost when age range seems compatible based on min/max present in title text
   const a = typeof profile.age === 'number' ? profile.age : null;
   if (a == null) return 0;
+  const structured = structuredAgeRangeFromStudy(study);
+  if (structured) {
+    const { min, max, maxExclusive } = structured;
+    if (min != null && a < min) return 0;
+    if (max != null) {
+      if (maxExclusive ? a >= max : a > max) return 0;
+    }
+    return 5;
+  }
   const title = (study.protocolSection?.identificationModule?.briefTitle || '').toString();
   const rng = extractAgeRangeFromText(title);
   if (!rng) return 0;
@@ -463,6 +503,15 @@ function extractGenderRestrictionFromText(s: string): 'male' | 'female' | null {
 
 function isAgeCompatible(userAge: number | null | undefined, s: CtgovStudy, eligText?: string): boolean {
   if (userAge == null || !Number.isFinite(userAge as number)) return true;
+  const structured = structuredAgeRangeFromStudy(s);
+  if (structured) {
+    const { min, max, maxExclusive } = structured;
+    if (min != null && (userAge as number) < min) return false;
+    if (max != null) {
+      if (maxExclusive ? (userAge as number) >= max : (userAge as number) > max) return false;
+    }
+    return true;
+  }
   const title = (s.protocolSection?.identificationModule?.briefTitle || '').toString();
   const combined = `${title}\n${eligText || ''}`;
   const rng = extractAgeRangeFromText(combined);
@@ -476,6 +525,12 @@ function isAgeCompatible(userAge: number | null | undefined, s: CtgovStudy, elig
 function isGenderCompatible(userGender: string | null | undefined, s: CtgovStudy, eligText?: string): boolean {
   const g = (userGender || '').toLowerCase();
   if (!g) return true;
+  const structured = structuredSexFromStudy(s);
+  if (structured) {
+    if (structured === 'all') return true;
+    if (structured === 'female') return g.startsWith('fem');
+    if (structured === 'male') return g.startsWith('male');
+  }
   const title = (s.protocolSection?.identificationModule?.briefTitle || '').toString();
   const combined = `${title}\n${eligText || ''}`;
   const restr = extractGenderRestrictionFromText(combined);
@@ -558,32 +613,28 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
     }
   };
 
-  const locationFirst = Boolean(locText) && Boolean(q);
-  let studies = locationFirst
-    ? await fetchSet('', { withGeo: true, withStatuses: true })
-    : await fetchSet(q, { withGeo: true, withStatuses: true });
-
-  if (locationFirst && studies && studies.length > 0) {
-    studies = filterStudiesByQuery(studies, q);
+  const attempts: Array<{ query: string; opts: { withGeo?: boolean; withStatuses?: boolean }; filterAfter?: boolean; skipWhenEnforceRadius?: boolean }> = [
+    { query: q, opts: { withGeo: true, withStatuses: true } },
+    { query: q, opts: { withGeo: true, withStatuses: false }, skipWhenEnforceRadius: true },
+    { query: q, opts: { withGeo: false, withStatuses: true } },
+    { query: q, opts: { withGeo: false, withStatuses: false }, skipWhenEnforceRadius: true },
+  ];
+  if (locText) {
+    attempts.push({ query: '', opts: { withGeo: true, withStatuses: true }, filterAfter: Boolean(q) });
+  }
+  attempts.push({ query: '', opts: { withGeo: false, withStatuses: true }, filterAfter: Boolean(q), skipWhenEnforceRadius: true });
+  if (qPrimary && qPrimary !== q) {
+    attempts.push({ query: qPrimary, opts: { withGeo: true, withStatuses: true } });
   }
 
-  // Without an enforceable radius, allow fallback queries for better results
-  if (!locationFirst) {
-    if (!studies || studies.length === 0) {
-      if (!enforceRadius) studies = await fetchSet(q, { withGeo: true, withStatuses: false });
-    }
-    if (!studies || studies.length === 0) {
-      if (!enforceRadius) studies = await fetchSet(q, { withGeo: false, withStatuses: true });
-    }
-    if ((!studies || studies.length === 0) && q && q !== qPrimary) {
-      studies = await fetchSet(qPrimary || '', { withGeo: !enforceRadius ? true : true, withStatuses: true });
-    }
-    if (!studies || studies.length === 0) {
-      if (!enforceRadius) studies = await fetchSet(q, { withGeo: false, withStatuses: false });
-    }
-    if (!studies || studies.length === 0) {
-      if (!enforceRadius) studies = await fetchSet('', { withGeo: true, withStatuses: true });
-    }
+  let studies: CtgovStudy[] = [];
+  for (const attempt of attempts) {
+    if (attempt.skipWhenEnforceRadius && enforceRadius) continue;
+    try {
+      const r = await fetchSet(attempt.query, attempt.opts);
+      const filtered = attempt.filterAfter && q ? filterStudiesByQuery(r, q) : r;
+      if (filtered && filtered.length > 0) { studies = filtered; break; }
+    } catch {}
   }
   if (!studies) studies = [];
 
@@ -595,8 +646,9 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
     const overall = (s.protocolSection?.statusModule?.overallStatus || '').toString().toUpperCase();
     if (overall !== 'RECRUITING' && overall !== 'ENROLLING_BY_INVITATION') continue;
 
-    // Age compatibility gate: if user's age known and title indicates a range, enforce it strictly
+    // Age/gender compatibility gate: prefer structured ct.gov fields when present
     if (!isAgeCompatible(profile.age, s)) continue;
+    if (!isGenderCompatible(profile.gender, s)) continue;
 
     seen.add(nct);
     const title = s.protocolSection?.identificationModule?.briefTitle || nct;
@@ -605,6 +657,7 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
     const center = s.protocolSection?.sponsorCollaboratorsModule?.leadSponsor?.name || '';
     const location = ctLocation(s);
     let aiScore = computeStudyScore(s, profile);
+    let aiRationale: string | undefined;
     const conds = s.protocolSection?.conditionsModule?.conditions || [];
     const reason = summarizeReason(s, profile);
     try {
@@ -612,6 +665,7 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
       const cached = getCachedAiScore(nct, profile);
       if (cached && typeof cached.score === 'number') {
         aiScore = cached.score;
+        aiRationale = cached.rationale;
       }
     } catch {}
     list.push({
@@ -625,6 +679,7 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
       center,
       location,
       reason,
+      aiRationale,
     });
   }
 
