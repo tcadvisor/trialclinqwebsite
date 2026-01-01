@@ -612,49 +612,16 @@ export default function HealthProfile(): JSX.Element {
   });
 
   const [profile, setProfile] = useState<HealthProfileData>(() => {
-    const defaults: HealthProfileData = {
-      patientId: "", // Will be set from authenticated user
-      email: "",
-      emailVerified: false,
-      age: "",
-      weight: "",
-      phone: "",
-      gender: "",
-      race: "",
-      language: "",
-      bloodGroup: "",
-      genotype: "",
-      hearingImpaired: false,
-      visionImpaired: false,
-      primaryCondition: "",
-      diagnosed: "",
-      allergies: [],
-      medications: [],
-      additionalInfo: "",
-      ecog: "",
-      diseaseStage: "",
-      biomarkers: "",
-      priorTherapies: [],
-      comorbidityCardiac: false,
-      comorbidityRenal: false,
-      comorbidityHepatic: false,
-      comorbidityAutoimmune: false,
-      infectionHIV: false,
-      infectionHBV: false,
-      infectionHCV: false,
-    };
-
     try {
       const raw = localStorage.getItem(PROFILE_KEY);
       if (raw) {
-        const parsed = JSON.parse(raw) as Partial<HealthProfileData>;
-        // Merge parsed data with defaults to ensure all required properties exist
-        return { ...defaults, ...parsed };
+        const parsed = JSON.parse(raw);
+        return normalizeProfile(parsed);
       }
     } catch {
       // Silently fail and use defaults
     }
-    return defaults;
+    return normalizeProfile(null);
   });
 
   // Load and auto-fill from EPIC data on mount
