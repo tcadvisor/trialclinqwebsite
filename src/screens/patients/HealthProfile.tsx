@@ -959,21 +959,21 @@ function HealthProfileContent(): JSX.Element {
                   {editingPersonal ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <label className="text-sm text-gray-700">Patient ID
-                        <input value={profile.patientId} onChange={(e)=>setProfile(p=>({...p, patientId:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2" />
+                        <input value={profile?.patientId || ""} onChange={(e)=>setProfile(p=>({...p, patientId:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2" />
                       </label>
                       <label className="text-sm text-gray-700">Email
-                        <input value={profile.email} onChange={(e)=>setProfile(p=>({...p, email:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2" />
+                        <input value={profile?.email || ""} onChange={(e)=>setProfile(p=>({...p, email:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2" />
                       </label>
                       <label className="text-sm text-gray-700">Age
-                        <input value={profile.age} onChange={(e)=>setProfile(p=>({...p, age:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2" />
+                        <input value={profile?.age || ""} onChange={(e)=>setProfile(p=>({...p, age:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2" />
                       </label>
                       <label className="text-sm text-gray-700">Weight
-                        <input value={profile.weight} onChange={(e)=>setProfile(p=>({...p, weight:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2" />
+                        <input value={profile?.weight || ""} onChange={(e)=>setProfile(p=>({...p, weight:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2" />
                       </label>
                       <div>
                         <label className="text-sm text-gray-700">Phone Number
                           <input
-                            value={profile.phone}
+                            value={profile?.phone || ""}
                             onChange={(e) => {
                               const formatted = formatPhoneNumber(e.target.value, "US");
                               setProfile(p=>({...p, phone: formatted}));
@@ -982,8 +982,8 @@ function HealthProfileContent(): JSX.Element {
                               }
                             }}
                             onBlur={() => {
-                              if (profile.phone.trim()) {
-                                const err = getPhoneValidationError(profile.phone, "US");
+                              if ((profile?.phone || "").trim()) {
+                                const err = getPhoneValidationError(profile?.phone || "", "US");
                                 setPhoneError(err);
                               }
                             }}
