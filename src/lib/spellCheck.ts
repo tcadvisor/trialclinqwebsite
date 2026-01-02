@@ -77,45 +77,8 @@ export function getSpellCheckSuggestions(query: string, maxSuggestions = 3): Spe
 }
 
 /**
- * Use OpenAI to correct medical condition typos
+ * Placeholder for AI-powered correction — returns null when secure backend scorer is unavailable.
  */
-export async function correctWithAI(query: string): Promise<string | null> {
-  const apiKey = (import.meta as any).env?.VITE_OPENAI_API_KEY as string | undefined;
-  if (!apiKey) return null;
-
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-3.5-turbo',
-        messages: [
-          {
-            role: 'user',
-            content: `You are a medical condition spell checker. The user typed a medical condition that might have typos. Correct any typos in this medical condition query: "${query}". If it's already correct, return it as-is. Return ONLY the corrected condition name, nothing else.`,
-          },
-        ],
-        max_tokens: 50,
-        temperature: 0.3,
-      }),
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) return null;
-
-    const data = (await response.json()) as any;
-    const corrected = data.choices?.[0]?.message?.content?.trim();
-    return corrected && corrected !== query ? corrected : null;
-  } catch (e) {
-    // Silently fail on any error (network, timeout, parse error, etc)
-    return null;
-  }
+export async function correctWithAI(_query: string): Promise<string | null> {
+  return null;
 }
