@@ -18,15 +18,6 @@ function clamp(n: number, min = 0, max = 100) {
   return Math.max(min, Math.min(max, n));
 }
 
-function safeJson<T>(s: string): T | null {
-  try {
-    const cleaned = s.trim().replace(/^```\w*\n|```$/g, '').trim();
-    return JSON.parse(cleaned) as T;
-  } catch {
-    return null;
-  }
-}
-
 function hash(s: string): string {
   let h = 5381;
   for (let i = 0; i < s.length; i++) h = (h * 33) ^ s.charCodeAt(i);
