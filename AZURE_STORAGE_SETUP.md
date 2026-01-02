@@ -85,7 +85,7 @@ curl -X POST /.netlify/functions/upload-file \
     {
       "filename": "document.pdf",
       "size": 125000,
-      "url": "https://trialcliniqdev.blob.core.windows.net/medical-documents/patient-123/..."
+      "url": "https://<your-storage-account>.blob.core.windows.net/medical-documents/patient-123/..."
     }
   ]
 }
