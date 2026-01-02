@@ -39,7 +39,7 @@ export default function Home() {
     <div className="min-h-screen bg-white text-gray-900">
       {showBanner && (
         <div className="w-full bg-gray-900 text-white text-sm px-4 py-2 flex items-center justify-center gap-2">
-          <span>This announcement banner can be used to inform visitors of something important!</span>
+          <span>TrialClinIQ is now live!</span>
           <button aria-label="Dismiss" className="ml-2 text-white/80 hover:text-white" onClick={() => setShowBanner(false)}>✕</button>
         </div>
       )}
