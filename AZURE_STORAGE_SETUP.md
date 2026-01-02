@@ -234,7 +234,7 @@ npm run test:db
 2. Upload documents (triggers profile save)
 3. Verify data appears in PostgreSQL:
    ```bash
-   psql postgresql://chandler@trialcliniq.com@trialcliniq-dev.postgres.database.azure.com/postgres
+   psql postgresql://<db-user>@<server-name>.postgres.database.azure.com/postgres
    SELECT * FROM patient_profiles WHERE patient_id = 'patient-123';
    SELECT * FROM patient_documents WHERE patient_id = 'patient-123';
    ```
