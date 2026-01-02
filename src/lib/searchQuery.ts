@@ -148,5 +148,31 @@ export function normalizeLocation(raw: string): string {
   }
 
   // Remove leading keywords like "near", "around", "in" while preserving postal/city terms
-  return s.replace(/^\s*(near|around|in|within)\s+/i, '').replace(/\s{2,}/g,' ').trim()
+  const cleaned = s.replace(/^\s*(near|around|in|within)\s+/i, '').replace(/\s{2,}/g,' ').trim()
+
+  const stateMap: Record<string, string> = {
+    AL: 'Alabama', AK: 'Alaska', AZ: 'Arizona', AR: 'Arkansas', CA: 'California', CO: 'Colorado',
+    CT: 'Connecticut', DE: 'Delaware', FL: 'Florida', GA: 'Georgia', HI: 'Hawaii', ID: 'Idaho',
+    IL: 'Illinois', IN: 'Indiana', IA: 'Iowa', KS: 'Kansas', KY: 'Kentucky', LA: 'Louisiana',
+    ME: 'Maine', MD: 'Maryland', MA: 'Massachusetts', MI: 'Michigan', MN: 'Minnesota',
+    MS: 'Mississippi', MO: 'Missouri', MT: 'Montana', NE: 'Nebraska', NV: 'Nevada',
+    NH: 'New Hampshire', NJ: 'New Jersey', NM: 'New Mexico', NY: 'New York', NC: 'North Carolina',
+    ND: 'North Dakota', OH: 'Ohio', OK: 'Oklahoma', OR: 'Oregon', PA: 'Pennsylvania',
+    RI: 'Rhode Island', SC: 'South Carolina', SD: 'South Dakota', TN: 'Tennessee', TX: 'Texas',
+    UT: 'Utah', VT: 'Vermont', VA: 'Virginia', WA: 'Washington', WV: 'West Virginia',
+    WI: 'Wisconsin', WY: 'Wyoming', DC: 'District of Columbia',
+  };
+
+  const cityStateMatch = cleaned.match(/^(.*?),\s*([A-Za-z]{2})(?:,\s*(USA|United States))?$/i);
+  if (cityStateMatch) {
+    const city = cityStateMatch[1].trim();
+    const abbr = cityStateMatch[2].toUpperCase();
+    const state = stateMap[abbr];
+    if (city && state) return `${city}, ${state}`;
+  }
+
+  const upper = cleaned.toUpperCase();
+  if (stateMap[upper]) return stateMap[upper];
+
+  return cleaned
 }

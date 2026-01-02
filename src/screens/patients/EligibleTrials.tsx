@@ -59,6 +59,17 @@ export default function EligibleTrials(): JSX.Element {
         .includes(q)
     );
   }, [query, base]);
+  const similarItems = React.useMemo(() => {
+    const alt = ((base as any).__fallbackSimilar as LiteTrial[] | undefined) || [];
+    const q = query.trim().toLowerCase();
+    if (!q) return alt;
+    return alt.filter((t) =>
+      [t.title, t.nctId, t.phase, t.status, t.location, t.center, ...t.interventions]
+        .join(" ")
+        .toLowerCase()
+        .includes(q)
+    );
+  }, [base, query]);
 
   const handleExpressInterest = async (trial: LiteTrial) => {
     if (!user?.userId) {
@@ -255,7 +266,35 @@ export default function EligibleTrials(): JSX.Element {
               {items.length === 0 && (
                 <tr>
                   <td colSpan={7} className="px-4 py-6 text-center text-gray-500">
-                    No trials to show. Add your primary condition and location in your <a href="/patients/health-profile" className="underline">Health Profile</a> to get matches.
+                    <div className="max-w-xl mx-auto text-center">
+                      <div className="text-gray-900 font-medium">We couldn't match you to specific trials right now.</div>
+                      <p className="mt-1 text-sm text-gray-600">We’ll surface similar options when available. Updating your health profile or expanding your travel radius can help us find closer matches.</p>
+                      <a href="/patients/health-profile" className="mt-3 inline-flex items-center justify-center rounded-full bg-gray-900 px-4 py-2 text-sm text-white hover:bg-black">Update preferences</a>
+                      {similarItems.length > 0 && (
+                        <div className="mt-5 text-left">
+                          <div className="text-sm font-semibold text-gray-800">Similar trials outside your radius</div>
+                          <ul className="mt-2 space-y-2">
+                            {similarItems.slice(0, 6).map((t) => (
+                              <li key={t.slug} className="rounded-lg border p-3 bg-gray-50">
+                                <div className="flex items-start justify-between gap-3">
+                                  <div>
+                                    <Link to={`/study/${t.nctId}`} state={{ score: t.aiScore, rationale: t.aiRationale || t.reason }} className="text-sm font-medium text-gray-900 hover:underline">
+                                      {t.title}
+                                    </Link>
+                                    <div className="mt-1 text-xs text-gray-600 flex flex-wrap gap-2">
+                                      {t.location && <span>{t.location}</span>}
+                                      {t.center && <span className="hidden sm:inline">• {t.center}</span>}
+                                      {typeof (t as any).distanceMi === 'number' && <span className="text-gray-500">• {(t as any).distanceMi} mi away</span>}
+                                    </div>
+                                  </div>
+                                  <span className="inline-flex items-center rounded-full bg-gray-200 px-2 py-0.5 text-[11px] text-gray-700">Outside your radius</span>
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
                   </td>
                 </tr>
               )}

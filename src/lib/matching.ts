@@ -61,6 +61,21 @@ function readLocationPref(): { loc: string; radius?: string } {
   }
 }
 
+function buildMatchFingerprint(profile: MinimalProfile, locPref: { loc: string; radius?: string }): string {
+  const meds = Array.isArray(profile.medications) ? [...profile.medications].map((m) => String(m || "").toLowerCase().trim()).sort() : [];
+  const allergies = Array.isArray(profile.allergies) ? [...profile.allergies].map((a) => String(a || "").toLowerCase().trim()).sort() : [];
+  return JSON.stringify({
+    age: profile.age ?? null,
+    gender: (profile.gender || "").toLowerCase().trim(),
+    primaryCondition: (profile.primaryCondition || "").toLowerCase().trim(),
+    additionalInfo: (profile.additionalInfo || "").toString().trim(),
+    meds,
+    allergies,
+    loc: (locPref.loc || "").toLowerCase().trim(),
+    radius: (locPref.radius || "").toLowerCase().trim(),
+  });
+}
+
 export function readCurrentHealthProfile(): MinimalProfile {
   let age: number | null = null;
   let gender: string | null = null;
@@ -278,6 +293,14 @@ function ctLocation(study: CtgovStudy): string {
   const loc = study.protocolSection?.contactsLocationsModule?.locations?.[0];
   if (!loc) return "";
   return [loc.city, loc.state].filter(Boolean).join(", ");
+}
+
+function ctLocationLabels(study: CtgovStudy): string[] {
+  const locs = study.protocolSection?.contactsLocationsModule?.locations || [];
+  const labels = locs
+    .map((loc) => [loc.city, loc.state].filter(Boolean).join(", ").trim())
+    .filter(Boolean);
+  return Array.from(new Set(labels));
 }
 
 function parseRadiusMi(r?: string): number | undefined {
@@ -543,12 +566,14 @@ function isGenderCompatible(userGender: string | null | undefined, s: CtgovStudy
 export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<LiteTrial[]> {
   // Cache per session to avoid re-fetching on every view; clear by updating profile or eligibility
   const cacheKey = "__tc_cached_matches_v1";
-  const cached = (globalThis as any)[cacheKey] as { data: LiteTrial[]; ts: number } | undefined;
-  if (cached?.data?.length) {
+  const profile = readCurrentHealthProfile();
+  const locPref = readLocationPref();
+  const fingerprint = buildMatchFingerprint(profile, locPref);
+  const cached = (globalThis as any)[cacheKey] as { data: LiteTrial[]; ts: number; fingerprint?: string } | undefined;
+  if (cached?.data?.length && cached.fingerprint === fingerprint) {
     return cached.data.slice(0, limit);
   }
 
-  const profile = readCurrentHealthProfile();
   const qPrimary = (profile.primaryCondition || '').trim();
   const qAltTokens = tokenize(profile.additionalInfo || '');
   const qAlt = qAltTokens.slice(0, 3).join(' ');
@@ -557,7 +582,7 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
   const pageSize = Math.max(10, Math.min(100, limit));
   const statuses = ['RECRUITING', 'ENROLLING_BY_INVITATION'];
 
-  const { loc, radius } = readLocationPref();
+  const { loc, radius } = locPref;
   let geo: any = {};
   try { geo = (await geocodeLocPref()) || {}; } catch { geo = {}; }
   const locText = (geo as any)?.label || loc;
@@ -655,7 +680,8 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
     const status = ctStatus(s);
     const phase = pickPhase(s);
     const center = s.protocolSection?.sponsorCollaboratorsModule?.leadSponsor?.name || '';
-    const location = ctLocation(s);
+    const locations = ctLocationLabels(s);
+    const location = locations[0] || ctLocation(s);
     let aiScore = computeStudyScore(s, profile);
     let aiRationale: string | undefined;
     const conds = s.protocolSection?.conditionsModule?.conditions || [];
@@ -668,7 +694,7 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
         aiRationale = cached.rationale;
       }
     } catch {}
-    list.push({
+    const trial = {
       slug: nct.toLowerCase(),
       nctId: nct,
       title,
@@ -680,8 +706,13 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
       location,
       reason,
       aiRationale,
-    });
+    } as LiteTrial & { locations?: string[] };
+    trial.locations = locations;
+    list.push(trial);
   }
+
+  // Snapshot full list before radius enforcement for fallback suggestions
+  const listForFallback = list.map((t) => ({ ...t } as LiteTrial & { distanceMi?: number; inRadius?: boolean }));
 
   let radMiComputed: number | undefined;
   let noResultsWithinRadius = false;
@@ -692,7 +723,12 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
     const radMi = parseRadiusMi(user.radius);
     radMiComputed = radMi;
     if (uLat != null && uLng != null) {
-      const labels = Array.from(new Set(list.map((t) => (t.location || '').trim()).filter(Boolean)));
+      const labels = Array.from(new Set(list.flatMap((t) => {
+        const locs = ((t as any).locations as string[] | undefined) || [];
+        const base = locs.length ? locs : [];
+        const fallback = (t.location || '').trim();
+        return [...base, fallback].map((l) => l.trim()).filter(Boolean);
+      })));
       const locMap = new Map<string, { lat: number; lng: number }>();
       const geos = await Promise.all(labels.map(async (lbl) => {
         try { const g = await geocodeText(lbl); return [lbl, g] as const; } catch { return [lbl, null] as const; }
@@ -703,35 +739,75 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
         if (glat != null && glng != null) locMap.set(lbl, { lat: glat, lng: glng });
       }
       for (const t of list) {
-        const key = (t.location || '').trim();
-        const g = key ? locMap.get(key) : undefined;
-        if (g) {
-          const d = haversineMi(uLat, uLng, g.lat, g.lng);
-          t.distanceMi = Math.round(d);
-          t.inRadius = typeof radMi === 'number' ? d <= radMi : undefined;
+        const locs = ((t as any).locations as string[] | undefined) || [];
+        const candidates = locs.length ? locs : [(t.location || '').trim()].filter(Boolean);
+        let bestLabel = '';
+        let bestDistance: number | undefined;
+        for (const raw of candidates) {
+          const key = raw.trim();
+          if (!key) continue;
+          const g = locMap.get(key);
+          if (g && typeof g.lat === 'number' && typeof g.lng === 'number') {
+            const d = haversineMi(uLat, uLng, g.lat, g.lng);
+            if (bestDistance == null || d < bestDistance) {
+              bestDistance = d;
+              bestLabel = key;
+            }
+          } else if (!bestLabel) {
+            bestLabel = key;
+          }
+        }
+        if (bestLabel) {
+          t.location = bestLabel;
+        }
+        if (bestDistance != null) {
+          t.distanceMi = Math.round(bestDistance);
+          t.inRadius = typeof radMi === 'number' ? bestDistance <= radMi : undefined;
         }
       }
     }
   } catch {}
 
+  // Prefer the user-entered radius when present; fall back to computed radius if available
+  const effectiveRadiusMi = typeof radMiComputed === 'number' ? radMiComputed : (hasUserRadius ? userRadiusMi : undefined);
+
   // HARD BARRIER: Enforce radius strictly when we can
-  if (enforceRadius && typeof radMiComputed === 'number') {
+  if (enforceRadius && typeof effectiveRadiusMi === 'number') {
     const within = list.filter((t) => {
-      // Include only if distance is calculable and within radius, or if distance couldn't be calculated (give benefit of doubt)
-      if (typeof t.distanceMi !== 'number') return true;
-      return (t.distanceMi as number) <= (radMiComputed as number);
+      // Require calculable distance when user explicitly set a radius
+      if (typeof t.distanceMi !== 'number') return false;
+      return (t.distanceMi as number) <= (effectiveRadiusMi as number);
     });
     noResultsWithinRadius = within.length === 0;
     list.length = 0;
     list.push(...within);
-  } else if (typeof radMiComputed === 'number') {
+  } else if (typeof effectiveRadiusMi === 'number') {
     // If radius wasn't user-specified but was computed, apply as soft filter
-    const within = list.filter((t) => typeof t.distanceMi !== 'number' || (t.distanceMi as number) <= (radMiComputed as number));
+    const within = list.filter((t) => typeof t.distanceMi !== 'number' || (t.distanceMi as number) <= (effectiveRadiusMi as number));
     if (within.length > 0) { list.length = 0; list.push(...within); }
+  }
+
+  // Build fallback suggestions outside radius when nothing matched within
+  let fallbackSimilar: LiteTrial[] | undefined;
+  if (noResultsWithinRadius && listForFallback.length) {
+    const rmi = typeof effectiveRadiusMi === 'number' ? effectiveRadiusMi : undefined;
+    const candidates = listForFallback.filter((t) => {
+      if (rmi == null) return true;
+      if (typeof t.distanceMi === 'number') return (t.distanceMi as number) > rmi;
+      return true; // allow unknown distance to surface
+    });
+    const sorted = candidates.sort((a, b) => {
+      const da = typeof a.distanceMi === 'number' ? a.distanceMi as number : Number.POSITIVE_INFINITY;
+      const db = typeof b.distanceMi === 'number' ? b.distanceMi as number : Number.POSITIVE_INFINITY;
+      if (da !== db) return da - db;
+      return (b.aiScore ?? 0) - (a.aiScore ?? 0);
+    });
+    fallbackSimilar = sorted.slice(0, 10);
   }
 
   // Store the no-results state for later use
   (list as any).__noResultsWithinRadius = noResultsWithinRadius;
+  if (fallbackSimilar?.length) (list as any).__fallbackSimilar = fallbackSimilar;
 
   // Strict eligibility enforcement for top results using detailed criteria (age + gender + key clinical rules)
   async function applyEligibilityGate(items: typeof list, topN: number): Promise<typeof list> {
@@ -758,6 +834,8 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
   }
 
   const gated = await applyEligibilityGate(list, 40);
+  (gated as any).__noResultsWithinRadius = noResultsWithinRadius;
+  if (fallbackSimilar?.length) (gated as any).__fallbackSimilar = fallbackSimilar;
 
   // Location influence: boost nearby trials significantly; mildly penalize far ones
   for (const t of gated) {
@@ -787,10 +865,12 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
   try {
     const { scoreTopKWithAI } = await import('./aiScoring');
     const rescored = await scoreTopKWithAI(gated, 15, profile);
-    (globalThis as any)[cacheKey] = { data: rescored, ts: Date.now() };
+    (rescored as any).__noResultsWithinRadius = noResultsWithinRadius;
+    if (fallbackSimilar?.length) (rescored as any).__fallbackSimilar = fallbackSimilar;
+    (globalThis as any)[cacheKey] = { data: rescored, ts: Date.now(), fingerprint };
     return rescored.slice(0, limit);
   } catch {
-    (globalThis as any)[cacheKey] = { data: gated, ts: Date.now() };
+    (globalThis as any)[cacheKey] = { data: gated, ts: Date.now(), fingerprint };
     return gated.slice(0, limit);
   }
 }
