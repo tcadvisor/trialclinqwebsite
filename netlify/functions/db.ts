@@ -3,10 +3,45 @@ import { Pool, Client } from 'pg';
 // Connection pool for multiple concurrent connections
 let pool: Pool;
 
+function buildConnectionString(env: NodeJS.ProcessEnv = process.env): string {
+  const envUrl = env.DATABASE_URL?.trim();
+  if (envUrl) {
+    if (envUrl.includes('<') || envUrl.includes('>')) {
+      throw new Error('DATABASE_URL contains placeholder values; set it to your actual Postgres connection string.');
+    }
+    try {
+      new URL(envUrl);
+      return envUrl;
+    } catch {
+      throw new Error('Invalid DATABASE_URL format; expected a full Postgres connection string.');
+    }
+  }
+
+  const required: Array<keyof NodeJS.ProcessEnv> = [
+    'PGUSER',
+    'PGPASSWORD',
+    'PGHOST',
+    'PGPORT',
+    'PGDATABASE',
+  ];
+  const missing = required.filter((key) => !env[key]);
+  if (missing.length) {
+    throw new Error(`Missing database environment variables: ${missing.join(', ')}`);
+  }
+
+  const connectionString = `postgresql://${env.PGUSER}:${encodeURIComponent(env.PGPASSWORD!)}@${env.PGHOST}:${env.PGPORT}/${env.PGDATABASE}?sslmode=require`;
+
+  try {
+    new URL(connectionString);
+    return connectionString;
+  } catch {
+    throw new Error('Invalid PG* environment variable values; verify host, port, user, password, and database.');
+  }
+}
+
 export function getPool(): Pool {
   if (!pool) {
-    const connectionString = process.env.DATABASE_URL || 
-      `postgresql://${process.env.PGUSER}:${encodeURIComponent(process.env.PGPASSWORD!)}@${process.env.PGHOST}:${process.env.PGPORT}/${process.env.PGDATABASE}?sslmode=require`;
+    const connectionString = buildConnectionString();
     
     pool = new Pool({
       connectionString,
@@ -26,8 +61,7 @@ export function getPool(): Pool {
 // Initialize database schema
 export async function initializeDatabase() {
   const client = new Client({
-    connectionString: process.env.DATABASE_URL ||
-      `postgresql://${process.env.PGUSER}:${encodeURIComponent(process.env.PGPASSWORD!)}@${process.env.PGHOST}:${process.env.PGPORT}/${process.env.PGDATABASE}?sslmode=require`,
+    connectionString: buildConnectionString(),
   });
 
   try {
