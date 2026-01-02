@@ -3,7 +3,7 @@
  * Uses Microsoft Authentication Library (MSAL) for browser
  */
 
-import { PublicClientApplication, AccountInfo, AuthenticationResult, InteractionRequiredAuthError } from '@azure/msal-browser';
+import { PublicClientApplication, AccountInfo, AuthenticationResult, InteractionRequiredAuthError, BrowserAuthError } from '@azure/msal-browser';
 import { msalConfig, loginRequest, tokenRequest, silentRequest } from './msalConfig';
 
 let msalInstance: PublicClientApplication | null = null;
@@ -18,6 +18,27 @@ function isInIframe(): boolean {
   } catch {
     return false;
   }
+}
+
+function shouldTriggerInteractive(error: unknown): boolean {
+  if (error instanceof InteractionRequiredAuthError) {
+    return true;
+  }
+  if (error instanceof BrowserAuthError) {
+    const codes = ['no_tokens_found', 'no_account_in_silent_call', 'interaction_in_progress', 'monitor_window_timeout'];
+    return codes.includes(error.errorCode);
+  }
+  const message = error instanceof Error ? error.message : '';
+  return /consent_required|login_required/i.test(message);
+}
+
+async function interactiveAcquireToken(msal: PublicClientApplication): Promise<string | null> {
+  if (isInIframe()) {
+    await msal.acquireTokenRedirect(tokenRequest);
+    return null;
+  }
+  const response = await msal.acquireTokenPopup(tokenRequest);
+  return response?.accessToken || null;
 }
 
 // Initialize MSAL instance with error handling
@@ -303,13 +324,12 @@ export async function isUserAuthenticated(): Promise<boolean> {
  * Get access token for API calls
  */
 export async function getAccessToken(): Promise<string | null> {
-  try {
-    const msal = getMsalInstance();
-    
-    if (!msal) {
-      return null;
-    }
+  const msal = getMsalInstance();
+  if (!msal) {
+    return null;
+  }
 
+  try {
     const accounts = msal.getAllAccounts();
     if (accounts[0]) {
       try {
@@ -318,7 +338,7 @@ export async function getAccessToken(): Promise<string | null> {
     }
 
     if (accounts.length === 0) {
-      return null;
+      return await interactiveAcquireToken(msal);
     }
 
     const response = await msal.acquireTokenSilent({
@@ -326,21 +346,23 @@ export async function getAccessToken(): Promise<string | null> {
       account: accounts[0],
     });
 
-    return response.accessToken;
+    if (response?.accessToken) {
+      return response.accessToken;
+    }
+
+    return await interactiveAcquireToken(msal);
   } catch (error) {
-    if (error instanceof InteractionRequiredAuthError) {
-      console.error('Token acquisition requires interaction');
+    if (shouldTriggerInteractive(error)) {
       try {
-        const response = await msal?.acquireTokenPopup(tokenRequest);
-        return response?.accessToken || null;
+        return await interactiveAcquireToken(msal);
       } catch (interactiveError) {
-        console.error('Failed to acquire token interactively:', interactiveError);
+        console.error('Interactive token acquisition failed:', interactiveError);
         return null;
       }
-    } else {
-      console.error('Failed to get access token:', error);
-      return null;
     }
+
+    console.error('Failed to get access token:', error);
+    return null;
   }
 }
 
