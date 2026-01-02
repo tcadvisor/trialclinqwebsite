@@ -312,4 +312,4 @@ For issues with:
 **Last Updated:** 2024-01-15
 **Azure Region:** Canada Central
 **Database Version:** PostgreSQL 17
-**Storage Account:** trialcliniqdev
+**Storage Account:** <your-storage-account-name>
