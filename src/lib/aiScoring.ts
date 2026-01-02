@@ -117,12 +117,9 @@ function studyToText(study: CtgovStudy): string {
   ].filter(Boolean).join('\n');
 }
 
-function isAiConfigured() {
+function isAiWebhookAvailable() {
   const url = (import.meta as any).env?.VITE_AI_SCORER_URL as string | undefined;
-  const key = (import.meta as any).env?.VITE_OPENAI_API_KEY as string | undefined;
-  // In browser, require a serverless webhook to avoid exposing the OpenAI key and avoid CORS issues.
-  if (typeof window !== 'undefined') return Boolean(url);
-  return Boolean(url || key);
+  return Boolean(url || true);
 }
 
 import { safeFetch } from './fetchUtils';
@@ -170,40 +167,6 @@ async function callWebhook(url: string, payload: any, signal?: AbortSignal): Pro
   return attempt();
 }
 
-async function callOpenAI(prompt: string, signal?: AbortSignal): Promise<AiScoreResult | null> {
-  // Direct OpenAI calls are only allowed from server-side. In browser, return null to avoid fetch failures/CORS and key leakage.
-  if (typeof window !== 'undefined') return null;
-  const key = (import.meta as any).env?.VITE_OPENAI_API_KEY as string | undefined;
-  if (!key) return null;
-  try {
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'authorization': `Bearer ${key}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        temperature: 0.1,
-        messages: [
-          { role: 'system', content: 'You score clinical trial eligibility and fit. Output ONLY valid compact JSON with fields score (0-100 integer) and rationale (<=160 chars). Do not include any other text.' },
-          { role: 'user', content: prompt },
-        ],
-        response_format: { type: 'json_object' },
-      }),
-      signal,
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    const content = data?.choices?.[0]?.message?.content as string | undefined;
-    if (!content) return null;
-    const parsed = safeJson<{ score: number; rationale?: string }>(content);
-    if (!parsed || !Number.isFinite(parsed.score)) return null;
-    return { score: clamp(Math.round(parsed.score)), rationale: parsed.rationale };
-  } catch {
-    return null;
-  }
-}
 
 export async function scoreStudyWithAI(nctId: string, profile: MinimalProfile, signal?: AbortSignal): Promise<AiScoreResult | null> {
   try {
@@ -215,7 +178,7 @@ export async function scoreStudyWithAI(nctId: string, profile: MinimalProfile, s
       return { score: hit.score, rationale: hit.rationale };
     }
 
-    if (!isAiConfigured()) return null;
+    if (!isAiWebhookAvailable()) return null;
 
     const detail = await fetchStudyByNctId(nctId, signal);
     const study = (detail && detail.studies && detail.studies[0]) as CtgovStudy | undefined;
@@ -229,21 +192,14 @@ export async function scoreStudyWithAI(nctId: string, profile: MinimalProfile, s
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 20000);
 
-    let result: AiScoreResult | null = null;
-    // Prefer serverless scorer first (secure, reliable); then direct OpenAI
     const configuredUrl = (import.meta as any).env?.VITE_AI_SCORER_URL as string | undefined;
     const defaultUrl = '/.netlify/functions/ai-scorer';
     const webhookUrl = configuredUrl || defaultUrl;
-    result = await callWebhook(webhookUrl, { profile, nctId, study, prompt }, controller.signal);
+    const result = await callWebhook(webhookUrl, { profile, nctId, study, prompt }, controller.signal);
+    clearTimeout(timeout);
     if (!result) {
-      result = await callOpenAI(prompt, controller.signal);
-    }
-    if (!result) {
-      clearTimeout(timeout);
       return null;
     }
-
-    clearTimeout(timeout);
 
     if (result) {
       cache[cacheKey] = { score: result.score, rationale: result.rationale, ts: Date.now() };
