@@ -14,12 +14,12 @@ Your healthcare trial app is now configured to use:
 Your environment variables have been automatically configured:
 
 ```
-DATABASE_URL=postgresql://<username>:<password>@<server>.postgres.database.azure.com:5432/postgres?sslmode=require
+DATABASE_URL=postgresql://<username>:<password>@<server>.postgres.database.azure.com:<port>/<database>?sslmode=require
 PGHOST=<your-postgres-server>.postgres.database.azure.com
 PGUSER=<your-postgres-username>
 PGPASSWORD=<your-postgres-password>
-PGPORT=5432
-PGDATABASE=postgres
+PGPORT=<your-postgres-port>
+PGDATABASE=<your-postgres-database>
 AZURE_STORAGE_ACCOUNT_NAME=<your-storage-account-name>
 AZURE_STORAGE_ACCOUNT_KEY=<your-storage-account-key>
 ```
