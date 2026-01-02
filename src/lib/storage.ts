@@ -1,5 +1,7 @@
 // Storage API utilities for Azure backend
 
+import { getAccessToken } from "./entraId";
+
 const API_BASE = '/.netlify/functions';
 
 interface HealthProfile {
@@ -43,15 +45,42 @@ interface PatientFile {
   url: string;
 }
 
-function toAuthHeader(token?: string): string {
-  const raw = (token || "").trim();
-  if (!raw) throw new Error("Not authenticated. Please sign in and try again.");
+async function toAuthHeader(token?: string): Promise<string> {
+  let raw = (token || "").trim();
+
+  if (!raw) {
+    try {
+      const fetched = await getAccessToken();
+      if (fetched) {
+        raw = fetched.trim();
+      }
+    } catch (error) {
+      console.warn("Failed to fetch access token", error);
+    }
+  }
+
+  if (!raw && typeof window !== "undefined") {
+    try {
+      const w: any = window as any;
+      const maybeToken = typeof w?.getAuthToken === "function" ? await Promise.resolve(w.getAuthToken()) : "";
+      if (maybeToken) {
+        raw = String(maybeToken).trim();
+      }
+    } catch (error) {
+      console.warn("Global getAuthToken lookup failed", error);
+    }
+  }
+
+  if (!raw) {
+    throw new Error("Not authenticated. Please sign in and try again.");
+  }
+
   return raw.toLowerCase().startsWith("bearer ") ? raw : `Bearer ${raw}`;
 }
 
 // Save patient profile to persistent storage
 export async function savePatientProfile(profile: HealthProfile, authToken?: string): Promise<void> {
-  const authHeader = toAuthHeader(authToken);
+  const authHeader = await toAuthHeader(authToken);
   const response = await fetch(`${API_BASE}/profile-write`, {
     method: 'POST',
     headers: {
@@ -76,7 +105,7 @@ export async function uploadPatientFiles(
   files: File[],
   authToken?: string
 ): Promise<any[]> {
-  const authHeader = toAuthHeader(authToken);
+  const authHeader = await toAuthHeader(authToken);
   const formData = new FormData();
   formData.append('patientId', patientId);
 
@@ -104,7 +133,7 @@ export async function uploadPatientFiles(
 
 // Get patient files from Azure Blob Storage
 export async function getPatientFiles(patientId: string, authToken?: string): Promise<PatientFile[]> {
-  const authHeader = toAuthHeader(authToken);
+  const authHeader = await toAuthHeader(authToken);
   const response = await fetch(`${API_BASE}/get-patient-files?patientId=${encodeURIComponent(patientId)}`, {
     method: 'GET',
     headers: {
@@ -193,7 +222,7 @@ interface ProviderProfile {
 
 // Save provider profile to persistent storage
 export async function saveProviderProfile(profile: ProviderProfile, authToken?: string): Promise<void> {
-  const authHeader = toAuthHeader(authToken);
+  const authHeader = await toAuthHeader(authToken);
   const response = await fetch(`${API_BASE}/provider-write`, {
     method: 'POST',
     headers: {
