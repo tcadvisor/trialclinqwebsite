@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
 import {
   PencilIcon,
   Trash2Icon,
@@ -153,6 +152,15 @@ function normalizeProfile(profile: any): HealthProfileData {
     infectionHIV: Boolean(profile.infectionHIV),
     infectionHBV: Boolean(profile.infectionHBV),
     infectionHCV: Boolean(profile.infectionHCV),
+  };
+}
+
+function normalizeMetadata(meta: any): HealthProfileMetadata {
+  const defaults: HealthProfileMetadata = { fieldSources: {} };
+  if (!meta || typeof meta !== "object") return defaults;
+  const fieldSources = (meta as any).fieldSources;
+  return {
+    fieldSources: fieldSources && typeof fieldSources === "object" ? fieldSources : {},
   };
 }
 
@@ -603,12 +611,12 @@ function HealthProfileContent(): JSX.Element {
 
   const [phoneError, setPhoneError] = useState<string | null>(null);
 
-  const [metadata, setMetadata] = useState<HealthProfileMetadata>(() => {
+  const [metadata, setMetadataState] = useState<HealthProfileMetadata>(() => {
     try {
       const raw = localStorage.getItem(PROFILE_METADATA_KEY);
-      if (raw) return JSON.parse(raw) as HealthProfileMetadata;
+      if (raw) return normalizeMetadata(JSON.parse(raw));
     } catch {}
-    return { fieldSources: {} };
+    return normalizeMetadata(null);
   });
 
   const [profile, setProfileState] = useState<HealthProfileData>(() => {
@@ -629,6 +637,12 @@ function HealthProfileContent(): JSX.Element {
     setProfileState(prev => {
       const next = typeof updater === 'function' ? updater(prev) : updater;
       return normalizeProfile(next);
+    });
+  };
+  const setMetadata = (updater: HealthProfileMetadata | ((prev: HealthProfileMetadata) => HealthProfileMetadata)) => {
+    setMetadataState(prev => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      return normalizeMetadata(next);
     });
   };
 
@@ -1373,9 +1387,14 @@ function HealthProfileContent(): JSX.Element {
             return (
               <div className="mt-6 rounded-xl border bg-white p-4 text-sm text-gray-600">
                 <p>No EHR/EMR connected yet.</p>
-                <Link to="/patients/ehr" className="mt-4 inline-flex items-center gap-2 rounded-lg bg-blue-600 text-white px-4 py-2 text-sm hover:bg-blue-700">
-                  Connect EHR/EMR Provider
-                </Link>
+                <button
+                  type="button"
+                  disabled
+                  className="mt-4 inline-flex items-center gap-2 rounded-lg bg-gray-200 text-gray-500 px-4 py-2 text-sm cursor-not-allowed"
+                  aria-disabled="true"
+                >
+                  Feature coming soon
+                </button>
               </div>
             );
           }

@@ -5,6 +5,29 @@ import { safeFetch } from './fetchUtils';
 const CACHE_KEY = 'tc_geocode_cache_v1';
 const ELIGIBILITY_KEY = 'tc_eligibility_profile';
 
+const US_STATE_MAP: Record<string, string> = {
+  AL: 'Alabama', AK: 'Alaska', AZ: 'Arizona', AR: 'Arkansas', CA: 'California', CO: 'Colorado',
+  CT: 'Connecticut', DE: 'Delaware', FL: 'Florida', GA: 'Georgia', HI: 'Hawaii', ID: 'Idaho',
+  IL: 'Illinois', IN: 'Indiana', IA: 'Iowa', KS: 'Kansas', KY: 'Kentucky', LA: 'Louisiana',
+  ME: 'Maine', MD: 'Maryland', MA: 'Massachusetts', MI: 'Michigan', MN: 'Minnesota',
+  MS: 'Mississippi', MO: 'Missouri', MT: 'Montana', NE: 'Nebraska', NV: 'Nevada',
+  NH: 'New Hampshire', NJ: 'New Jersey', NM: 'New Mexico', NY: 'New York', NC: 'North Carolina',
+  ND: 'North Dakota', OH: 'Ohio', OK: 'Oklahoma', OR: 'Oregon', PA: 'Pennsylvania',
+  RI: 'Rhode Island', SC: 'South Carolina', SD: 'South Dakota', TN: 'Tennessee', TX: 'Texas',
+  UT: 'Utah', VT: 'Vermont', VA: 'Virginia', WA: 'Washington', WV: 'West Virginia',
+  WI: 'Wisconsin', WY: 'Wyoming', DC: 'District of Columbia',
+};
+
+function toStateName(input: string): string | undefined {
+  const trimmed = (input || "").trim();
+  if (!trimmed) return undefined;
+  const abbr = trimmed.toUpperCase();
+  if (US_STATE_MAP[abbr]) return US_STATE_MAP[abbr];
+  const lower = trimmed.toLowerCase();
+  const match = Object.values(US_STATE_MAP).find((name) => name.toLowerCase() === lower);
+  return match;
+}
+
 function readCache(): Record<string, GeoResult> {
   try { return JSON.parse(localStorage.getItem(CACHE_KEY) || '{}'); } catch { return {}; }
 }
@@ -17,6 +40,12 @@ function buildGeocodeVariants(input: string): string[] {
   if (!base) return [];
   const variants = [base];
   const lower = base.toLowerCase();
+  const parts = base.split(",").map((p) => p.trim()).filter(Boolean);
+  const lastPart = parts.length ? parts[parts.length - 1] : "";
+  const stateFromPart = toStateName(lastPart);
+  const hasStateAbbr = Boolean(stateFromPart && lastPart.length === 2);
+  const tokens = base.split(/[\s,]+/).map((t) => t.replace(/\./g, "").toUpperCase()).filter(Boolean);
+  const hasAbbrToken = tokens.some((t) => Boolean(US_STATE_MAP[t]));
   const usStateNames = [
     'alabama','alaska','arizona','arkansas','california','colorado','connecticut','delaware','florida','georgia',
     'hawaii','idaho','illinois','indiana','iowa','kansas','kentucky','louisiana','maine','maryland','massachusetts',
@@ -25,11 +54,22 @@ function buildGeocodeVariants(input: string): string[] {
     'south dakota','tennessee','texas','utah','vermont','virginia','washington','west virginia','wisconsin','wyoming',
     'district of columbia','washington dc','washington d.c.'
   ];
-  const looksLikeUS = /\busa\b|\bunited states\b|\bUS\b/i.test(base) || lower.includes(" united states");
+  const looksLikeUS = hasAbbrToken || /\busa\b|\bunited states\b|\bUS\b/i.test(base) || lower.includes(" united states");
   if (!looksLikeUS) variants.push(`${base}, United States`);
   if (usStateNames.includes(lower)) variants.push(`${base}, United States`);
   if (lower === "new york") variants.push("New York, NY");
   if (lower === "washington") variants.push("Washington, DC");
+  if (stateFromPart && parts.length >= 2) {
+    const city = parts.slice(0, -1).join(", ").trim();
+    if (city) {
+      variants.push(`${city}, ${stateFromPart}`);
+      variants.push(`${city}, ${stateFromPart}, United States`);
+    }
+  }
+  if (stateFromPart && parts.length === 1) {
+    variants.push(stateFromPart);
+    variants.push(`${stateFromPart}, United States`);
+  }
   return Array.from(new Set(variants));
 }
 

@@ -10,6 +10,7 @@ export default function Dashboard(): JSX.Element {
   const name = user ? `${user.firstName} ${user.lastName}` : "";
   const [progress, setProgress] = useState(() => computeProfileCompletion());
   const [items, setItems] = useState<LiteTrial[]>([]);
+  const [fallbackItems, setFallbackItems] = useState<LiteTrial[]>([]);
   const [whyOpen, setWhyOpen] = useState(false);
   const [whyContent, setWhyContent] = useState<string>("");
   const [noResultsWithinRadius, setNoResultsWithinRadius] = useState(false);
@@ -24,11 +25,13 @@ export default function Dashboard(): JSX.Element {
         const list = await getRealMatchedTrialsForCurrentUser(50);
         if (!cancelled) {
           setItems(list);
+          setFallbackItems(((list as any).__fallbackSimilar as LiteTrial[] | undefined) || []);
           setNoResultsWithinRadius((list as any).__noResultsWithinRadius === true);
         }
       } catch (err) {
         if (!cancelled) {
           setItems([]);
+          setFallbackItems([]);
           setNoResultsWithinRadius(false);
           setError(err instanceof Error ? err.message : "Failed to load matches");
         }
@@ -257,6 +260,43 @@ export default function Dashboard(): JSX.Element {
                     </td>
                   </tr>
                 ))}
+                {items.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-6 text-center text-gray-500">
+                      <div className="max-w-xl mx-auto text-center">
+                        <div className="text-gray-900 font-medium">We couldn't match you to specific trials right now.</div>
+                        <p className="mt-1 text-sm text-gray-600">We’ll show similar options when they’re available. Updating your health profile or widening your travel radius can help us find closer matches.</p>
+                        <Link to="/patients/health-profile" className="mt-3 inline-flex items-center justify-center rounded-full bg-gray-900 px-4 py-2 text-sm text-white hover:bg-black">
+                          Update preferences
+                        </Link>
+                        {fallbackItems.length > 0 && (
+                          <div className="mt-5 text-left">
+                            <div className="text-sm font-semibold text-gray-800">Similar trials outside your radius</div>
+                            <ul className="mt-2 space-y-2">
+                              {fallbackItems.slice(0, 4).map((t) => (
+                                <li key={t.slug} className="rounded-lg border p-3 bg-gray-50">
+                                  <div className="flex items-start justify-between gap-3">
+                                    <div>
+                                      <Link to={`/study/${t.nctId}`} state={{ score: t.aiScore, rationale: t.aiRationale || t.reason }} className="text-sm font-medium text-gray-900 hover:underline">
+                                        {t.title}
+                                      </Link>
+                                      <div className="mt-1 text-xs text-gray-600 flex flex-wrap gap-2">
+                                        {t.location && <span>{t.location}</span>}
+                                        {t.center && <span className="hidden sm:inline">• {t.center}</span>}
+                                        {typeof (t as any).distanceMi === 'number' && <span className="text-gray-500">• {(t as any).distanceMi} mi away</span>}
+                                      </div>
+                                    </div>
+                                    <span className="inline-flex items-center rounded-full bg-gray-200 px-2 py-0.5 text-[11px] text-gray-700">Outside your radius</span>
+                                  </div>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
             <Link to="/patients/eligible?page=1" className="border-t px-4 py-3 block text-sm text-gray-600 hover:bg-gray-50 text-center">See more</Link>
