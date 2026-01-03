@@ -309,7 +309,7 @@ function summarizeDevPlugin() {
       json(res, 405, { error: "Method not allowed" });
       return;
     }
-    const key = process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY || "";
+    const key = process.env.OPENAI_API_KEY || "";
     if (!key) {
       json(res, 500, { error: "OPENAI_API_KEY not set" });
       return;
