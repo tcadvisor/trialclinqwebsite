@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { getCurrentAuthUser, getMsalInstance, signOutUser } from "./entraId";
-import { generatePatientId } from "./patientIdUtils";
+import { generatePatientId, clearAllPatientData } from "./patientIdUtils";
 
 export type User = { email: string; role: "patient" | "provider"; firstName: string; lastName: string; userId: string };
 
@@ -88,20 +88,12 @@ function clearUserScopedDataIfMismatch(currentUser: { email: string; userId: str
       });
 
       // Clear all user-scoped data to prevent data leakage
-      localStorage.removeItem(PROFILE_KEY);
-      localStorage.removeItem(PROFILE_METADATA_KEY);
-      localStorage.removeItem(DOCS_KEY);
-      localStorage.removeItem(ELIGIBILITY_KEY);
-      localStorage.removeItem("epic:patient:v1");
-      localStorage.removeItem("epic:tokens:v1");
+      clearAllPatientData();
     }
   } catch (error) {
     console.error('Error checking user data mismatch:', error);
     // On error, clear data to be safe
-    localStorage.removeItem(PROFILE_KEY);
-    localStorage.removeItem(PROFILE_METADATA_KEY);
-    localStorage.removeItem(DOCS_KEY);
-    localStorage.removeItem(ELIGIBILITY_KEY);
+    clearAllPatientData();
   }
 }
 
