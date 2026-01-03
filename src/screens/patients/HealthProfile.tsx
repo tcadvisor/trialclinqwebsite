@@ -722,6 +722,34 @@ function HealthProfileContent(): JSX.Element {
 
   // Bootstrap from auth/account and eligibility profile
   useEffect(() => {
+    // CRITICAL: Validate that the profile belongs to the authenticated user
+    if (user) {
+      const expectedPatientId = generatePatientId(user);
+      const currentProfile = profile;
+
+      // If there's an existing profile with a different patientId, clear it
+      if (currentProfile.patientId && currentProfile.patientId !== expectedPatientId) {
+        console.warn('⚠️ Profile patientId mismatch - clearing profile data for security', {
+          stored: currentProfile.patientId,
+          expected: expectedPatientId,
+        });
+
+        // Clear the mismatched profile data
+        localStorage.removeItem(PROFILE_KEY);
+        localStorage.removeItem(PROFILE_METADATA_KEY);
+        localStorage.removeItem(DOCS_KEY);
+
+        // Reset to a new profile for this user
+        setProfile({
+          ...normalizeProfile(null),
+          patientId: expectedPatientId,
+          email: user.email,
+        });
+        setMetadata(normalizeMetadata(null));
+        return;
+      }
+    }
+
     setProfile((prev) => {
       let next = { ...prev };
 
