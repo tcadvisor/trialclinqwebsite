@@ -220,6 +220,7 @@ function formatDate(ts: number): string {
   return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
 }
 
+// Documents component - handles file uploads with user validation
 function Documents({ onCountChange }: { onCountChange?: (count: number) => void }): JSX.Element {
   const [category, setCategory] = useState<DocCategory>("Diagnostic Reports");
   const [query, setQuery] = useState("");
@@ -262,10 +263,22 @@ function Documents({ onCountChange }: { onCountChange?: (count: number) => void 
       const raw = localStorage.getItem(PROFILE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as any;
-        if (parsed?.patientId) return String(parsed.patientId);
-        if (parsed?.profileId) return String(parsed.profileId);
+        const storedPatientId = parsed?.patientId || parsed?.profileId;
+
+        if (storedPatientId && user) {
+          // SECURITY: Validate that the stored patientId matches the authenticated user
+          const expectedPatientId = generatePatientId(user);
+          if (storedPatientId !== expectedPatientId) {
+            console.error('⛔ Security: Stored patientId does not match authenticated user');
+            return null;
+          }
+        }
+
+        return storedPatientId ? String(storedPatientId) : null;
       }
-    } catch {}
+    } catch (error) {
+      console.error('Error resolving profile ID:', error);
+    }
     return null;
   }
 
