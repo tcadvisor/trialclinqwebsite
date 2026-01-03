@@ -221,14 +221,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
             clearPendingSignup();
             clearPendingRole();
-            clearUserScopedDataIfMismatch(account.username);
-            setUser({
+            const newUser = {
               email: account.username,
               firstName,
               lastName,
               role,
               userId: account.localAccountId || account.homeAccountId || "",
-            });
+            };
+            clearUserScopedDataIfMismatch({ email: newUser.email, userId: newUser.userId });
+            setUser(newUser);
             return;
           }
         }
@@ -257,14 +258,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             clearPendingSignup();
           }
           clearPendingRole();
-          clearUserScopedDataIfMismatch(cognitoUser.email);
-          setUser({
+          const newUser = {
             ...cognitoUser,
             userId: cognitoUser.userId || '',
             firstName,
             lastName,
             role,
-          });
+          };
+          clearUserScopedDataIfMismatch({ email: newUser.email, userId: newUser.userId });
+          setUser(newUser);
           return;
         }
 
