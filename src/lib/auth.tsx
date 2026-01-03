@@ -64,19 +64,45 @@ function clearPendingRole() {
   } catch (_) {}
 }
 
-function clearUserScopedDataIfMismatch(currentEmail: string) {
+function clearUserScopedDataIfMismatch(currentUser: { email: string; userId: string }) {
   try {
     const raw = localStorage.getItem(PROFILE_KEY);
     if (!raw) return;
-    const parsed = JSON.parse(raw) as { email?: string };
+
+    const parsed = JSON.parse(raw) as { email?: string; patientId?: string };
     const storedEmail = (parsed?.email || "").trim().toLowerCase();
-    const nextEmail = currentEmail.trim().toLowerCase();
-    if (!storedEmail || storedEmail !== nextEmail) {
+    const currentEmail = currentUser.email.trim().toLowerCase();
+    const storedPatientId = parsed?.patientId || "";
+    const expectedPatientId = currentUser.userId; // patientId should match userId (Azure OID)
+
+    // Clear if email OR patientId doesn't match - this ensures proper user isolation
+    const emailMismatch = storedEmail && storedEmail !== currentEmail;
+    const patientIdMismatch = storedPatientId && storedPatientId !== expectedPatientId;
+
+    if (emailMismatch || patientIdMismatch) {
+      console.warn('⚠️ User data mismatch detected - clearing all user-scoped data', {
+        emailMatch: !emailMismatch,
+        patientIdMatch: !patientIdMismatch,
+        storedEmail: storedEmail ? `${storedEmail.substring(0, 3)}***` : 'none',
+        currentEmail: currentEmail ? `${currentEmail.substring(0, 3)}***` : 'none',
+      });
+
+      // Clear all user-scoped data to prevent data leakage
       localStorage.removeItem(PROFILE_KEY);
       localStorage.removeItem(PROFILE_METADATA_KEY);
       localStorage.removeItem(DOCS_KEY);
+      localStorage.removeItem(ELIGIBILITY_KEY);
+      localStorage.removeItem("epic:patient:v1");
+      localStorage.removeItem("epic:tokens:v1");
     }
-  } catch (_) {}
+  } catch (error) {
+    console.error('Error checking user data mismatch:', error);
+    // On error, clear data to be safe
+    localStorage.removeItem(PROFILE_KEY);
+    localStorage.removeItem(PROFILE_METADATA_KEY);
+    localStorage.removeItem(DOCS_KEY);
+    localStorage.removeItem(ELIGIBILITY_KEY);
+  }
 }
 
 function mergeProfileFromEligibility(currentEmail: string, currentUser?: { email: string; firstName?: string; lastName?: string; userId?: string }) {
