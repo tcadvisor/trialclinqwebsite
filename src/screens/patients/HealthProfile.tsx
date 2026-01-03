@@ -18,7 +18,7 @@ import PatientHeader from "../../components/PatientHeader";
 import { buildMarkdownAppend } from "../../components/ClinicalSummaryUploader";
 import { uploadPatientFiles, getPatientFiles, savePatientProfile } from "../../lib/storage";
 import { formatPhoneNumber, getPhoneValidationError } from "../../lib/phoneValidation";
-import { generatePatientId } from "../../lib/patientIdUtils";
+import { generatePatientId, isValidProfileForUser } from "../../lib/patientIdUtils";
 
 // Field source tracking
 type FieldSource = {
