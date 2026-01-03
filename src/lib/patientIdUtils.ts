@@ -50,3 +50,46 @@ export function isValidPatientIdForUser(patientId: string, user: User | null | u
   const expectedPatientId = generatePatientId(user);
   return patientId === expectedPatientId && patientId !== '';
 }
+
+/**
+ * Validate that a health profile belongs to the authenticated user
+ * Checks both email and patientId for comprehensive security
+ *
+ * @param profile - The health profile to validate
+ * @param user - The authenticated user
+ * @returns true if the profile belongs to this user
+ */
+export function isValidProfileForUser(
+  profile: { email?: string; patientId?: string } | null | undefined,
+  user: User | null | undefined
+): boolean {
+  if (!user || !profile) return false;
+
+  const expectedPatientId = generatePatientId(user);
+  const normalizeEmail = (email?: string) => (email || '').trim().toLowerCase();
+
+  const emailMatches = normalizeEmail(profile.email) === normalizeEmail(user.email);
+  const patientIdMatches = profile.patientId === expectedPatientId;
+
+  // Both must match for the profile to be valid
+  return emailMatches && patientIdMatches;
+}
+
+/**
+ * Clear all patient-scoped data from localStorage
+ * Used when user signs out or when data mismatch is detected
+ */
+export function clearAllPatientData(): void {
+  console.log('🧹 Clearing all patient-scoped data');
+
+  try {
+    localStorage.removeItem('tc_health_profile_v1');
+    localStorage.removeItem('tc_health_profile_metadata_v1');
+    localStorage.removeItem('tc_docs');
+    localStorage.removeItem('tc_eligibility_profile');
+    localStorage.removeItem('epic:patient:v1');
+    localStorage.removeItem('epic:tokens:v1');
+  } catch (error) {
+    console.error('Error clearing patient data:', error);
+  }
+}

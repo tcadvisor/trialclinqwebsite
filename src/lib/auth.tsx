@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { getCurrentAuthUser, getMsalInstance, signOutUser } from "./entraId";
-import { generatePatientId } from "./patientIdUtils";
+import { generatePatientId, clearAllPatientData } from "./patientIdUtils";
 
 export type User = { email: string; role: "patient" | "provider"; firstName: string; lastName: string; userId: string };
 
@@ -64,19 +64,37 @@ function clearPendingRole() {
   } catch (_) {}
 }
 
-function clearUserScopedDataIfMismatch(currentEmail: string) {
+function clearUserScopedDataIfMismatch(currentUser: { email: string; userId: string }) {
   try {
     const raw = localStorage.getItem(PROFILE_KEY);
     if (!raw) return;
-    const parsed = JSON.parse(raw) as { email?: string };
+
+    const parsed = JSON.parse(raw) as { email?: string; patientId?: string };
     const storedEmail = (parsed?.email || "").trim().toLowerCase();
-    const nextEmail = currentEmail.trim().toLowerCase();
-    if (!storedEmail || storedEmail !== nextEmail) {
-      localStorage.removeItem(PROFILE_KEY);
-      localStorage.removeItem(PROFILE_METADATA_KEY);
-      localStorage.removeItem(DOCS_KEY);
+    const currentEmail = currentUser.email.trim().toLowerCase();
+    const storedPatientId = parsed?.patientId || "";
+    const expectedPatientId = currentUser.userId; // patientId should match userId (Azure OID)
+
+    // Clear if email OR patientId doesn't match - this ensures proper user isolation
+    const emailMismatch = storedEmail && storedEmail !== currentEmail;
+    const patientIdMismatch = storedPatientId && storedPatientId !== expectedPatientId;
+
+    if (emailMismatch || patientIdMismatch) {
+      console.warn('⚠️ User data mismatch detected - clearing all user-scoped data', {
+        emailMatch: !emailMismatch,
+        patientIdMatch: !patientIdMismatch,
+        storedEmail: storedEmail ? `${storedEmail.substring(0, 3)}***` : 'none',
+        currentEmail: currentEmail ? `${currentEmail.substring(0, 3)}***` : 'none',
+      });
+
+      // Clear all user-scoped data to prevent data leakage
+      clearAllPatientData();
     }
-  } catch (_) {}
+  } catch (error) {
+    console.error('Error checking user data mismatch:', error);
+    // On error, clear data to be safe
+    clearAllPatientData();
+  }
 }
 
 function mergeProfileFromEligibility(currentEmail: string, currentUser?: { email: string; firstName?: string; lastName?: string; userId?: string }) {
@@ -195,14 +213,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
             clearPendingSignup();
             clearPendingRole();
-            clearUserScopedDataIfMismatch(account.username);
-            setUser({
+            const newUser = {
               email: account.username,
               firstName,
               lastName,
               role,
               userId: account.localAccountId || account.homeAccountId || "",
-            });
+            };
+            clearUserScopedDataIfMismatch({ email: newUser.email, userId: newUser.userId });
+            setUser(newUser);
             return;
           }
         }
@@ -231,14 +250,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             clearPendingSignup();
           }
           clearPendingRole();
-          clearUserScopedDataIfMismatch(cognitoUser.email);
-          setUser({
+          const newUser = {
             ...cognitoUser,
             userId: cognitoUser.userId || '',
             firstName,
             lastName,
             role,
-          });
+          };
+          clearUserScopedDataIfMismatch({ email: newUser.email, userId: newUser.userId });
+          setUser(newUser);
           return;
         }
 
@@ -261,6 +281,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error('Error signing out:', error);
     }
+
+    // Clear all patient-scoped data on sign out for security
+    clearAllPatientData();
     setUser(null);
   }, []);
 

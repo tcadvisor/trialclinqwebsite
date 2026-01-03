@@ -5,7 +5,7 @@ export default function SignupProcessing(): JSX.Element {
   const navigate = useNavigate();
 
   React.useEffect(() => {
-    const t = setTimeout(() => navigate("/patients/dashboard", { replace: true }), 3000);
+    const t = setTimeout(() => navigate("/patients/health-profile", { replace: true }), 3000);
     return () => clearTimeout(t);
   }, [navigate]);
 
@@ -14,7 +14,7 @@ export default function SignupProcessing(): JSX.Element {
       <div className="relative mx-4 w-full max-w-2xl rounded-2xl bg-white p-8 shadow-xl">
         <button
           aria-label="Close"
-          onClick={() => navigate("/patients/dashboard", { replace: true })}
+          onClick={() => navigate("/patients/health-profile", { replace: true })}
           className="absolute right-4 top-4 text-gray-400 hover:text-gray-600"
         >
           ×
