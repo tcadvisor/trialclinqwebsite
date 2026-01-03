@@ -182,7 +182,7 @@ export const handler: Handler = async (event) => {
     return cors(405, { error: "Method not allowed" });
   }
 
-  const key = process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY || "";
+  const key = process.env.OPENAI_API_KEY || "";
   if (!key) {
     return cors(500, { error: "OPENAI_API_KEY not set" });
   }
