@@ -16,7 +16,7 @@ export default function Login(): JSX.Element {
   React.useEffect(() => {
     if (isAuthenticated) {
       const from = (location.state as any)?.from?.pathname as string | undefined;
-      const fallback = user?.role === "provider" ? "/providers/dashboard" : "/patients/dashboard";
+      const fallback = user?.role === "provider" ? "/providers/dashboard" : "/patients/health-profile";
       navigate(from || fallback, { replace: true });
     }
   }, [isAuthenticated, navigate, location.state, user]);
@@ -40,7 +40,7 @@ export default function Login(): JSX.Element {
       if (authUser) {
         // Silent return path (already cached)
         signIn({ ...authUser, role: "patient" });
-        const from = (location.state as any)?.from?.pathname || "/patients/dashboard";
+        const from = (location.state as any)?.from?.pathname || "/patients/health-profile";
         navigate(from, { replace: true });
       }
     } catch (err) {

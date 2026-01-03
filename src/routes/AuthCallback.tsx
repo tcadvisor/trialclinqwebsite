@@ -16,7 +16,7 @@ export default function AuthCallback() {
       const pendingRole = (localStorage.getItem('pending_role_v1') as 'patient' | 'provider' | null) || 'patient';
       const pendingSignupRaw = localStorage.getItem('pending_signup_v1');
       const pendingSignup = pendingSignupRaw ? JSON.parse(pendingSignupRaw) : null;
-      const dashboardPath = pendingRole === 'provider' ? '/providers/dashboard' : '/patients/dashboard';
+      const dashboardPath = pendingRole === 'provider' ? '/providers/dashboard' : '/patients/health-profile';
       const loginPath = pendingRole === 'provider' ? '/providers/login' : '/patients/login';
       const retryKey = 'msal_redirect_retry_v1';
 
