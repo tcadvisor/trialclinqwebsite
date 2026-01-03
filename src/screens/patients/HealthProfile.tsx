@@ -624,7 +624,13 @@ function HealthProfileContent(): JSX.Element {
       const raw = localStorage.getItem(PROFILE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
-        return normalizeProfile(parsed);
+
+        // Validate profile belongs to current user (if user is available)
+        // Note: user might not be available during initial render
+        if (parsed.patientId || parsed.email) {
+          // We'll do comprehensive validation in useEffect when user is loaded
+          return normalizeProfile(parsed);
+        }
       }
     } catch {
       // Silently fail and use defaults
