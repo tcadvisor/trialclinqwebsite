@@ -423,6 +423,17 @@ function Documents({ onCountChange }: { onCountChange?: (count: number) => void 
       return;
     }
 
+    // SECURITY: Double-check that patientId matches authenticated user before upload
+    if (user) {
+      const expectedPatientId = generatePatientId(user);
+      if (patientId !== expectedPatientId) {
+        console.error('⛔ Security: Cannot upload files - patientId mismatch');
+        setOverlay({ mode: "error", message: "Security error: User validation failed" });
+        setTimeout(() => setOverlay(null), 2500);
+        return;
+      }
+    }
+
     try {
       const w: any = window as any;
       const getAuthTokenClientFnName = "getAuthToken";
