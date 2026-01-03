@@ -730,29 +730,35 @@ function HealthProfileContent(): JSX.Element {
   useEffect(() => {
     // CRITICAL: Validate that the profile belongs to the authenticated user
     if (user) {
-      const expectedPatientId = generatePatientId(user);
       const currentProfile = profile;
 
-      // If there's an existing profile with a different patientId, clear it
-      if (currentProfile.patientId && currentProfile.patientId !== expectedPatientId) {
-        console.warn('⚠️ Profile patientId mismatch - clearing profile data for security', {
-          stored: currentProfile.patientId,
-          expected: expectedPatientId,
-        });
+      // If profile has data, validate it belongs to this user
+      if (currentProfile.patientId || currentProfile.email) {
+        const isValid = isValidProfileForUser(currentProfile, user);
 
-        // Clear the mismatched profile data
-        localStorage.removeItem(PROFILE_KEY);
-        localStorage.removeItem(PROFILE_METADATA_KEY);
-        localStorage.removeItem(DOCS_KEY);
+        if (!isValid) {
+          const expectedPatientId = generatePatientId(user);
+          console.warn('⚠️ Profile validation failed - clearing profile data for security', {
+            storedPatientId: currentProfile.patientId || 'none',
+            storedEmail: currentProfile.email || 'none',
+            expectedPatientId,
+            expectedEmail: user.email,
+          });
 
-        // Reset to a new profile for this user
-        setProfile({
-          ...normalizeProfile(null),
-          patientId: expectedPatientId,
-          email: user.email,
-        });
-        setMetadata(normalizeMetadata(null));
-        return;
+          // Clear the mismatched profile data
+          localStorage.removeItem(PROFILE_KEY);
+          localStorage.removeItem(PROFILE_METADATA_KEY);
+          localStorage.removeItem(DOCS_KEY);
+
+          // Reset to a new profile for this user
+          setProfile({
+            ...normalizeProfile(null),
+            patientId: expectedPatientId,
+            email: user.email,
+          });
+          setMetadata(normalizeMetadata(null));
+          return;
+        }
       }
     }
 
