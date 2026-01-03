@@ -281,6 +281,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error('Error signing out:', error);
     }
+
+    // Clear all patient-scoped data on sign out for security
+    clearAllPatientData();
     setUser(null);
   }, []);
 
