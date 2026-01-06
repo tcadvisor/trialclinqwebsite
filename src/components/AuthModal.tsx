@@ -28,7 +28,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultTa
     setIsLoading(true);
 
     try {
-      const targetPath = role === 'provider' ? '/providers/dashboard' : '/patients/dashboard';
+      const targetPath = role === 'provider' ? '/providers/dashboard' : '/patients/health-profile';
       const email = loginEmail.trim();
       setPostLoginRedirect(targetPath);
 

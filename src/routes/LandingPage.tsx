@@ -23,7 +23,8 @@ export default function LandingPage() {
 
   useEffect(() => {
     if (isAuthenticated && user) {
-      navigate("/patients/dashboard", { replace: true });
+      const target = user.role === "provider" ? "/providers/dashboard" : "/patients/health-profile";
+      navigate(target, { replace: true });
     }
   }, [isAuthenticated, navigate, user]);
 

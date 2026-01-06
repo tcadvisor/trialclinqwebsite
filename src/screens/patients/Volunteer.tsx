@@ -100,7 +100,7 @@ export default function Volunteer(): JSX.Element {
     }));
 
     signIn(demoUser);
-    navigate("/patients/eligible");
+    navigate("/patients/health-profile");
   }
 
   return (

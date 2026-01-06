@@ -16,7 +16,7 @@ export default function Login(): JSX.Element {
   React.useEffect(() => {
     if (isAuthenticated) {
       const from = (location.state as any)?.from?.pathname as string | undefined;
-      const fallback = user?.role === "provider" ? "/providers/dashboard" : "/patients/dashboard";
+      const fallback = user?.role === "provider" ? "/providers/dashboard" : "/patients/health-profile";
       const target = consumePostLoginRedirect(from || fallback);
       navigate(target, { replace: true });
     }
@@ -28,7 +28,7 @@ export default function Login(): JSX.Element {
     setIsLoading(true);
 
     try {
-      const from = (location.state as any)?.from?.pathname || "/patients/dashboard";
+      const from = (location.state as any)?.from?.pathname || "/patients/health-profile";
       const normalizedEmail = email.trim();
       setPostLoginRedirect(from);
 
@@ -107,7 +107,7 @@ export default function Login(): JSX.Element {
     }));
 
     signIn(demoUser);
-    navigate("/patients/eligible");
+    navigate("/patients/health-profile");
   };
 
   return (
@@ -122,12 +122,13 @@ export default function Login(): JSX.Element {
         )}
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
-            className="w-full border rounded px-3 py-2"
-            placeholder="Email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
+          className="w-full border rounded px-3 py-2"
+          placeholder="Email"
+          type="email"
+          value={email}
+          required
+          onChange={(e) => setEmail(e.target.value)}
+        />
           {error && <div className="text-sm text-red-600">{error}</div>}
           <button
             className="w-full px-4 py-2 rounded bg-gray-900 text-white hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed"

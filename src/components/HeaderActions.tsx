@@ -38,11 +38,11 @@ export default function HeaderActions() {
   }
 
   if (isAuthenticated && user) {
-    const dashPath = user.role === "provider" ? "/providers/dashboard" : "/patients/dashboard";
+    const dashPath = user.role === "provider" ? "/providers/dashboard" : "/patients/health-profile";
     return (
       <div className="relative flex items-center gap-3" ref={menuRef}>
         <Link to={dashPath} className="px-4 py-2 text-sm rounded-full bg-blue-600 text-white hover:bg-blue-700">
-          Dashboard
+          {user.role === "provider" ? "Dashboard" : "Health Profile"}
         </Link>
         <button
           aria-label="Profile"

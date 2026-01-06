@@ -18,7 +18,7 @@ import PatientHeader from "../../components/PatientHeader";
 import { buildMarkdownAppend } from "../../components/ClinicalSummaryUploader";
 import { uploadPatientFiles, getPatientFiles, savePatientProfile } from "../../lib/storage";
 import { formatPhoneNumber, getPhoneValidationError } from "../../lib/phoneValidation";
-import { generatePatientId } from "../../lib/patientIdUtils";
+import { generatePatientId, isValidProfileForUser } from "../../lib/patientIdUtils";
 
 // Field source tracking
 type FieldSource = {
@@ -220,6 +220,7 @@ function formatDate(ts: number): string {
   return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
 }
 
+// Documents component - handles file uploads with user validation
 function Documents({ onCountChange }: { onCountChange?: (count: number) => void }): JSX.Element {
   const [category, setCategory] = useState<DocCategory>("Diagnostic Reports");
   const [query, setQuery] = useState("");
@@ -262,10 +263,22 @@ function Documents({ onCountChange }: { onCountChange?: (count: number) => void 
       const raw = localStorage.getItem(PROFILE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as any;
-        if (parsed?.patientId) return String(parsed.patientId);
-        if (parsed?.profileId) return String(parsed.profileId);
+        const storedPatientId = parsed?.patientId || parsed?.profileId;
+
+        if (storedPatientId && user) {
+          // SECURITY: Validate that the stored patientId matches the authenticated user
+          const expectedPatientId = generatePatientId(user);
+          if (storedPatientId !== expectedPatientId) {
+            console.error('⛔ Security: Stored patientId does not match authenticated user');
+            return null;
+          }
+        }
+
+        return storedPatientId ? String(storedPatientId) : null;
       }
-    } catch {}
+    } catch (error) {
+      console.error('Error resolving profile ID:', error);
+    }
     return null;
   }
 
@@ -408,6 +421,17 @@ function Documents({ onCountChange }: { onCountChange?: (count: number) => void 
       setOverlay({ mode: "error", message: "Patient ID not found" });
       setTimeout(() => setOverlay(null), 2500);
       return;
+    }
+
+    // SECURITY: Double-check that patientId matches authenticated user before upload
+    if (user) {
+      const expectedPatientId = generatePatientId(user);
+      if (patientId !== expectedPatientId) {
+        console.error('⛔ Security: Cannot upload files - patientId mismatch');
+        setOverlay({ mode: "error", message: "Security error: User validation failed" });
+        setTimeout(() => setOverlay(null), 2500);
+        return;
+      }
     }
 
     try {
@@ -624,7 +648,13 @@ function HealthProfileContent(): JSX.Element {
       const raw = localStorage.getItem(PROFILE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
-        return normalizeProfile(parsed);
+
+        // Validate profile belongs to current user (if user is available)
+        // Note: user might not be available during initial render
+        if (parsed.patientId || parsed.email) {
+          // We'll do comprehensive validation in useEffect when user is loaded
+          return normalizeProfile(parsed);
+        }
       }
     } catch {
       // Silently fail and use defaults
@@ -722,6 +752,40 @@ function HealthProfileContent(): JSX.Element {
 
   // Bootstrap from auth/account and eligibility profile
   useEffect(() => {
+    // CRITICAL: Validate that the profile belongs to the authenticated user
+    if (user) {
+      const currentProfile = profile;
+
+      // If profile has data, validate it belongs to this user
+      if (currentProfile.patientId || currentProfile.email) {
+        const isValid = isValidProfileForUser(currentProfile, user);
+
+        if (!isValid) {
+          const expectedPatientId = generatePatientId(user);
+          console.warn('⚠️ Profile validation failed - clearing profile data for security', {
+            storedPatientId: currentProfile.patientId || 'none',
+            storedEmail: currentProfile.email || 'none',
+            expectedPatientId,
+            expectedEmail: user.email,
+          });
+
+          // Clear the mismatched profile data
+          localStorage.removeItem(PROFILE_KEY);
+          localStorage.removeItem(PROFILE_METADATA_KEY);
+          localStorage.removeItem(DOCS_KEY);
+
+          // Reset to a new profile for this user
+          setProfile({
+            ...normalizeProfile(null),
+            patientId: expectedPatientId,
+            email: user.email,
+          });
+          setMetadata(normalizeMetadata(null));
+          return;
+        }
+      }
+    }
+
     setProfile((prev) => {
       let next = { ...prev };
 
