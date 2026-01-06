@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertCircle } from 'lucide-react';
+import { setPostLoginRedirect } from '../lib/auth';
 import { signInUser } from '../lib/entraId';
 
 interface AuthModalProps {
@@ -27,10 +28,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultTa
     setIsLoading(true);
 
     try {
-      // Clear any old signup data that could block email checks
-      localStorage.removeItem("pending_signup_v1");
-      localStorage.setItem("pending_role_v1", role);
+      const targetPath = role === 'provider' ? '/providers/dashboard' : '/patients/dashboard';
       const email = loginEmail.trim();
+      setPostLoginRedirect(targetPath);
+
+      // Persist email and role so Azure login enforces the correct account
+      localStorage.setItem("pending_signup_v1", JSON.stringify({ email, role }));
+      localStorage.setItem("pending_role_v1", role);
+
       await signInUser({ email, password: "" });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to sign in');

@@ -159,35 +159,59 @@ export async function signInUser(input: SignInInput): Promise<AuthUser | null> {
       throw new Error('Azure Entra ID is not properly configured. Please check your environment variables: VITE_AZURE_CLIENT_ID and VITE_AZURE_TENANT_ID');
     }
 
+    const loginHint = input.email.trim();
+    const normalize = (value: string) => value.trim().toLowerCase();
     const accounts = msal.getAllAccounts();
+    const matchingAccount = loginHint
+      ? accounts.find(account => normalize(account.username) === normalize(loginHint))
+      : accounts[0];
     let response: AuthenticationResult;
 
-    if (accounts.length > 0) {
+    if (matchingAccount) {
+      try {
+        msal.setActiveAccount(matchingAccount);
+      } catch (_) {}
       try {
         response = await msal.acquireTokenSilent({
           ...silentRequest,
-          account: accounts[0],
+          account: matchingAccount,
         });
       } catch (error) {
         if (error instanceof InteractionRequiredAuthError) {
-          response = await msal.loginPopup(loginRequest);
+          if (isInIframe()) {
+            response = await msal.loginPopup({
+              ...loginRequest,
+              loginHint: loginHint || matchingAccount.username,
+              prompt: 'select_account',
+            });
+          } else {
+            await msal.loginRedirect({
+              ...loginRequest,
+              loginHint: loginHint || matchingAccount.username,
+              prompt: 'select_account',
+            });
+            return null;
+          }
         } else {
           throw error;
         }
       }
     } else {
-      // Use popup in iframe, redirect otherwise
+      // No cached account matches the requested email, force an explicit login using that email
+      try {
+        msal.setActiveAccount(null);
+      } catch (_) {}
       if (isInIframe()) {
         response = await msal.loginPopup({
           ...loginRequest,
-          loginHint: input.email,
-          prompt: 'select_account',
+          loginHint: loginHint || undefined,
+          prompt: 'login',
         });
       } else {
         await msal.loginRedirect({
           ...loginRequest,
-          loginHint: input.email,
-          prompt: 'select_account',
+          loginHint: loginHint || undefined,
+          prompt: 'login',
         });
         return null;
       }

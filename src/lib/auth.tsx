@@ -21,6 +21,7 @@ const PROFILE_KEY = "tc_health_profile_v1";
 const PROFILE_METADATA_KEY = "tc_health_profile_metadata_v1";
 const DOCS_KEY = "tc_docs";
 const ELIGIBILITY_KEY = "tc_eligibility_profile";
+const POST_LOGIN_REDIRECT_KEY = "post_login_redirect_v1";
 
 type PendingSignup = {
   email?: string;
@@ -62,6 +63,23 @@ function clearPendingRole() {
   try {
     localStorage.removeItem(PENDING_ROLE_KEY);
   } catch (_) {}
+}
+
+export function setPostLoginRedirect(path: string) {
+  try {
+    sessionStorage.setItem(POST_LOGIN_REDIRECT_KEY, path);
+  } catch (_) {}
+}
+
+export function consumePostLoginRedirect(defaultPath: string): string {
+  try {
+    const stored = sessionStorage.getItem(POST_LOGIN_REDIRECT_KEY);
+    if (stored) {
+      sessionStorage.removeItem(POST_LOGIN_REDIRECT_KEY);
+      return stored;
+    }
+  } catch (_) {}
+  return defaultPath;
 }
 
 function clearUserScopedDataIfMismatch(currentEmail: string) {

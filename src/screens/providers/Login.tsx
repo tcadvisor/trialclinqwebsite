@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { useAuth } from "../../lib/auth";
+import { consumePostLoginRedirect, setPostLoginRedirect, useAuth } from "../../lib/auth";
 import { signInUser } from "../../lib/entraId";
 import HomeHeader from "../../components/HomeHeader";
 
@@ -18,7 +18,8 @@ export default function ProviderLogin(): JSX.Element {
     if (isAuthenticated) {
       const from = (location.state as any)?.from?.pathname as string | undefined;
       const fallback = user?.role === "provider" ? "/providers/dashboard" : "/patients/dashboard";
-      navigate(from || fallback, { replace: true });
+      const target = consumePostLoginRedirect(from || fallback);
+      navigate(target, { replace: true });
     }
   }, [isAuthenticated, navigate, location.state, user]);
 
@@ -28,21 +29,27 @@ export default function ProviderLogin(): JSX.Element {
     setIsLoading(true);
 
     try {
-      // Clear any old signup data that could block email checks
-      localStorage.removeItem("pending_signup_v1");
+      const from = (location.state as any)?.from?.pathname || "/providers/dashboard";
+      const normalizedEmail = email.trim();
+      setPostLoginRedirect(from);
+
+      // Persist email so the callback can enforce matching accounts and prefill Azure login
+      localStorage.setItem("pending_signup_v1", JSON.stringify({ email: normalizedEmail, role: "provider" as const }));
       localStorage.setItem("pending_role_v1", "provider");
 
       // Sign in with Azure Entra ID (redirect flow handled in AuthCallback)
       const authUser = await signInUser({
-        email: email.trim(),
+        email: normalizedEmail,
         password: "",
       });
 
       if (authUser) {
         // Silent return path (already cached)
         signIn({ ...authUser, role: "provider" });
-        const from = (location.state as any)?.from?.pathname || "/providers/dashboard";
-        navigate(from, { replace: true });
+        const target = consumePostLoginRedirect(from);
+        localStorage.removeItem("pending_signup_v1");
+        localStorage.removeItem("pending_role_v1");
+        navigate(target, { replace: true });
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Invalid email or password. Please try again.");

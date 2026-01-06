@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../lib/auth';
+import { consumePostLoginRedirect, useAuth } from '../lib/auth';
 import { getMsalInstance, getAccessToken } from '../lib/entraId';
 import { loginRequest } from '../lib/msalConfig';
 import { generatePatientId } from '../lib/patientIdUtils';
@@ -18,6 +18,7 @@ export default function AuthCallback() {
       const pendingSignup = pendingSignupRaw ? JSON.parse(pendingSignupRaw) : null;
       const dashboardPath = pendingRole === 'provider' ? '/providers/dashboard' : '/patients/dashboard';
       const loginPath = pendingRole === 'provider' ? '/providers/login' : '/patients/login';
+      const postLoginPath = consumePostLoginRedirect(dashboardPath);
       const retryKey = 'msal_redirect_retry_v1';
 
       const normalizeEmail = (value?: string) => (value || '').trim().toLowerCase();
@@ -133,7 +134,7 @@ export default function AuthCallback() {
           localStorage.removeItem('pending_role_v1');
           localStorage.removeItem('pending_signup_v1');
           sessionStorage.removeItem(retryKey);
-          navigate(dashboardPath, { replace: true });
+          navigate(postLoginPath, { replace: true });
         } else {
           // Retry once with a forced redirect to capture the account
           const hasRetried = sessionStorage.getItem(retryKey) === '1';
