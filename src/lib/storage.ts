@@ -1,6 +1,6 @@
 // Storage API utilities for Azure backend
 
-const API_BASE = '/.netlify/functions';
+const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 
 interface HealthProfile {
   patientId: string;

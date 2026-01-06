@@ -84,7 +84,7 @@ export default function BookDemo() {
     };
 
     try {
-      const res = await fetch("/.netlify/functions/book-demo", {
+      const res = await fetch("/api/book-demo", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

@@ -232,7 +232,7 @@ export async function scoreStudyWithAI(nctId: string, profile: MinimalProfile, s
     let result: AiScoreResult | null = null;
     // Prefer serverless scorer first (secure, reliable); then direct OpenAI
     const configuredUrl = (import.meta as any).env?.VITE_AI_SCORER_URL as string | undefined;
-    const defaultUrl = '/.netlify/functions/ai-scorer';
+    const defaultUrl = '/api/ai-scorer';
     const webhookUrl = configuredUrl || defaultUrl;
     result = await callWebhook(webhookUrl, { profile, nctId, study, prompt }, controller.signal);
     if (!result) {

@@ -11,6 +11,10 @@
     {
       "route": "/patients/ehr-callback",
       "rewrite": "/index.html"
+    },
+    {
+      "route": "/.netlify/functions/:splat",
+      "rewrite": "/api/:splat"
     }
   ],
   "responseOverrides": {

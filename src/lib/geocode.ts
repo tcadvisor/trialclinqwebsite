@@ -107,7 +107,7 @@ export async function geocodeText(q: string): Promise<{ lat?: number; lng?: numb
     if (cache[key]) return { ...cache[key] };
 
     const configured = (import.meta as any).env?.VITE_GEO_WEBHOOK_URL as string | undefined;
-    const url = configured || '/.netlify/functions/geocode';
+    const url = configured || '/api/geocode';
 
     // In browser, only call the serverless webhook to avoid noisy CORS/network errors
     if (typeof window !== 'undefined') {

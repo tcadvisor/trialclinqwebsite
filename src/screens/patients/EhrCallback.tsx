@@ -72,9 +72,9 @@ export default function EhrCallback(): JSX.Element {
             code_verifier: codeVerifier,
           };
 
-          console.log("[EPIC CALLBACK] Sending token exchange request to /.netlify/functions/epic-token-exchange");
+          console.log("[EPIC CALLBACK] Sending token exchange request to /api/epic-token-exchange");
 
-          exchangeResponse = await fetch("/.netlify/functions/epic-token-exchange", {
+          exchangeResponse = await fetch("/api/epic-token-exchange", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -94,7 +94,7 @@ export default function EhrCallback(): JSX.Element {
           console.error("[EPIC CALLBACK] Step 4: Failed to reach token exchange function:", fetchError);
           const msg = fetchError instanceof Error ? fetchError.message : String(fetchError);
           throw new Error(
-            `Could not connect to token exchange server (/.netlify/functions/epic-token-exchange). Error: ${msg}. This means the Netlify serverless function is not deployed or accessible.`
+            `Could not connect to token exchange server (/api/epic-token-exchange). Error: ${msg}. This means the Azure serverless function is not deployed or accessible.`
           );
         }
 

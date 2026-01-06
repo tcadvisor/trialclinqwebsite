@@ -99,7 +99,7 @@ export function buildStudiesUrl({ q = '', status = '', type = '', loc = '', lat,
 
 export async function fetchStudies(query: CtgovQuery, _signal?: AbortSignal): Promise<CtgovResponse> {
   try {
-    const proxy = (import.meta as any).env?.VITE_CT_PROXY_URL as string | undefined || '/.netlify/functions/ctgov';
+    const proxy = (import.meta as any).env?.VITE_CT_PROXY_URL as string | undefined || '/api/ctgov';
     const res = await safeFetch(proxy, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -171,7 +171,7 @@ function normalizeStudyResponse(json: any): CtgovResponse {
 
 export async function fetchStudyByNctId(nctId: string, _signal?: AbortSignal): Promise<CtgovResponse> {
   try {
-    const proxy = (import.meta as any).env?.VITE_CT_PROXY_URL as string | undefined || '/.netlify/functions/ctgov';
+    const proxy = (import.meta as any).env?.VITE_CT_PROXY_URL as string | undefined || '/api/ctgov';
     const res = await safeFetch(proxy, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },

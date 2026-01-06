@@ -43,7 +43,7 @@ export async function expressInterestInTrial(
   try {
     console.log("[ExpressInterest] Starting request", { nctId, patientId, userId });
 
-    const response = await fetch("/.netlify/functions/express-interest", {
+    const response = await fetch("/api/express-interest", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -134,7 +134,7 @@ export async function getTrialInterestedPatients(
 ): Promise<{ ok: boolean; patients: InterestedPatient[]; count: number; message: string }> {
   try {
     const response = await fetch(
-      `/.netlify/functions/get-trial-interests?nctId=${encodeURIComponent(nctId)}`,
+      `/api/get-trial-interests?nctId=${encodeURIComponent(nctId)}`,
       {
         method: "GET",
         headers: {

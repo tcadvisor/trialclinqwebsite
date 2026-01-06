@@ -10,7 +10,7 @@ function unique<T>(arr: T[]): T[] {
 export function getApiBases(): string[] {
   const envBase = normalize((import.meta as any)?.env?.VITE_API_BASE);
   const windowBase = typeof window !== "undefined" ? normalize((window as any).__apiBase) : "";
-  const defaults = ["/.netlify/functions", "/api"];
+  const defaults = ["/api", "/.netlify/functions"];
   return unique([envBase, windowBase, ...defaults].filter(Boolean));
 }
 

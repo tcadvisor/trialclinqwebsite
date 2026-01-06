@@ -73,7 +73,7 @@ export default function AuthCallback() {
           try {
             const token = await getAccessToken();
             if (token) {
-              await fetch("/.netlify/functions/whoami", {
+              await fetch("/api/whoami", {
                 method: "GET",
                 headers: { Authorization: `Bearer ${token}` },
               });

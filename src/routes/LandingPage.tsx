@@ -39,7 +39,7 @@ export default function LandingPage() {
     setSponsorMessage("");
 
     try {
-      const response = await fetch("/.netlify/functions/book-demo", {
+      const response = await fetch("/api/book-demo", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -77,7 +77,7 @@ export default function LandingPage() {
     setPatientMessage("");
 
     try {
-      const response = await fetch("/.netlify/functions/book-demo", {
+      const response = await fetch("/api/book-demo", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -115,7 +115,7 @@ export default function LandingPage() {
     setNewsletterMessage("");
 
     try {
-      const response = await fetch("/.netlify/functions/book-demo", {
+      const response = await fetch("/api/book-demo", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
