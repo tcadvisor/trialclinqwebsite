@@ -18,6 +18,8 @@ export const msalConfig: Configuration = {
     }`,
     redirectUri: redirectUri,
     postLogoutRedirectUri: import.meta.env.VITE_AZURE_LOGOUT_URI || defaultLogoutRedirect,
+    // Keep the SPA on the callback route so our router can handle post-login navigation
+    navigateToLoginRequestUrl: false,
   },
   cache: {
     // Local storage avoids session loss on redirect; cookie storage helps Safari

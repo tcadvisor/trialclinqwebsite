@@ -140,7 +140,12 @@ export default function AuthCallback() {
           const hasRetried = sessionStorage.getItem(retryKey) === '1';
           if (!hasRetried) {
             sessionStorage.setItem(retryKey, '1');
-            await msal.loginRedirect({ ...loginRequest, prompt: 'select_account' });
+            await msal.loginRedirect({
+              ...loginRequest,
+              prompt: 'select_account',
+              loginHint: pendingEmail || undefined,
+              extraQueryParameters: pendingEmail ? { login_hint: pendingEmail } : undefined,
+            });
             return;
           }
 

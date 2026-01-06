@@ -22,6 +22,7 @@ const PROFILE_METADATA_KEY = "tc_health_profile_metadata_v1";
 const DOCS_KEY = "tc_docs";
 const ELIGIBILITY_KEY = "tc_eligibility_profile";
 const POST_LOGIN_REDIRECT_KEY = "post_login_redirect_v1";
+const ROLE_HISTORY_KEY = "tc_role_history_v1";
 
 type PendingSignup = {
   email?: string;
@@ -63,6 +64,27 @@ function clearPendingRole() {
   try {
     localStorage.removeItem(PENDING_ROLE_KEY);
   } catch (_) {}
+}
+
+function rememberRoleForEmail(email: string, role: User["role"]) {
+  try {
+    const raw = localStorage.getItem(ROLE_HISTORY_KEY);
+    const data = raw ? (JSON.parse(raw) as Record<string, User["role"]>) : {};
+    data[email.trim().toLowerCase()] = role;
+    localStorage.setItem(ROLE_HISTORY_KEY, JSON.stringify(data));
+  } catch (_) {}
+}
+
+function getRememberedRole(email?: string | null): User["role"] | null {
+  if (!email) return null;
+  try {
+    const raw = localStorage.getItem(ROLE_HISTORY_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw) as Record<string, User["role"]>;
+    return data[email.trim().toLowerCase()] || null;
+  } catch {
+    return null;
+  }
 }
 
 export function setPostLoginRedirect(path: string) {
@@ -176,7 +198,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             } catch (_) {}
             const pendingRole = readPendingRole();
             const pending = readPendingSignup();
-            const role = pendingRole || pending?.role || "patient";
+            const rememberedRole = getRememberedRole(account.username);
+            const role = pendingRole || pending?.role || rememberedRole || "patient";
             const accountFirstName = account.name?.split(" ")[0] || "";
             const accountLastName = account.name?.split(" ").slice(1).join(" ") || "";
             let firstName = accountFirstName;
@@ -214,6 +237,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             clearPendingSignup();
             clearPendingRole();
             clearUserScopedDataIfMismatch(account.username);
+            rememberRoleForEmail(account.username, role);
             setUser({
               email: account.username,
               firstName,
@@ -230,7 +254,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (cognitoUser) {
           const pendingRole = readPendingRole();
           const pending = readPendingSignup();
-          const role = pendingRole || pending?.role || "patient";
+          const rememberedRole = getRememberedRole(cognitoUser.email);
+          const role = pendingRole || pending?.role || rememberedRole || "patient";
           let firstName = cognitoUser.firstName || "";
           let lastName = cognitoUser.lastName || "";
           if (pending) {
@@ -250,6 +275,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
           clearPendingRole();
           clearUserScopedDataIfMismatch(cognitoUser.email);
+          rememberRoleForEmail(cognitoUser.email, role);
           setUser({
             ...cognitoUser,
             userId: cognitoUser.userId || '',
@@ -271,6 +297,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signIn = useCallback((next: User) => {
+    rememberRoleForEmail(next.email, next.role);
     setUser(next);
   }, []);
   const signOut = useCallback(async () => {

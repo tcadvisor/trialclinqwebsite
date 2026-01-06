@@ -82,22 +82,26 @@ export async function signUpUser(input: SignUpInput): Promise<{ userId: string; 
       throw new Error('Azure Entra ID is not properly configured. Please check your environment variables: VITE_AZURE_CLIENT_ID and VITE_AZURE_TENANT_ID');
     }
 
+    const loginHint = input.email.trim();
+    const request = {
+      ...loginRequest,
+      prompt: 'select_account',
+      loginHint: loginHint || undefined,
+      extraQueryParameters: loginHint ? { login_hint: loginHint } : undefined,
+    };
+
+    try {
+      msal.setActiveAccount(null);
+    } catch (_) {}
+
     let response: AuthenticationResult;
 
     // Use popup flow in iframes, redirect flow otherwise
     if (isInIframe()) {
-      response = await msal.loginPopup({
-        ...loginRequest,
-        prompt: 'select_account',
-        loginHint: input.email,
-      });
+      response = await msal.loginPopup(request);
     } else {
       // Use redirect flow so callback page handles navigation consistently
-      await msal.loginRedirect({
-        ...loginRequest,
-        prompt: 'select_account',
-        loginHint: input.email,
-      });
+      await msal.loginRedirect(request);
       // Control won't reach here because redirect will occur
       return { userId: '', requiresConfirmation: false };
     }
@@ -166,6 +170,12 @@ export async function signInUser(input: SignInInput): Promise<AuthUser | null> {
       ? accounts.find(account => normalize(account.username) === normalize(loginHint))
       : accounts[0];
     let response: AuthenticationResult;
+    const buildInteractiveRequest = (hint: string | undefined, prompt: 'login' | 'select_account') => ({
+      ...loginRequest,
+      prompt,
+      loginHint: hint || undefined,
+      extraQueryParameters: hint ? { login_hint: hint } : undefined,
+    });
 
     if (matchingAccount) {
       try {
@@ -179,17 +189,13 @@ export async function signInUser(input: SignInInput): Promise<AuthUser | null> {
       } catch (error) {
         if (error instanceof InteractionRequiredAuthError) {
           if (isInIframe()) {
-            response = await msal.loginPopup({
-              ...loginRequest,
-              loginHint: loginHint || matchingAccount.username,
-              prompt: 'select_account',
-            });
+            response = await msal.loginPopup(
+              buildInteractiveRequest(loginHint || matchingAccount.username, 'select_account')
+            );
           } else {
-            await msal.loginRedirect({
-              ...loginRequest,
-              loginHint: loginHint || matchingAccount.username,
-              prompt: 'select_account',
-            });
+            await msal.loginRedirect(
+              buildInteractiveRequest(loginHint || matchingAccount.username, 'select_account')
+            );
             return null;
           }
         } else {
@@ -202,17 +208,9 @@ export async function signInUser(input: SignInInput): Promise<AuthUser | null> {
         msal.setActiveAccount(null);
       } catch (_) {}
       if (isInIframe()) {
-        response = await msal.loginPopup({
-          ...loginRequest,
-          loginHint: loginHint || undefined,
-          prompt: 'login',
-        });
+        response = await msal.loginPopup(buildInteractiveRequest(loginHint || undefined, 'login'));
       } else {
-        await msal.loginRedirect({
-          ...loginRequest,
-          loginHint: loginHint || undefined,
-          prompt: 'login',
-        });
+        await msal.loginRedirect(buildInteractiveRequest(loginHint || undefined, 'login'));
         return null;
       }
     }
