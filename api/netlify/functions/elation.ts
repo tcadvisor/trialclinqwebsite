@@ -20,7 +20,18 @@ import { validateCsrfToken, getCsrfTokenFromHeaders } from "./csrf-utils";
 // Configuration
 // ============================================================================
 
-const ELATION_API_BASE = process.env.ELATION_API_BASE_URL || "https://api.elationhealth.com/api/2.0";
+// Determine if using sandbox environment
+const IS_SANDBOX = process.env.ELATION_ENVIRONMENT === "sandbox" ||
+  process.env.ELATION_API_BASE_URL?.includes("sandbox");
+
+// API and OAuth URLs - support both sandbox and production
+const ELATION_API_BASE = process.env.ELATION_API_BASE_URL ||
+  (IS_SANDBOX ? "https://sandbox.elationemr.com/api/2.0" : "https://api.elationhealth.com/api/2.0");
+
+// OAuth URLs differ between sandbox and production
+const ELATION_OAUTH_BASE = process.env.ELATION_OAUTH_BASE_URL ||
+  (IS_SANDBOX ? "https://sandbox.elationemr.com" : "https://app.elationhealth.com");
+
 const ELATION_CLIENT_ID = process.env.ELATION_CLIENT_ID || "";
 const ELATION_CLIENT_SECRET = process.env.ELATION_CLIENT_SECRET || "";
 const ELATION_API_KEY = process.env.ELATION_API_KEY || "";
@@ -180,7 +191,7 @@ async function getAccessToken(providerId: string): Promise<string | null> {
 
 async function refreshElationToken(providerId: string, refreshToken: string): Promise<string | null> {
   try {
-    const response = await fetch(`${ELATION_API_BASE}/oauth2/token/`, {
+    const response = await fetch(`${ELATION_OAUTH_BASE}/oauth2/token/`, {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
@@ -444,7 +455,76 @@ export const handler: Handler = async (event) => {
       const body = event.body ? JSON.parse(event.body) : {};
       const { action } = body;
 
-      // Initiate OAuth flow
+      // Connect using client_credentials flow (simpler - no redirect needed)
+      if (action === "connect_credentials") {
+        if (!ELATION_CLIENT_ID || !ELATION_CLIENT_SECRET) {
+          return cors.response(400, {
+            ok: false,
+            error: "Elation integration not configured. Please set ELATION_CLIENT_ID and ELATION_CLIENT_SECRET.",
+          });
+        }
+
+        try {
+          // Exchange client credentials for access token
+          const tokenResponse = await fetch(`${ELATION_API_BASE}/oauth2/token/`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: new URLSearchParams({
+              grant_type: "client_credentials",
+              client_id: ELATION_CLIENT_ID,
+              client_secret: ELATION_CLIENT_SECRET,
+            }).toString(),
+          });
+
+          if (!tokenResponse.ok) {
+            const errorText = await tokenResponse.text();
+            console.error("Elation client_credentials error:", errorText);
+            return cors.response(400, {
+              ok: false,
+              error: `Failed to connect: ${tokenResponse.status} - ${errorText}`,
+            });
+          }
+
+          const tokens: ElationTokenResponse = await tokenResponse.json();
+          const expiresAt = new Date(Date.now() + tokens.expires_in * 1000);
+
+          // Store connection
+          await query(
+            `INSERT INTO elation_connections (provider_id, access_token, refresh_token, token_expires_at, connected_at)
+             VALUES ($1, $2, $3, $4, NOW())
+             ON CONFLICT (provider_id) DO UPDATE SET
+               access_token = $2, refresh_token = $3, token_expires_at = $4, connected_at = NOW(), updated_at = NOW()`,
+            [providerId, tokens.access_token, tokens.refresh_token || null, expiresAt.toISOString()]
+          );
+
+          await logAuditEvent(
+            userId,
+            "ELATION_CONNECTED",
+            "elation_connection",
+            providerId,
+            undefined,
+            { method: "client_credentials" },
+            event.headers?.["x-forwarded-for"],
+            event.headers?.["user-agent"]
+          );
+
+          return cors.response(200, {
+            ok: true,
+            message: "Connected to Elation successfully",
+            expiresAt: expiresAt.toISOString(),
+          });
+        } catch (err: any) {
+          console.error("Elation connect error:", err);
+          return cors.response(500, {
+            ok: false,
+            error: err.message || "Failed to connect to Elation",
+          });
+        }
+      }
+
+      // Initiate OAuth flow (authorization_code - requires user redirect)
       if (action === "initiate_oauth") {
         if (!ELATION_CLIENT_ID) {
           return cors.response(400, {
@@ -464,7 +544,7 @@ export const handler: Handler = async (event) => {
           [providerId, `state:${state}`]
         );
 
-        const authUrl = new URL("https://app.elationhealth.com/oauth2/authorize/");
+        const authUrl = new URL(`${ELATION_OAUTH_BASE}/oauth2/authorize/`);
         authUrl.searchParams.set("client_id", ELATION_CLIENT_ID);
         authUrl.searchParams.set("redirect_uri", redirectUri);
         authUrl.searchParams.set("response_type", "code");
@@ -486,7 +566,7 @@ export const handler: Handler = async (event) => {
         }
 
         // Exchange code for tokens
-        const tokenResponse = await fetch("https://app.elationhealth.com/oauth2/token/", {
+        const tokenResponse = await fetch(`${ELATION_OAUTH_BASE}/oauth2/token/`, {
           method: "POST",
           headers: {
             "Content-Type": "application/x-www-form-urlencoded",
@@ -639,9 +719,9 @@ export const handler: Handler = async (event) => {
         });
       }
 
-      // Run matching for a trial against Elation patients
+      // Run AI-powered matching for a trial against Elation patients
       if (action === "match_trial") {
-        const { nctId, trialConditions, minAge, maxAge, gender } = body;
+        const { nctId, trialTitle, trialConditions, inclusionCriteria, exclusionCriteria, minAge, maxAge, gender, healthyVolunteers, phase, useAI = true } = body;
 
         if (!nctId) {
           return cors.response(400, { ok: false, error: "nctId required" });
@@ -653,78 +733,574 @@ export const handler: Handler = async (event) => {
           [providerId]
         );
 
+        const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+        const hasOpenAIKey = !!OPENAI_API_KEY;
         let matchCount = 0;
+        const matchResults: any[] = [];
+        const commonCriteria: Record<string, number> = {};
+        const aiAnalysisUsed = hasOpenAIKey && useAI;
 
-        for (const patient of patientsResult.rows) {
-          const reasons: string[] = [];
-          let score = 0;
+        // Build trial context for AI
+        const trialContext = {
+          nctId,
+          title: trialTitle || nctId,
+          conditions: trialConditions || [],
+          inclusionCriteria: inclusionCriteria || [],
+          exclusionCriteria: exclusionCriteria || [],
+          demographics: {
+            minAge: minAge ? parseInt(minAge, 10) : 0,
+            maxAge: maxAge ? parseInt(maxAge, 10) : 120,
+            gender: gender || "All",
+            healthyVolunteers: healthyVolunteers || false,
+          },
+          phase: phase || "Not specified",
+        };
 
-          // Age matching
-          if (patient.dob) {
-            const age = Math.floor(
-              (Date.now() - new Date(patient.dob).getTime()) / (365.25 * 24 * 60 * 60 * 1000)
-            );
-            const minAgeNum = minAge ? parseInt(minAge, 10) : 0;
-            const maxAgeNum = maxAge ? parseInt(maxAge, 10) : 120;
+        // =====================================================================
+        // AI-POWERED MATCHING WITH OPENAI GPT-4
+        // =====================================================================
 
-            if (age >= minAgeNum && age <= maxAgeNum) {
-              score += 20;
-              reasons.push(`Age ${age} within range ${minAgeNum}-${maxAgeNum}`);
-            } else {
-              continue; // Skip if age doesn't match
+        async function analyzePatientWithAI(patient: any, trialCtx: any): Promise<any> {
+          const age = patient.dob
+            ? Math.floor((Date.now() - new Date(patient.dob).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+            : null;
+
+          const problems = patient.problems || [];
+          const medications = patient.medications || [];
+          const allergies = patient.allergies || [];
+          const vitals = patient.vitals || {};
+
+          // Build comprehensive patient profile
+          const patientProfile = `
+PATIENT PROFILE:
+- ID: ${patient.elation_patient_id}
+- Name: ${patient.first_name} ${patient.last_name}
+- Age: ${age || 'Unknown'} years
+- Sex: ${patient.sex || 'Unknown'}
+- Location: ${patient.city ? `${patient.city}, ${patient.state}` : 'Unknown'}
+
+ACTIVE MEDICAL CONDITIONS (${problems.filter((p: any) => p.status === 'Active').length}):
+${problems.filter((p: any) => p.status === 'Active').map((p: any) =>
+  `- ${p.description}${p.icd10_code ? ` [ICD-10: ${p.icd10_code}]` : ''}${p.onset_date ? ` (onset: ${p.onset_date})` : ''}`
+).join('\n') || '- None documented'}
+
+CURRENT MEDICATIONS (${medications.filter((m: any) => m.status === 'Active').length}):
+${medications.filter((m: any) => m.status === 'Active').map((m: any) =>
+  `- ${m.medication_name}${m.dosage ? ` ${m.dosage}` : ''}${m.frequency ? ` (${m.frequency})` : ''}`
+).join('\n') || '- None documented'}
+
+ALLERGIES (${allergies.length}):
+${allergies.map((a: any) =>
+  `- ${a.name}${a.reaction ? ` - Reaction: ${a.reaction}` : ''}${a.severity ? ` (Severity: ${a.severity})` : ''}`
+).join('\n') || '- No known allergies (NKDA)'}
+
+VITAL SIGNS:
+- Blood Pressure: ${vitals.blood_pressure_systolic ? `${vitals.blood_pressure_systolic}/${vitals.blood_pressure_diastolic} mmHg` : 'Not recorded'}
+- Heart Rate: ${vitals.heart_rate ? `${vitals.heart_rate} bpm` : 'Not recorded'}
+- BMI: ${vitals.bmi ? vitals.bmi.toFixed(1) : 'Not calculated'}
+- O2 Saturation: ${vitals.oxygen_saturation ? `${vitals.oxygen_saturation}%` : 'Not recorded'}
+`.trim();
+
+          const trialCriteriaText = `
+CLINICAL TRIAL: ${trialCtx.title}
+NCT ID: ${trialCtx.nctId}
+Phase: ${trialCtx.phase}
+
+TARGET CONDITIONS:
+${trialCtx.conditions.map((c: string) => `- ${c}`).join('\n') || '- Not specified'}
+
+INCLUSION CRITERIA:
+${trialCtx.inclusionCriteria.map((c: string) => `- ${c}`).join('\n') || '- Not specified'}
+
+EXCLUSION CRITERIA:
+${trialCtx.exclusionCriteria.map((c: string) => `- ${c}`).join('\n') || '- Not specified'}
+
+DEMOGRAPHIC REQUIREMENTS:
+- Age: ${trialCtx.demographics.minAge} - ${trialCtx.demographics.maxAge} years
+- Sex: ${trialCtx.demographics.gender}
+- Healthy Volunteers: ${trialCtx.demographics.healthyVolunteers ? 'Accepted' : 'Not accepted'}
+`.trim();
+
+          const systemPrompt = `You are an expert clinical trial eligibility specialist with deep knowledge of medical terminology, ICD-10 codes, drug interactions, and clinical trial protocols. Your job is to evaluate whether a patient is eligible for a clinical trial.
+
+IMPORTANT RULES:
+1. Be CONSERVATIVE - only mark as "highly_eligible" if there is STRONG evidence
+2. Check ALL exclusion criteria carefully - a single exclusion makes patient ineligible
+3. Consider drug interactions and contraindications
+4. Look for semantic matches (e.g., "Type 2 Diabetes Mellitus" matches "diabetes", "HTN" matches "hypertension")
+5. Consider disease severity and progression
+6. Account for comorbidities that might affect eligibility
+7. If critical information is missing, note it but don't assume the worst
+
+OUTPUT REQUIREMENTS:
+Return ONLY valid JSON with this exact structure:
+{
+  "eligibilityScore": <0-100>,
+  "eligibilityStatus": "<highly_eligible|likely_eligible|potentially_eligible|likely_ineligible|ineligible>",
+  "confidence": <0-100>,
+  "inclusionCriteriaMet": [{"criterion": "<text>", "met": true/false, "evidence": "<from patient data>"}],
+  "exclusionCriteriaTriggered": [{"criterion": "<text>", "triggered": true/false, "evidence": "<from patient data>"}],
+  "matchingConditions": ["<condition1>", "<condition2>"],
+  "concerns": ["<concern1>", "<concern2>"],
+  "missingInformation": ["<info1>", "<info2>"],
+  "recommendation": "<1-2 sentence clinical recommendation>",
+  "reasoning": "<detailed explanation of eligibility assessment>"
+}`;
+
+          const userPrompt = `Evaluate this patient for the clinical trial:
+
+${patientProfile}
+
+---
+
+${trialCriteriaText}
+
+Analyze the patient's eligibility comprehensively. Check each inclusion criterion and exclusion criterion. Consider medical history, current medications, allergies, and vital signs. Return your assessment as JSON.`;
+
+          try {
+            const response = await fetch("https://api.openai.com/v1/chat/completions", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${OPENAI_API_KEY}`,
+              },
+              body: JSON.stringify({
+                model: "gpt-4o",
+                temperature: 0.1,
+                max_tokens: 2000,
+                messages: [
+                  { role: "system", content: systemPrompt },
+                  { role: "user", content: userPrompt },
+                ],
+                response_format: { type: "json_object" },
+              }),
+            });
+
+            if (!response.ok) {
+              const errorText = await response.text();
+              console.error(`OpenAI API error for patient ${patient.elation_patient_id}:`, errorText);
+              return null;
             }
+
+            const data = await response.json();
+            const content = data?.choices?.[0]?.message?.content;
+
+            if (!content) {
+              console.error(`No content from OpenAI for patient ${patient.elation_patient_id}`);
+              return null;
+            }
+
+            const aiResult = JSON.parse(content);
+            return {
+              patientId: patient.elation_patient_id,
+              firstName: patient.first_name,
+              lastName: patient.last_name,
+              age,
+              ...aiResult,
+            };
+          } catch (err) {
+            console.error(`AI analysis failed for patient ${patient.elation_patient_id}:`, err);
+            return null;
+          }
+        }
+
+        // Fallback rule-based scoring
+        function ruleBasedScoring(patient: any, trialCtx: any): any {
+          const age = patient.dob
+            ? Math.floor((Date.now() - new Date(patient.dob).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+            : null;
+
+          const problems = patient.problems || [];
+          const medications = patient.medications || [];
+          const allergies = patient.allergies || [];
+
+          let score = 0;
+          const matchFactors: any[] = [];
+          const reasons: string[] = [];
+          const matchingConditions: string[] = [];
+
+          // Age check (20 points)
+          const minAgeNum = trialCtx.demographics.minAge;
+          const maxAgeNum = trialCtx.demographics.maxAge;
+          if (age !== null && age >= minAgeNum && age <= maxAgeNum) {
+            score += 20;
+            matchFactors.push({ category: "demographics", name: "Age", matched: true, reason: `Age ${age} within ${minAgeNum}-${maxAgeNum}` });
+          } else if (age !== null) {
+            return null; // Hard exclusion
           }
 
-          // Gender matching
-          if (gender && gender !== "All") {
-            const patientGender = patient.sex?.toLowerCase();
-            const requiredGender = gender.toLowerCase();
-            if (patientGender === requiredGender) {
-              score += 10;
-              reasons.push(`Gender matches (${gender})`);
-            } else {
-              continue; // Skip if gender doesn't match
+          // Gender check (5 points)
+          const reqGender = trialCtx.demographics.gender;
+          if (!reqGender || reqGender === "All" || patient.sex?.toLowerCase() === reqGender.toLowerCase()) {
+            score += 5;
+            matchFactors.push({ category: "demographics", name: "Gender", matched: true, reason: "Gender matches" });
+          } else {
+            return null; // Hard exclusion
+          }
+
+          // Condition matching (40 points)
+          if (trialCtx.conditions && trialCtx.conditions.length > 0) {
+            const conditionTerms = trialCtx.conditions.map((c: string) => c.toLowerCase());
+
+            for (const problem of problems.filter((p: any) => p.status === "Active")) {
+              const desc = (problem.description || "").toLowerCase();
+              const icd10 = (problem.icd10_code || "").toLowerCase();
+
+              for (const term of conditionTerms) {
+                const termLower = term.toLowerCase();
+                if (desc.includes(termLower) || termLower.includes(desc.split(" ")[0]) ||
+                    (icd10 && termLower.includes(icd10))) {
+                  matchingConditions.push(problem.description);
+                  break;
+                }
+              }
+            }
+
+            if (matchingConditions.length > 0) {
+              score += Math.round(40 * Math.min(matchingConditions.length / conditionTerms.length, 1));
+              reasons.push(`Conditions: ${matchingConditions.join(", ")}`);
             }
           } else {
-            score += 10;
+            score += 20;
           }
 
-          // Condition matching
-          const problems = patient.problems || [];
-          if (trialConditions && trialConditions.length > 0) {
-            const conditionTerms = trialConditions.map((c: string) => c.toLowerCase());
-            const matchedConditions = problems.filter((p: any) =>
-              conditionTerms.some(
-                (term: string) =>
-                  p.description?.toLowerCase().includes(term) ||
-                  p.icd10_code?.toLowerCase().includes(term)
-              )
-            );
+          // Medication analysis (20 points)
+          const activeMeds = medications.filter((m: any) => m.status === "Active");
+          let medScore = 20;
+          const exclusionMeds = ["warfarin", "coumadin", "heparin", "immunosuppressant", "prednisone", "methotrexate", "chemotherapy"];
+          const hasExclusionMed = activeMeds.some((m: any) =>
+            exclusionMeds.some(term => (m.medication_name || "").toLowerCase().includes(term))
+          );
+          if (hasExclusionMed) {
+            medScore = 5;
+            reasons.push("Potentially excluding medications detected");
+          }
+          score += medScore;
 
-            if (matchedConditions.length > 0) {
-              score += 40 * Math.min(matchedConditions.length / conditionTerms.length, 1);
-              reasons.push(`Condition match: ${matchedConditions.map((m: any) => m.description).join(", ")}`);
+          // Allergy check (10 points)
+          let allergyScore = 10;
+          const severeAllergies = allergies.filter((a: any) =>
+            (a.severity || "").toLowerCase() === "severe" || (a.severity || "").toLowerCase() === "life-threatening"
+          );
+          if (severeAllergies.length > 0) {
+            allergyScore = 5;
+            reasons.push(`${severeAllergies.length} severe allergies noted`);
+          }
+          score += allergyScore;
+
+          // Vitals (5 points)
+          score += 5;
+
+          let eligibilityStatus: string;
+          if (score >= 80) eligibilityStatus = "highly_eligible";
+          else if (score >= 60) eligibilityStatus = "likely_eligible";
+          else if (score >= 40) eligibilityStatus = "potentially_eligible";
+          else if (score >= 25) eligibilityStatus = "likely_ineligible";
+          else eligibilityStatus = "ineligible";
+
+          return {
+            patientId: patient.elation_patient_id,
+            firstName: patient.first_name,
+            lastName: patient.last_name,
+            age,
+            eligibilityScore: score,
+            eligibilityStatus,
+            confidence: 60,
+            matchingConditions,
+            concerns: [],
+            missingInformation: [],
+            recommendation: score >= 50 ? "Patient shows potential eligibility - recommend screening" : "Patient may not meet criteria",
+            reasoning: `Rule-based analysis: Score ${score}/100. ${reasons.join(". ")}`,
+            matchFactors,
+          };
+        }
+
+        // Process patients - use AI if available, fallback to rules
+        const BATCH_SIZE = 5; // Process 5 patients at a time for AI
+        const patients = patientsResult.rows;
+
+        for (let i = 0; i < patients.length; i += BATCH_SIZE) {
+          const batch = patients.slice(i, i + BATCH_SIZE);
+
+          const batchPromises = batch.map(async (patient) => {
+            // Quick demographic pre-filter
+            const age = patient.dob
+              ? Math.floor((Date.now() - new Date(patient.dob).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+              : null;
+
+            const minAgeNum = trialContext.demographics.minAge;
+            const maxAgeNum = trialContext.demographics.maxAge;
+            if (age !== null && (age < minAgeNum || age > maxAgeNum)) return null;
+
+            const reqGender = trialContext.demographics.gender;
+            if (reqGender && reqGender !== "All" && patient.sex?.toLowerCase() !== reqGender.toLowerCase()) return null;
+
+            // Use AI if available
+            if (aiAnalysisUsed) {
+              const aiResult = await analyzePatientWithAI(patient, trialContext);
+              if (aiResult) return aiResult;
             }
-          }
 
-          // Only store if there's some match
-          if (score > 20) {
+            // Fallback to rule-based
+            return ruleBasedScoring(patient, trialContext);
+          });
+
+          const batchResults = await Promise.all(batchPromises);
+
+          for (const result of batchResults) {
+            if (!result) continue;
+            if (result.eligibilityScore < 25) continue;
+
+            // Track common matching conditions
+            if (result.matchingConditions) {
+              result.matchingConditions.forEach((cond: string) => {
+                commonCriteria[cond] = (commonCriteria[cond] || 0) + 1;
+              });
+            }
+
+            // Store in database
             await query(
               `INSERT INTO elation_trial_matches (
                 provider_id, elation_patient_id, nct_id, match_score, match_reasons, eligibility_status
-              ) VALUES ($1, $2, $3, $4, $5, 'potential')
+              ) VALUES ($1, $2, $3, $4, $5, $6)
               ON CONFLICT (provider_id, elation_patient_id, nct_id) DO UPDATE SET
-                match_score = $4, match_reasons = $5, updated_at = NOW()`,
-              [providerId, patient.elation_patient_id, nctId.toUpperCase(), Math.round(score), JSON.stringify(reasons)]
+                match_score = $4, match_reasons = $5, eligibility_status = $6, updated_at = NOW()`,
+              [
+                providerId,
+                result.patientId,
+                nctId.toUpperCase(),
+                Math.round(result.eligibilityScore),
+                JSON.stringify({
+                  summary: result.matchingConditions || [],
+                  concerns: result.concerns || [],
+                  missingInfo: result.missingInformation || [],
+                  recommendation: result.recommendation,
+                  reasoning: result.reasoning,
+                  confidence: result.confidence,
+                  aiPowered: aiAnalysisUsed,
+                }),
+                result.eligibilityStatus === "highly_eligible" || result.eligibilityStatus === "likely_eligible" ? "potential" : "pending"
+              ]
             );
+
+            matchResults.push({
+              patientId: result.patientId,
+              patientName: `${result.firstName} ${result.lastName}`,
+              score: Math.round(result.eligibilityScore),
+              eligibilityStatus: result.eligibilityStatus,
+              confidence: result.confidence,
+              matchingConditions: result.matchingConditions,
+              concerns: result.concerns,
+              recommendation: result.recommendation,
+              reasoning: result.reasoning,
+              aiPowered: aiAnalysisUsed,
+            });
             matchCount++;
           }
         }
+
+        // Calculate common criteria summary
+        const sortedCriteria = Object.entries(commonCriteria)
+          .sort(([, a], [, b]) => b - a)
+          .slice(0, 10)
+          .map(([criterion, count]) => ({ criterion, count, percentage: matchCount > 0 ? Math.round((count / matchCount) * 100) : 0 }));
+
+        await logAuditEvent(
+          userId,
+          "TRIAL_MATCHING_COMPLETED",
+          "elation_trial_matches",
+          nctId,
+          undefined,
+          { matchCount, aiPowered: aiAnalysisUsed, patientsAnalyzed: patients.length },
+          event.headers?.["x-forwarded-for"],
+          event.headers?.["user-agent"]
+        );
 
         return cors.response(200, {
           ok: true,
           matchCount,
           nctId,
+          useAI: aiAnalysisUsed,
+          aiModel: aiAnalysisUsed ? "gpt-4o" : "rule-based",
+          commonCriteria: sortedCriteria,
+          matchSummary: {
+            highlyEligible: matchResults.filter(m => m.eligibilityStatus === "highly_eligible").length,
+            likelyEligible: matchResults.filter(m => m.eligibilityStatus === "likely_eligible").length,
+            potentiallyEligible: matchResults.filter(m => m.eligibilityStatus === "potentially_eligible").length,
+            likelyIneligible: matchResults.filter(m => m.eligibilityStatus === "likely_ineligible").length,
+          },
+          topMatches: matchResults.sort((a, b) => b.score - a.score).slice(0, 20),
+        });
+      }
+
+      // Batch accept matches above threshold and add to pipeline
+      if (action === "batch_accept_matches") {
+        const { nctId, threshold = 60, newStatus = "eligible", addToPipeline = true } = body;
+
+        if (!nctId) {
+          return cors.response(400, { ok: false, error: "nctId required" });
+        }
+
+        // First get the matching patients with their details
+        const matchesResult = await query(
+          `SELECT m.elation_patient_id, m.match_score, p.first_name, p.last_name, p.email,
+                  (SELECT description FROM jsonb_array_elements(p.problems) AS prob WHERE prob->>'status' = 'Active' LIMIT 1) as primary_condition
+           FROM elation_trial_matches m
+           JOIN elation_patients p ON m.elation_patient_id = p.elation_patient_id AND m.provider_id = p.provider_id
+           WHERE m.provider_id = $1 AND m.nct_id = $2 AND m.match_score >= $3
+           AND m.eligibility_status IN ('potential', 'pending')`,
+          [providerId, nctId.toUpperCase(), threshold]
+        );
+
+        // Update match statuses
+        const updateResult = await query(
+          `UPDATE elation_trial_matches
+           SET eligibility_status = $1, updated_at = NOW()
+           WHERE provider_id = $2 AND nct_id = $3 AND match_score >= $4
+           AND eligibility_status IN ('potential', 'pending')
+           RETURNING elation_patient_id`,
+          [newStatus, providerId, nctId.toUpperCase(), threshold]
+        );
+
+        // Add to patient pipeline
+        let pipelineCount = 0;
+        if (addToPipeline && matchesResult.rows.length > 0) {
+          for (const match of matchesResult.rows) {
+            try {
+              // Create patient ID from elation patient ID with prefix
+              const patientId = `elation_${match.elation_patient_id}`;
+
+              // First ensure we have a patient_profiles entry (upsert)
+              await query(
+                `INSERT INTO patient_profiles (patient_id, email, primary_condition, created_at)
+                 VALUES ($1, $2, $3, NOW())
+                 ON CONFLICT (patient_id) DO UPDATE SET
+                   email = COALESCE($2, patient_profiles.email),
+                   primary_condition = COALESCE($3, patient_profiles.primary_condition),
+                   updated_at = NOW()`,
+                [patientId, match.email, match.primary_condition]
+              );
+
+              // Add to pipeline
+              await query(
+                `INSERT INTO patient_pipeline (
+                  provider_id, patient_id, nct_id, status, match_score, notes, created_at
+                ) VALUES ($1, $2, $3, $4, $5, $6, NOW())
+                ON CONFLICT (provider_id, patient_id, nct_id) DO UPDATE SET
+                  status = $4,
+                  match_score = $5,
+                  notes = COALESCE($6, patient_pipeline.notes),
+                  updated_at = NOW()`,
+                [
+                  providerId,
+                  patientId,
+                  nctId.toUpperCase(),
+                  "interested", // Start in interested status in pipeline
+                  match.match_score,
+                  `Matched via Elation EHR (${match.first_name} ${match.last_name}). Score: ${match.match_score}%`
+                ]
+              );
+              pipelineCount++;
+            } catch (err) {
+              console.error(`Failed to add elation patient ${match.elation_patient_id} to pipeline:`, err);
+            }
+          }
+        }
+
+        await logAuditEvent(
+          userId,
+          "BATCH_ACCEPT_MATCHES",
+          "elation_trial_matches",
+          nctId,
+          undefined,
+          { threshold, newStatus, matchCount: updateResult.rowCount, pipelineCount },
+          event.headers?.["x-forwarded-for"],
+          event.headers?.["user-agent"]
+        );
+
+        return cors.response(200, {
+          ok: true,
+          updatedCount: updateResult.rowCount,
+          pipelineCount,
+          threshold,
+          newStatus,
+        });
+      }
+
+      // Add single match to pipeline
+      if (action === "add_to_pipeline") {
+        const { elationPatientId, nctId, notes } = body;
+
+        if (!elationPatientId || !nctId) {
+          return cors.response(400, { ok: false, error: "elationPatientId and nctId required" });
+        }
+
+        // Get patient details and match info
+        const patientResult = await query(
+          `SELECT p.*, m.match_score
+           FROM elation_patients p
+           LEFT JOIN elation_trial_matches m ON p.elation_patient_id = m.elation_patient_id
+             AND p.provider_id = m.provider_id AND m.nct_id = $3
+           WHERE p.provider_id = $1 AND p.elation_patient_id = $2`,
+          [providerId, elationPatientId, nctId.toUpperCase()]
+        );
+
+        if (patientResult.rows.length === 0) {
+          return cors.response(404, { ok: false, error: "Patient not found" });
+        }
+
+        const patient = patientResult.rows[0];
+        const patientId = `elation_${elationPatientId}`;
+        const primaryCondition = patient.problems?.[0]?.description;
+
+        // Ensure patient_profiles entry exists
+        await query(
+          `INSERT INTO patient_profiles (patient_id, email, primary_condition, created_at)
+           VALUES ($1, $2, $3, NOW())
+           ON CONFLICT (patient_id) DO UPDATE SET
+             email = COALESCE($2, patient_profiles.email),
+             primary_condition = COALESCE($3, patient_profiles.primary_condition),
+             updated_at = NOW()`,
+          [patientId, patient.email, primaryCondition]
+        );
+
+        // Add to pipeline
+        const result = await query(
+          `INSERT INTO patient_pipeline (
+            provider_id, patient_id, nct_id, status, match_score, notes, created_at
+          ) VALUES ($1, $2, $3, 'interested', $4, $5, NOW())
+          ON CONFLICT (provider_id, patient_id, nct_id) DO UPDATE SET
+            match_score = COALESCE($4, patient_pipeline.match_score),
+            notes = COALESCE($5, patient_pipeline.notes),
+            updated_at = NOW()
+          RETURNING id, status`,
+          [providerId, patientId, nctId.toUpperCase(), patient.match_score, notes || `Added from Elation EHR (${patient.first_name} ${patient.last_name})`]
+        );
+
+        // Update match status to indicate added to pipeline
+        await query(
+          `UPDATE elation_trial_matches
+           SET eligibility_status = 'eligible', updated_at = NOW()
+           WHERE provider_id = $1 AND elation_patient_id = $2 AND nct_id = $3`,
+          [providerId, elationPatientId, nctId.toUpperCase()]
+        );
+
+        await logAuditEvent(
+          userId,
+          "ELATION_PATIENT_ADDED_TO_PIPELINE",
+          "patient_pipeline",
+          patientId,
+          nctId,
+          { elationPatientId, matchScore: patient.match_score },
+          event.headers?.["x-forwarded-for"],
+          event.headers?.["user-agent"]
+        );
+
+        return cors.response(200, {
+          ok: true,
+          message: "Patient added to pipeline",
+          pipelineId: result.rows[0]?.id,
+          patientId,
         });
       }
 

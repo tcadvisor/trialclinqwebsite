@@ -85,6 +85,57 @@ export interface MatchResult {
   ok: boolean;
   matchCount?: number;
   nctId?: string;
+  useAI?: boolean;
+  aiModel?: string;
+  commonCriteria?: CommonCriterion[];
+  matchSummary?: MatchSummary;
+  topMatches?: TopMatch[];
+  error?: string;
+}
+
+export interface CommonCriterion {
+  criterion: string;
+  count: number;
+  percentage: number;
+}
+
+export interface MatchSummary {
+  highlyEligible: number;
+  likelyEligible: number;
+  potentiallyEligible: number;
+  likelyIneligible: number;
+}
+
+export interface TopMatch {
+  patientId: number;
+  patientName: string;
+  score: number;
+  eligibilityStatus: string;
+  confidence?: number;
+  matchingConditions?: string[];
+  concerns?: string[];
+  recommendation?: string;
+  reasoning?: string;
+  aiPowered?: boolean;
+  matchFactors?: MatchFactor[];
+  reasons?: string[];
+}
+
+export interface MatchFactor {
+  category: string;
+  name: string;
+  score: number;
+  maxScore: number;
+  matched: boolean;
+  reason: string;
+}
+
+export interface BatchAcceptResult {
+  ok: boolean;
+  updatedCount?: number;
+  pipelineCount?: number;
+  threshold?: number;
+  newStatus?: string;
   error?: string;
 }
 
@@ -255,9 +306,14 @@ export async function matchTrialToPatients(
   nctId: string,
   criteria: {
     conditions?: string[];
+    inclusionCriteria?: string[];
+    exclusionCriteria?: string[];
     minAge?: string;
     maxAge?: string;
     gender?: string;
+    trialTitle?: string;
+    phase?: string;
+    useAI?: boolean;
   }
 ): Promise<MatchResult> {
   try {
@@ -268,10 +324,15 @@ export async function matchTrialToPatients(
         action: "match_trial",
         providerId: userId,
         nctId,
+        trialTitle: criteria.trialTitle,
         trialConditions: criteria.conditions,
+        inclusionCriteria: criteria.inclusionCriteria,
+        exclusionCriteria: criteria.exclusionCriteria,
         minAge: criteria.minAge,
         maxAge: criteria.maxAge,
         gender: criteria.gender,
+        phase: criteria.phase,
+        useAI: criteria.useAI ?? true,
       }),
     });
 
@@ -282,6 +343,74 @@ export async function matchTrialToPatients(
     return await response.json();
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Matching failed" };
+  }
+}
+
+/**
+ * Batch accept matches above a threshold
+ */
+export async function batchAcceptMatches(
+  userId: string,
+  nctId: string,
+  options: {
+    threshold?: number;
+    newStatus?: string;
+    addToPipeline?: boolean;
+  } = {}
+): Promise<BatchAcceptResult> {
+  try {
+    const response = await fetch(API_BASE, {
+      method: "POST",
+      headers: getHeaders(userId),
+      body: JSON.stringify({
+        action: "batch_accept_matches",
+        providerId: userId,
+        nctId,
+        threshold: options.threshold ?? 60,
+        newStatus: options.newStatus ?? "eligible",
+        addToPipeline: options.addToPipeline ?? true,
+      }),
+    });
+
+    if (!response.ok) {
+      return { ok: false, error: await response.text() };
+    }
+
+    return await response.json();
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Batch accept failed" };
+  }
+}
+
+/**
+ * Add a single patient to the pipeline
+ */
+export async function addPatientToPipeline(
+  userId: string,
+  elationPatientId: number,
+  nctId: string,
+  notes?: string
+): Promise<{ ok: boolean; patientId?: string; pipelineId?: number; error?: string }> {
+  try {
+    const response = await fetch(API_BASE, {
+      method: "POST",
+      headers: getHeaders(userId),
+      body: JSON.stringify({
+        action: "add_to_pipeline",
+        providerId: userId,
+        elationPatientId,
+        nctId,
+        notes,
+      }),
+    });
+
+    if (!response.ok) {
+      return { ok: false, error: await response.text() };
+    }
+
+    return await response.json();
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Failed to add to pipeline" };
   }
 }
 
