@@ -1,5 +1,7 @@
 import { Handler } from "@netlify/functions";
 import { Resend } from "resend";
+import { validateCsrfToken, getCsrfTokenFromHeaders } from "./csrf-utils";
+import { createCorsHandler } from "./cors-utils";
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
@@ -98,32 +100,30 @@ function generateEmailContent(data: BookDemoData): { subject: string; html: stri
 }
 
 const handler: Handler = async (event) => {
+  const cors = createCorsHandler(event);
+
   if (event.httpMethod === "OPTIONS") {
-    return {
-      statusCode: 204,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST,OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
-      },
-      body: "",
-    };
+    return cors.handleOptions("POST,OPTIONS");
   }
 
   if (event.httpMethod !== "POST") {
-    return {
-      statusCode: 405,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ error: "Method not allowed" }),
-    };
+    return cors.response(405, { error: "Method not allowed" });
+  }
+
+  // CSRF Protection: Validate CSRF token for state-changing operations
+  const csrfToken = getCsrfTokenFromHeaders(event.headers as Record<string, string>);
+  if (!csrfToken) {
+    console.warn("CSRF validation failed: Missing CSRF token");
+    return cors.response(403, { error: "Missing CSRF token" });
+  }
+
+  if (!validateCsrfToken(csrfToken)) {
+    console.warn("CSRF validation failed: Invalid or expired CSRF token");
+    return cors.response(403, { error: "Invalid or expired CSRF token" });
   }
 
   if (!resend || !RESEND_API_KEY) {
-    return {
-      statusCode: 500,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ error: "Email service not configured" }),
-    };
+    return cors.response(500, { error: "Email service not configured" });
   }
 
   try {
@@ -131,11 +131,7 @@ const handler: Handler = async (event) => {
 
     // Validate required fields for demo booking
     if (!data.email || !data.name) {
-      return {
-        statusCode: 400,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ error: "Missing required fields: name and email" }),
-      };
+      return cors.response(400, { error: "Missing required fields: name and email" });
     }
 
     const { subject, html } = generateEmailContent(data);
@@ -157,34 +153,19 @@ const handler: Handler = async (event) => {
 
     if (result.error) {
       console.error("❌ Resend error:", result.error);
-      return {
-        statusCode: 502,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ error: "Failed to send email", details: result.error }),
-      };
+      return cors.response(502, { error: "Failed to send email", details: result.error });
     }
 
     console.log("✅ Email sent successfully:", result.data?.id);
 
-    return {
-      statusCode: 200,
-      headers: {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
-      },
-      body: JSON.stringify({
-        ok: true,
-        messageId: result.data?.id,
-        message: "Booking request sent. You'll receive a confirmation email shortly."
-      }),
-    };
+    return cors.response(200, {
+      ok: true,
+      messageId: result.data?.id,
+      message: "Booking request sent. You'll receive a confirmation email shortly.",
+    });
   } catch (err: any) {
     console.error("❌ Book demo handler error:", err);
-    return {
-      statusCode: 500,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ error: err?.message || "Unknown error" }),
-    };
+    return cors.response(500, { error: err?.message || "Unknown error" });
   }
 };
 

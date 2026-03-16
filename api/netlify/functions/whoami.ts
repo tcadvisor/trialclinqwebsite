@@ -1,32 +1,22 @@
 import type { Handler } from "@netlify/functions";
 import { getOrCreateUser } from "./db";
 import { getUserFromAuthHeader } from "./auth-utils";
-
-function cors(statusCode: number, body: any) {
-  return {
-    statusCode,
-    headers: {
-      "access-control-allow-origin": "*",
-      "access-control-allow-methods": "GET,OPTIONS",
-      "access-control-allow-headers": "content-type,authorization",
-      "content-type": "application/json",
-    },
-    body: typeof body === "string" ? body : JSON.stringify(body),
-  };
-}
+import { createCorsHandler } from "./cors-utils";
 
 export const handler: Handler = async (event) => {
+  const cors = createCorsHandler(event);
+
   if (event.httpMethod === "OPTIONS") {
-    return cors(204, "");
+    return cors.handleOptions("GET,OPTIONS");
   }
 
   if (event.httpMethod !== "GET") {
-    return cors(405, { error: "Method not allowed" });
+    return cors.response(405, { error: "Method not allowed" });
   }
 
   const authHeader = event.headers?.authorization || event.headers?.Authorization || "";
   if (!authHeader) {
-    return cors(401, { error: "Missing Authorization header" });
+    return cors.response(401, { error: "Missing Authorization header" });
   }
 
   try {
@@ -42,7 +32,7 @@ export const handler: Handler = async (event) => {
       authenticatedUser.role
     );
 
-    return cors(200, {
+    return cors.response(200, {
       ok: true,
       user: {
         id: user.id,
@@ -56,6 +46,6 @@ export const handler: Handler = async (event) => {
       },
     });
   } catch (error: any) {
-    return cors(401, { error: error.message || "Unauthorized" });
+    return cors.response(401, { error: error.message || "Unauthorized" });
   }
 };

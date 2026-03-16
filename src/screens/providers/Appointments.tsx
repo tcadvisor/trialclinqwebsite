@@ -1,7 +1,9 @@
 import React from "react";
 import SiteHeader from "../../components/SiteHeader";
 import { Link } from "react-router-dom";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Plus, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Plus, Search, List } from "lucide-react";
+import { usePagination } from "../../lib/usePagination";
+import { Pagination } from "../../components/ui/pagination";
 
 // Types
 export type CalendarEvent = {
@@ -126,8 +128,8 @@ function Toolbar({ current, setCurrent }: { current: Date; setCurrent: (d: Date)
   );
 }
 
-function ViewTabs({ view, setView }: { view: "day"|"week"|"month"; setView: (v: "day"|"week"|"month")=>void }) {
-  const tabs: ("day"|"week"|"month")[] = ["day","week","month"];
+function ViewTabs({ view, setView }: { view: "day"|"week"|"month"|"list"; setView: (v: "day"|"week"|"month"|"list")=>void }) {
+  const tabs: ("day"|"week"|"month"|"list")[] = ["day","week","month","list"];
   return (
     <div className="inline-flex rounded-full border overflow-hidden">
       {tabs.map((t) => (
@@ -141,32 +143,34 @@ function WeekView({ weekStart, events }: { weekStart: Date; events: CalendarEven
   const hours = Array.from({ length: 10 }, (_, i) => i + 8); // 8-17
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   return (
-    <div className="grid grid-cols-8 border rounded-lg overflow-hidden">
-      <div className="bg-gray-50 text-xs text-gray-500 border-r p-2">PST</div>
-      {days.map((d) => (
-        <div key={d.toISOString()} className="text-xs text-gray-600 border-r p-2">{d.toLocaleDateString(undefined, { weekday: "short", day: "numeric" })}</div>
-      ))}
-      {hours.map((h) => (
-        <React.Fragment key={h}>
-          <div className="border-r text-xs text-gray-500 p-2">{toHM(new Date(2000,0,1,h,0))}</div>
-          {days.map((d) => {
-            const slotStart = new Date(d.getFullYear(), d.getMonth(), d.getDate(), h, 0);
-            const slotEnd = new Date(d.getFullYear(), d.getMonth(), d.getDate(), h+1, 0);
-            const evs = events.filter(e => e.start < slotEnd && e.end > slotStart);
-            return (
-              <div key={`${d.toDateString()}-${h}`} className="relative h-20 border-r border-t">
-                {evs.map((e) => (
-                  <div key={e.id} className={`absolute inset-1 ${e.color} rounded p-2 text-[11px] leading-tight border`}>
-                    <div className="font-medium truncate">{e.title}</div>
-                    <div className="text-gray-700 truncate">{toHM(e.start)} - {toHM(e.end)}</div>
-                    <div className="text-gray-700 truncate">{e.location}</div>
-                  </div>
-                ))}
-              </div>
-            );
-          })}
-        </React.Fragment>
-      ))}
+    <div className="overflow-x-auto">
+      <div className="grid grid-cols-1 md:grid-cols-8 border rounded-lg overflow-hidden min-w-[800px]">
+        <div className="bg-gray-50 text-xs text-gray-500 border-r p-2">PST</div>
+        {days.map((d) => (
+          <div key={d.toISOString()} className="text-xs text-gray-600 border-r p-2">{d.toLocaleDateString(undefined, { weekday: "short", day: "numeric" })}</div>
+        ))}
+        {hours.map((h) => (
+          <React.Fragment key={h}>
+            <div className="border-r text-xs text-gray-500 p-2">{toHM(new Date(2000,0,1,h,0))}</div>
+            {days.map((d) => {
+              const slotStart = new Date(d.getFullYear(), d.getMonth(), d.getDate(), h, 0);
+              const slotEnd = new Date(d.getFullYear(), d.getMonth(), d.getDate(), h+1, 0);
+              const evs = events.filter(e => e.start < slotEnd && e.end > slotStart);
+              return (
+                <div key={`${d.toDateString()}-${h}`} className="relative min-h-[80px] md:h-20 border-r border-t">
+                  {evs.map((e) => (
+                    <div key={e.id} className={`absolute inset-1 ${e.color} rounded p-2 text-[11px] leading-tight border`}>
+                      <div className="font-medium truncate">{e.title}</div>
+                      <div className="text-gray-700 truncate">{toHM(e.start)} - {toHM(e.end)}</div>
+                      <div className="text-gray-700 truncate">{e.location}</div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
+          </React.Fragment>
+        ))}
+      </div>
     </div>
   );
 }
@@ -174,27 +178,29 @@ function WeekView({ weekStart, events }: { weekStart: Date; events: CalendarEven
 function DayView({ day, events }: { day: Date; events: CalendarEvent[] }) {
   const hours = Array.from({ length: 10 }, (_, i) => i + 8);
   return (
-    <div className="grid grid-cols-[80px_1fr] border rounded-lg overflow-hidden">
-      <div className="bg-gray-50 text-xs text-gray-500 border-r p-2">PST</div>
-      <div className="p-2 text-xs text-gray-600">{day.toDateString()}</div>
-      {hours.map((h) => {
-        const slotStart = new Date(day.getFullYear(), day.getMonth(), day.getDate(), h, 0);
-        const slotEnd = new Date(day.getFullYear(), day.getMonth(), day.getDate(), h+1, 0);
-        const evs = events.filter(e => e.start < slotEnd && e.end > slotStart);
-        return (
-          <React.Fragment key={h}>
-            <div className="border-r text-xs text-gray-500 p-2">{toHM(new Date(2000,0,1,h,0))}</div>
-            <div className="relative h-20 border-t">
-              {evs.map((e) => (
-                <div key={e.id} className={`absolute inset-1 ${e.color} rounded p-2 text-[11px] leading-tight border`}>
-                  <div className="font-medium truncate">{e.title}</div>
-                  <div className="text-gray-700 truncate">{e.location}</div>
-                </div>
-              ))}
-            </div>
-          </React.Fragment>
-        );
-      })}
+    <div className="overflow-x-auto">
+      <div className="grid grid-cols-[80px_1fr] border rounded-lg overflow-hidden min-w-[300px]">
+        <div className="bg-gray-50 text-xs text-gray-500 border-r p-2">PST</div>
+        <div className="p-2 text-xs text-gray-600">{day.toDateString()}</div>
+        {hours.map((h) => {
+          const slotStart = new Date(day.getFullYear(), day.getMonth(), day.getDate(), h, 0);
+          const slotEnd = new Date(day.getFullYear(), day.getMonth(), day.getDate(), h+1, 0);
+          const evs = events.filter(e => e.start < slotEnd && e.end > slotStart);
+          return (
+            <React.Fragment key={h}>
+              <div className="border-r text-xs text-gray-500 p-2">{toHM(new Date(2000,0,1,h,0))}</div>
+              <div className="relative min-h-[80px] md:h-20 border-t">
+                {evs.map((e) => (
+                  <div key={e.id} className={`absolute inset-1 ${e.color} rounded p-2 text-[11px] leading-tight border`}>
+                    <div className="font-medium truncate">{e.title}</div>
+                    <div className="text-gray-700 truncate">{e.location}</div>
+                  </div>
+                ))}
+              </div>
+            </React.Fragment>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -224,9 +230,78 @@ function MonthView({ value, events }: { value: Date; events: CalendarEvent[] }) 
   );
 }
 
+function ListView({ events, pageItems, currentPage, totalPages, onPageChange }: {
+  events: CalendarEvent[];
+  pageItems: CalendarEvent[];
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border bg-white overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-sm">
+            <thead className="bg-gray-50 text-left text-gray-600">
+              <tr>
+                <th className="px-4 py-3 font-medium">Title</th>
+                <th className="px-4 py-3 font-medium">Trial</th>
+                <th className="px-4 py-3 font-medium">Date</th>
+                <th className="px-4 py-3 font-medium">Time</th>
+                <th className="px-4 py-3 font-medium">Location</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {pageItems.map((event) => (
+                <tr key={event.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-3 h-3 rounded-full ${event.color} border`} />
+                      <span className="font-medium">{event.title}</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-gray-600">{event.trial}</td>
+                  <td className="px-4 py-3 text-gray-600">
+                    {event.start.toLocaleDateString(undefined, {
+                      weekday: 'short',
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric'
+                    })}
+                  </td>
+                  <td className="px-4 py-3 text-gray-600">
+                    {toHM(event.start)} - {toHM(event.end)}
+                  </td>
+                  <td className="px-4 py-3 text-gray-600">{event.location}</td>
+                </tr>
+              ))}
+              {pageItems.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
+                    No appointments found
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+        {events.length > 0 && (
+          <div className="px-4 py-3 border-t">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={onPageChange}
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function Appointments(): JSX.Element {
   const [current, setCurrent] = React.useState<Date>(new Date(2025, 6, 12));
-  const [view, setView] = React.useState<"day"|"week"|"month">("week");
+  const [view, setView] = React.useState<"day"|"week"|"month"|"list">("week");
   const [events] = React.useState<CalendarEvent[]>(seedEvents);
   const [trialFilter, setTrialFilter] = React.useState<string>("All");
   const [query, setQuery] = React.useState("");
@@ -240,6 +315,17 @@ export default function Appointments(): JSX.Element {
       return matchTrial && matchText;
     });
   }, [events, trialFilter, query]);
+
+  // Pagination for list view
+  const {
+    currentPage,
+    totalPages,
+    pageItems,
+    goToPage,
+  } = usePagination({
+    items: filtered,
+    pageSize: 20,
+  });
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
@@ -264,31 +350,43 @@ export default function Appointments(): JSX.Element {
           </div>
         </div>
 
-        <div className="mt-6 grid lg:grid-cols-4 gap-4">
-          <div className="lg:col-span-1 space-y-4">
-            <MiniMonth value={current} onSelect={setCurrent} />
-            <div className="rounded-xl border bg-white p-3 text-sm">
-              <div className="flex items-center gap-2 text-gray-700"><CalendarIcon className="h-4 w-4"/> Details</div>
-              <div className="mt-2 text-gray-600">{current.toDateString()}</div>
-              <div className="mt-2 space-y-2">
-                {filtered.filter(e => sameDay(e.start, current)).map((e)=> (
-                  <div key={e.id} className="rounded border p-2">
-                    <div className="text-sm font-medium">{e.title}</div>
-                    <div className="text-xs text-gray-600">{toHM(e.start)} – {toHM(e.end)} • {e.location}</div>
-                  </div>
-                ))}
-                {filtered.filter(e => sameDay(e.start, current)).length === 0 && (
-                  <div className="text-xs text-gray-500">No events</div>
-                )}
+        {view === "list" ? (
+          <div className="mt-6">
+            <ListView
+              events={filtered}
+              pageItems={pageItems}
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={goToPage}
+            />
+          </div>
+        ) : (
+          <div className="mt-6 grid lg:grid-cols-4 gap-4">
+            <div className="lg:col-span-1 space-y-4">
+              <MiniMonth value={current} onSelect={setCurrent} />
+              <div className="rounded-xl border bg-white p-3 text-sm">
+                <div className="flex items-center gap-2 text-gray-700"><CalendarIcon className="h-4 w-4"/> Details</div>
+                <div className="mt-2 text-gray-600">{current.toDateString()}</div>
+                <div className="mt-2 space-y-2">
+                  {filtered.filter(e => sameDay(e.start, current)).map((e)=> (
+                    <div key={e.id} className="rounded border p-2">
+                      <div className="text-sm font-medium">{e.title}</div>
+                      <div className="text-xs text-gray-600">{toHM(e.start)} – {toHM(e.end)} • {e.location}</div>
+                    </div>
+                  ))}
+                  {filtered.filter(e => sameDay(e.start, current)).length === 0 && (
+                    <div className="text-xs text-gray-500">No events</div>
+                  )}
+                </div>
               </div>
             </div>
+            <div className="lg:col-span-3 space-y-4">
+              {view === "week" && <WeekView weekStart={weekStart} events={filtered} />}
+              {view === "day" && <DayView day={current} events={filtered} />}
+              {view === "month" && <MonthView value={current} events={filtered} />}
+            </div>
           </div>
-          <div className="lg:col-span-3 space-y-4">
-            {view === "week" && <WeekView weekStart={weekStart} events={filtered} />}
-            {view === "day" && <DayView day={current} events={filtered} />}
-            {view === "month" && <MonthView value={current} events={filtered} />}
-          </div>
-        </div>
+        )}
       </main>
     </div>
   );

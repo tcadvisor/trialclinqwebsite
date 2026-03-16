@@ -86,7 +86,15 @@ export default function Consent(): JSX.Element {
       <footer className="bg-gray-50 mt-16 border-t">
         <div className="max-w-6xl mx-auto px-4 py-12 grid md:grid-cols-3 gap-10 text-sm">
           <div>
-            <img alt="TrialCliniq" className="h-8 w-auto" src="https://c.animaapp.com/mf3cenl8GIzqBa/img/igiwdhcu2mb98arpst9kn-2-1.png" />
+            <img
+              alt="TrialCliniq"
+              className="h-8 w-auto"
+              src="/images/trialcliniq-logo-footer.png"
+              width="124"
+              height="39"
+              loading="lazy"
+              decoding="async"
+            />
             <p className="mt-4 text-gray-600 max-w-sm">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam et lacinia mi.</p>
           </div>
           <div>

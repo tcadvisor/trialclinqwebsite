@@ -1,23 +1,13 @@
 import type { Handler } from "@netlify/functions";
+import { createCorsHandler } from "./cors-utils";
 
 const CT_BASE = 'https://clinicaltrials.gov/api/v2';
 
-function cors(statusCode: number, body: any) {
-  return {
-    statusCode,
-    headers: {
-      "access-control-allow-origin": "*",
-      "access-control-allow-methods": "POST,OPTIONS",
-      "access-control-allow-headers": "content-type,authorization",
-      "content-type": "application/json",
-    },
-    body: typeof body === 'string' ? body : JSON.stringify(body),
-  };
-}
-
 export const handler: Handler = async (event) => {
-  if (event.httpMethod === 'OPTIONS') return cors(204, '');
-  if (event.httpMethod !== 'POST') return cors(405, { error: 'Method not allowed' });
+  const cors = createCorsHandler(event);
+
+  if (event.httpMethod === 'OPTIONS') return cors.handleOptions("POST,OPTIONS");
+  if (event.httpMethod !== 'POST') return cors.response(405, { error: 'Method not allowed' });
 
   try {
     const payload = event.body ? JSON.parse(event.body) : {};
@@ -25,7 +15,7 @@ export const handler: Handler = async (event) => {
 
     if (action === 'study') {
       const nctId = String(payload.nctId || '').trim();
-      if (!nctId) return cors(400, { error: 'Missing nctId' });
+      if (!nctId) return cors.response(400, { error: 'Missing nctId' });
       const fields = [
         'protocolSection.identificationModule.nctId',
         'protocolSection.identificationModule.briefTitle',
@@ -41,10 +31,10 @@ export const handler: Handler = async (event) => {
       const res = await fetch(url);
       if (!res.ok) {
         const text = await res.text().catch(() => '');
-        return cors(res.status, { error: text || `HTTP ${res.status}` });
+        return cors.response(res.status, { error: text || `HTTP ${res.status}` });
       }
       const data = await res.json();
-      return cors(200, data);
+      return cors.response(200, data);
     }
 
     if (action === 'studies') {
@@ -96,16 +86,16 @@ export const handler: Handler = async (event) => {
       }
       if (!res.ok) {
         // Gracefully degrade to empty set on 404/400 to avoid client errors
-        if (res.status === 404 || res.status === 400) return cors(200, { studies: [], totalCount: 0 });
+        if (res.status === 404 || res.status === 400) return cors.response(200, { studies: [], totalCount: 0 });
         const text = await res.text().catch(() => '');
-        return cors(res.status, { error: text || `HTTP ${res.status}` });
+        return cors.response(res.status, { error: text || `HTTP ${res.status}` });
       }
       const data = await res.json();
-      return cors(200, data);
+      return cors.response(200, data);
     }
 
-    return cors(400, { error: 'Unknown action' });
+    return cors.response(400, { error: 'Unknown action' });
   } catch (e: any) {
-    return cors(500, { error: String(e?.message || e || 'Unknown error') });
+    return cors.response(500, { error: String(e?.message || e || 'Unknown error') });
   }
 };

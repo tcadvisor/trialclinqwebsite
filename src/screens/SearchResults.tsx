@@ -20,6 +20,7 @@ import {
   ctgovStudyDetailUrl,
   fetchStudyByNctId,
 } from "../lib/ctgov";
+import { TrialCardSkeleton } from "../components/skeletons";
 
 const solutionsLinks = ["Find a study", "More about trials", "How TrialCliniq help", "Blog"];
 const companyLinks = ["Terms of Conditions", "Contact Us", "About Us", "Privacy Policy"];
@@ -575,10 +576,7 @@ export const SearchResults = (): JSX.Element => {
 
           <div className="lg:col-span-3 space-y-6">
             {loading && (
-              <div className="p-6 text-center text-gray-600 flex items-center justify-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Loading trials…
-              </div>
+              <TrialCardSkeleton count={pageSize} />
             )}
 
             {!loading && error && (
@@ -595,9 +593,9 @@ export const SearchResults = (): JSX.Element => {
                   <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
                     <p className="text-sm text-gray-700 mb-3">Did you mean:</p>
                     <div className="flex flex-wrap gap-2">
-                      {spellSuggestions.map((sugg, i) => (
+                      {spellSuggestions.map((sugg) => (
                         <button
-                          key={i}
+                          key={sugg.suggestion}
                           onClick={() => applySuggestion(sugg.suggestion)}
                           className="px-3 py-2 rounded-md bg-white border border-blue-300 text-blue-700 text-sm hover:bg-blue-100 transition-colors"
                           title={`Confidence: ${sugg.confidence}`}
@@ -635,7 +633,7 @@ export const SearchResults = (): JSX.Element => {
               </div>
             )}
 
-            {!loading && !error && studies.map((study: CtgovStudy, index: number) => {
+            {!loading && !error && studies.map((study: CtgovStudy) => {
               const title = study.protocolSection?.identificationModule?.briefTitle || "Untitled";
               const overallStatus = study.protocolSection?.statusModule?.overallStatus || "";
               const conditions = study.protocolSection?.conditionsModule?.conditions || [];
@@ -645,7 +643,7 @@ export const SearchResults = (): JSX.Element => {
               const nctId = study.protocolSection?.identificationModule?.nctId || "";
 
               return (
-                <Card key={`${nctId}-${index}`}>
+                <Card key={nctId}>
                   <CardContent className="p-6">
                     <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
                       <Link to={`/study/${nctId}`} className="hover:underline flex-1 min-w-0">
@@ -802,13 +800,17 @@ export const SearchResults = (): JSX.Element => {
       </main>
 
       <footer className="relative w-full bg-gray-50 mt-16">
-        <div className="w-full max-w-[1200px] mx-auto px-4 py-20">
-          <div className="flex w-full items-start justify-between">
-            <div className="flex flex-col w-[282px] items-start gap-4 relative">
+        <div className="w-full max-w-[1200px] mx-auto px-4 py-12 md:py-20">
+          <div className="flex flex-col md:flex-row w-full items-start justify-between gap-8">
+            <div className="flex flex-col w-full md:w-[282px] items-start gap-4 relative">
               <img
-                className="relative w-[124px] h-[39px]"
+                className="relative w-auto max-w-[124px] h-auto max-h-[39px]"
                 alt="TrialCliniq Logo"
-                src="https://c.animaapp.com/mf3cenl8GIzqBa/img/igiwdhcu2mb98arpst9kn-2-1.png"
+                src="/images/trialcliniq-logo-footer.png"
+                width="124"
+                height="39"
+                loading="lazy"
+                decoding="async"
               />
               <p className="relative self-stretch text-gray-500 text-sm">
                 Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam et lacinia mi.
@@ -816,28 +818,32 @@ export const SearchResults = (): JSX.Element => {
               <img
                 className="relative flex-[0_0_auto]"
                 alt="Social media links"
-                src="https://c.animaapp.com/mf3cenl8GIzqBa/img/socials.svg"
+                src="/images/socials.svg"
+                width="120"
+                height="24"
+                loading="lazy"
+                decoding="async"
               />
             </div>
-            <div className="inline-flex items-center gap-12 relative flex-[0_0_auto]">
-              <div className="flex flex-col w-[180px] items-start gap-8 relative">
+            <div className="flex flex-col sm:flex-row items-start gap-8 sm:gap-12 relative flex-[0_0_auto]">
+              <div className="flex flex-col w-full sm:w-[180px] items-start gap-4 sm:gap-8 relative">
                 <h4 className="text-gray-300">Solutions</h4>
                 <div className="flex flex-col items-start gap-4 self-stretch w-full relative flex-[0_0_auto]">
-                  {solutionsLinks.map((link, index) => (
-                    <div key={index} className="relative w-[180px] h-7">
-                      <div className="absolute w-[180px] h-7 -top-px left-0 text-[#414651]">
+                  {solutionsLinks.map((link) => (
+                    <div key={link} className="relative w-full sm:w-[180px] min-h-[28px]">
+                      <div className="text-[#414651]">
                         {link}
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
-              <div className="flex flex-col w-[180px] items-start gap-8 relative">
+              <div className="flex flex-col w-full sm:w-[180px] items-start gap-4 sm:gap-8 relative">
                 <h4 className="text-gray-300">Company</h4>
                 <div className="flex flex-col items-start gap-4 self-stretch w-full relative flex-[0_0_auto]">
-                  {companyLinks.map((link, index) => (
-                    <div key={index} className="relative w-[180px] h-7">
-                      <div className="absolute w-[180px] h-7 -top-px left-0 text-[#414651]">
+                  {companyLinks.map((link) => (
+                    <div key={link} className="relative w-full sm:w-[180px] min-h-[28px]">
+                      <div className="text-[#414651]">
                         {link}
                       </div>
                     </div>

@@ -1,4 +1,5 @@
 import type { Handler } from "@netlify/functions";
+import { createCorsHandler } from "./cors-utils";
 
 const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
 
@@ -6,37 +7,26 @@ function clamp(n: number, min = 0, max = 100) {
   return Math.max(min, Math.min(max, n));
 }
 
-function cors(statusCode: number, body: any) {
-  return {
-    statusCode,
-    headers: {
-      "access-control-allow-origin": "*",
-      "access-control-allow-methods": "POST,OPTIONS",
-      "access-control-allow-headers": "content-type,authorization",
-      "content-type": "application/json",
-    },
-    body: typeof body === 'string' ? body : JSON.stringify(body),
-  };
-}
-
 export const handler: Handler = async (event) => {
+  const cors = createCorsHandler(event);
+
   if (event.httpMethod === "OPTIONS") {
-    return cors(204, "");
+    return cors.handleOptions("POST,OPTIONS");
   }
 
   if (event.httpMethod !== "POST") {
-    return cors(405, { error: "Method not allowed" });
+    return cors.response(405, { error: "Method not allowed" });
   }
 
   const key = process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY || "";
   if (!key) {
-    return cors(500, { error: "OPENAI_API_KEY not set" });
+    return cors.response(500, { error: "OPENAI_API_KEY not set" });
   }
 
   try {
     const payload = event.body ? JSON.parse(event.body) : {};
     const prompt: string = payload.prompt || "";
-    if (!prompt) return cors(400, { error: "Missing prompt" });
+    if (!prompt) return cors.response(400, { error: "Missing prompt" });
 
     const res = await fetch(OPENAI_URL, {
       method: "POST",
@@ -57,7 +47,7 @@ export const handler: Handler = async (event) => {
 
     if (!res.ok) {
       const text = await res.text().catch(() => "");
-      return cors(res.status, { error: text || `HTTP ${res.status}` });
+      return cors.response(res.status, { error: text || `HTTP ${res.status}` });
     }
 
     const data = await res.json();
@@ -67,8 +57,8 @@ export const handler: Handler = async (event) => {
     const scoreNum = clamp(Math.round(Number(out.score)), 0, 100);
     const rationale = String(out.rationale || "");
 
-    return cors(200, { score: scoreNum, rationale });
+    return cors.response(200, { score: scoreNum, rationale });
   } catch (e: any) {
-    return cors(500, { error: String(e?.message || e || "Unknown error") });
+    return cors.response(500, { error: String(e?.message || e || "Unknown error") });
   }
 };

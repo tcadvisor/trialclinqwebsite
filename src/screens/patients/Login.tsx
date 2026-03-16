@@ -58,6 +58,12 @@ export default function Login(): JSX.Element {
   };
 
   const handleDemoLogin = () => {
+    // Only allow demo login in development mode
+    if (!import.meta.env.DEV) {
+      setError("Demo login is only available in development mode");
+      return;
+    }
+
     const demoUser = {
       email: "demo.patient@example.com",
       firstName: "Demo",
@@ -121,14 +127,18 @@ export default function Login(): JSX.Element {
           </div>
         )}
         <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-          className="w-full border rounded px-3 py-2"
-          placeholder="Email"
-          type="email"
-          value={email}
-          required
-          onChange={(e) => setEmail(e.target.value)}
-        />
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium mb-1">Email Address</label>
+            <input
+              id="email"
+              className="w-full border rounded px-3 py-2"
+              placeholder="Email"
+              type="email"
+              value={email}
+              required
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
           {error && <div className="text-sm text-red-600">{error}</div>}
           <button
             className="w-full px-4 py-2 rounded bg-gray-900 text-white hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed"
@@ -140,15 +150,17 @@ export default function Login(): JSX.Element {
         </form>
         <p className="text-sm text-gray-600 mt-4">No account? <Link to="/patients/volunteer" className="text-blue-600 hover:underline">Sign up</Link></p>
 
-        <div className="mt-8 pt-8 border-t">
-          <p className="text-sm text-gray-600 mb-3 text-center">For testing purposes:</p>
-          <button
-            onClick={handleDemoLogin}
-            className="w-full inline-block rounded-full bg-gray-200 hover:bg-gray-300 text-gray-900 px-6 py-2 text-sm font-medium transition"
-          >
-            Login as Demo Patient
-          </button>
-        </div>
+        {import.meta.env.DEV && (
+          <div className="mt-8 pt-8 border-t">
+            <p className="text-sm text-gray-600 mb-3 text-center">For testing purposes:</p>
+            <button
+              onClick={handleDemoLogin}
+              className="w-full inline-block rounded-full bg-gray-200 hover:bg-gray-300 text-gray-900 px-6 py-2 text-sm font-medium transition"
+            >
+              Login as Demo Patient
+            </button>
+          </div>
+        )}
       </main>
     </div>
   );

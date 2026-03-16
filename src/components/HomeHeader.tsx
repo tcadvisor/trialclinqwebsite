@@ -28,7 +28,10 @@ export default function HomeHeader() {
           <img
             alt="TrialCliniq"
             className="h-8 w-auto"
-            src="https://c.animaapp.com/mf3cenl8GIzqBa/img/igiwdhcu2mb98arpst9kn-2.png"
+            src="/images/trialcliniq-logo.png"
+            width="124"
+            height="39"
+            loading="eager"
           />
         </Link>
         <nav className="hidden md:flex items-center gap-8 text-sm flex-1 min-w-0">

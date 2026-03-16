@@ -1,32 +1,35 @@
 import type { Handler } from "@netlify/functions";
 import { query, getOrCreateUser, logAuditEvent } from "./db";
-import { getUserFromAuthHeader, canAccessPatient } from "./auth-utils";
-
-function cors(statusCode: number, body: any) {
-  return {
-    statusCode,
-    headers: {
-      "access-control-allow-origin": "*",
-      "access-control-allow-methods": "POST,PUT,OPTIONS",
-      "access-control-allow-headers": "content-type,authorization",
-      "content-type": "application/json",
-    },
-    body: typeof body === "string" ? body : JSON.stringify(body),
-  };
-}
+import { getUserFromAuthHeader } from "./auth-utils";
+import { validateCsrfToken, getCsrfTokenFromHeaders } from "./csrf-utils";
+import { createCorsHandler } from "./cors-utils";
 
 export const handler: Handler = async (event) => {
+  const cors = createCorsHandler(event);
+
   if (event.httpMethod === "OPTIONS") {
-    return cors(204, "");
+    return cors.handleOptions("POST,PUT,OPTIONS");
   }
 
   if (event.httpMethod !== "PUT" && event.httpMethod !== "POST") {
-    return cors(405, { error: "Method not allowed" });
+    return cors.response(405, { error: "Method not allowed" });
   }
 
   const authHeader = event.headers?.authorization || event.headers?.Authorization || "";
   if (!authHeader) {
-    return cors(401, { error: "Missing Authorization header" });
+    return cors.response(401, { error: "Missing Authorization header" });
+  }
+
+  // CSRF Protection: Validate CSRF token for state-changing operations
+  const csrfToken = getCsrfTokenFromHeaders(event.headers as Record<string, string>);
+  if (!csrfToken) {
+    console.warn("CSRF validation failed: Missing CSRF token");
+    return cors.response(403, { error: "Missing CSRF token" });
+  }
+
+  if (!validateCsrfToken(csrfToken)) {
+    console.warn("CSRF validation failed: Invalid or expired CSRF token");
+    return cors.response(403, { error: "Invalid or expired CSRF token" });
   }
 
   try {
@@ -44,7 +47,7 @@ export const handler: Handler = async (event) => {
     );
 
     const payload = event.body ? JSON.parse(event.body) : {};
-    
+
     const {
       providerId,
       email,
@@ -74,7 +77,7 @@ export const handler: Handler = async (event) => {
     } = payload;
 
     if (!providerId || !email) {
-      return cors(400, { error: "Missing providerId or email" });
+      return cors.response(400, { error: "Missing providerId or email" });
     }
 
     // AUTHORIZATION CHECK: Ensure user can only modify their own profile
@@ -90,7 +93,7 @@ export const handler: Handler = async (event) => {
         event.headers?.['x-forwarded-for'] || event.headers?.['x-client-ip'],
         event.headers?.['user-agent']
       );
-      return cors(403, { error: "Unauthorized: You can only update your own profile" });
+      return cors.response(403, { error: "Unauthorized: You can only update your own profile" });
     }
 
     // Insert or update provider profile in PostgreSQL with user tracking
@@ -166,7 +169,7 @@ export const handler: Handler = async (event) => {
       event.headers?.['user-agent']
     );
 
-    return cors(200, {
+    return cors.response(200, {
       ok: true,
       message: "Provider profile saved successfully",
       providerId: result.rows[0]?.provider_id,
@@ -183,6 +186,7 @@ export const handler: Handler = async (event) => {
         if (authHeader) {
           const authenticatedUser = await getUserFromAuthHeader(authHeader).catch(() => null);
           if (authenticatedUser) {
+            const payload = event.body ? JSON.parse(event.body) : {};
             await logAuditEvent(
               authenticatedUser.userId,
               'PROVIDER_PROFILE_UPDATE_FAILED',
@@ -200,7 +204,7 @@ export const handler: Handler = async (event) => {
       }
     }
 
-    return cors(e.message?.includes('Unauthorized') ? 401 : 500, {
+    return cors.response(e.message?.includes('Unauthorized') ? 401 : 500, {
       error: String(e?.message || e || "Unknown error"),
       details: process.env.NODE_ENV === "development" ? e.stack : undefined
     });

@@ -1,5 +1,7 @@
 import { Handler } from "@netlify/functions";
 import { query, logAuditEvent, initializeDatabase } from "./db";
+import { validateCsrfToken, getCsrfTokenFromHeaders } from "./csrf-utils";
+import { createCorsHandler } from "./cors-utils";
 
 interface RequestBody {
   nctId: string;
@@ -7,27 +9,9 @@ interface RequestBody {
   patientId?: string;
 }
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Content-Type": "application/json",
-};
-
-const errorResponse = (statusCode: number, message: string) => ({
-  statusCode,
-  headers: corsHeaders,
-  body: JSON.stringify({
-    ok: false,
-    message,
-  }),
-});
-
-const successResponse = (statusCode: number, data: any) => ({
-  statusCode,
-  headers: corsHeaders,
-  body: JSON.stringify(data),
-});
-
 const handler: Handler = async (event, context) => {
+  const cors = createCorsHandler(event);
+
   console.log("=== Express Interest Request ===");
   console.log("Method:", event.httpMethod);
   console.log("Headers:", Object.keys(event.headers || {}));
@@ -35,20 +19,24 @@ const handler: Handler = async (event, context) => {
   try {
     // OPTIONS request
     if (event.httpMethod === "OPTIONS") {
-      return {
-        statusCode: 200,
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "POST, OPTIONS",
-          "Access-Control-Allow-Headers": "Content-Type, Authorization, x-user-id, x-patient-id",
-        },
-        body: JSON.stringify({ ok: true }),
-      };
+      return cors.handleOptions("POST,OPTIONS");
     }
 
     // Only allow POST
     if (event.httpMethod !== "POST") {
-      return errorResponse(405, "Method not allowed");
+      return cors.response(405, { ok: false, message: "Method not allowed" });
+    }
+
+    // CSRF Protection: Validate CSRF token for state-changing operations
+    const csrfToken = getCsrfTokenFromHeaders(event.headers as Record<string, string>);
+    if (!csrfToken) {
+      console.warn("CSRF validation failed: Missing CSRF token");
+      return cors.response(403, { ok: false, message: "Missing CSRF token" });
+    }
+
+    if (!validateCsrfToken(csrfToken)) {
+      console.warn("CSRF validation failed: Invalid or expired CSRF token");
+      return cors.response(403, { ok: false, message: "Invalid or expired CSRF token" });
     }
 
     // Initialize database
@@ -67,34 +55,34 @@ const handler: Handler = async (event, context) => {
     console.log("Auth check - userId:", !!userId, "patientId:", !!patientId);
 
     if (!userId || !patientId) {
-      return errorResponse(401, "Missing x-user-id or x-patient-id header");
+      return cors.response(401, { ok: false, message: "Missing x-user-id or x-patient-id header" });
     }
 
     // Parse request body
     let nctId = "";
     let trialTitle = "";
-    
+
     try {
       const body = JSON.parse(event.body || "{}") as RequestBody;
       nctId = body.nctId || "";
       trialTitle = body.trialTitle || "";
     } catch (parseErr) {
       console.error("Failed to parse request body:", parseErr);
-      return errorResponse(400, "Invalid JSON in request body");
+      return cors.response(400, { ok: false, message: "Invalid JSON in request body" });
     }
 
     console.log("Request data - nctId:", nctId, "trialTitle:", trialTitle ? trialTitle.substring(0, 50) : "");
 
     // Validate NCT ID format
     if (!nctId || !nctId.match(/^NCT\d{8}$/)) {
-      return errorResponse(400, `Invalid NCT ID format: ${nctId}`);
+      return cors.response(400, { ok: false, message: `Invalid NCT ID format: ${nctId}` });
     }
 
     const nctIdUpper = nctId.toUpperCase();
 
     // Check if already interested
     console.log("Checking existing interest for patient:", patientId, "trial:", nctIdUpper);
-    
+
     try {
       const existing = await query(
         "SELECT id FROM trial_interests WHERE patient_id = $1 AND nct_id = $2",
@@ -103,7 +91,7 @@ const handler: Handler = async (event, context) => {
 
       if (existing?.rows?.length > 0) {
         console.log("Patient already interested");
-        return successResponse(200, {
+        return cors.response(200, {
           ok: true,
           message: "Interest already expressed",
           alreadyInterested: true,
@@ -116,7 +104,7 @@ const handler: Handler = async (event, context) => {
 
     // Insert new interest
     console.log("Inserting new trial interest...");
-    
+
     try {
       const result = await query(
         `INSERT INTO trial_interests (patient_id, user_id, nct_id, trial_title, expressed_at, created_at)
@@ -141,18 +129,18 @@ const handler: Handler = async (event, context) => {
         console.warn("Audit log failed (non-blocking):", auditErr instanceof Error ? auditErr.message : String(auditErr));
       }
 
-      return successResponse(201, {
+      return cors.response(201, {
         ok: true,
         message: "Interest expressed successfully",
         data: result.rows[0],
       });
     } catch (insertErr: any) {
       console.error("Database insert error:", insertErr);
-      return errorResponse(500, `Database error: ${insertErr.message || "Insert failed"}`);
+      return cors.response(500, { ok: false, message: `Database error: ${insertErr.message || "Insert failed"}` });
     }
   } catch (err: any) {
     console.error("Unexpected error:", err);
-    return errorResponse(500, err.message || "Internal server error");
+    return cors.response(500, { ok: false, message: err.message || "Internal server error" });
   }
 };
 

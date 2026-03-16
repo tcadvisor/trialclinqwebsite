@@ -79,21 +79,21 @@ export default function BlogArticle(): JSX.Element {
                 // Headers
                 if (line.startsWith("# ")) {
                   return (
-                    <h1 key={idx} className="text-3xl font-bold mt-8 mb-4">
+                    <h1 key={`h1-${idx}-${line.substring(0, 20)}`} className="text-3xl font-bold mt-8 mb-4">
                       {line.replace(/^# /, "")}
                     </h1>
                   );
                 }
                 if (line.startsWith("## ")) {
                   return (
-                    <h2 key={idx} className="text-2xl font-bold mt-6 mb-3">
+                    <h2 key={`h2-${idx}-${line.substring(0, 20)}`} className="text-2xl font-bold mt-6 mb-3">
                       {line.replace(/^## /, "")}
                     </h2>
                   );
                 }
                 if (line.startsWith("### ")) {
                   return (
-                    <h3 key={idx} className="text-xl font-bold mt-5 mb-2">
+                    <h3 key={`h3-${idx}-${line.substring(0, 20)}`} className="text-xl font-bold mt-5 mb-2">
                       {line.replace(/^### /, "")}
                     </h3>
                   );
@@ -103,10 +103,10 @@ export default function BlogArticle(): JSX.Element {
                 if (line.includes("**")) {
                   const parts = line.split(/(\*\*[^*]+\*\*)/);
                   return (
-                    <p key={idx} className="text-gray-700 leading-relaxed">
+                    <p key={`p-${idx}-${line.substring(0, 20)}`} className="text-gray-700 leading-relaxed">
                       {parts.map((part, i) =>
                         part.startsWith("**") ? (
-                          <strong key={i}>{part.replace(/\*\*/g, "")}</strong>
+                          <strong key={`strong-${i}-${part.substring(0, 10)}`}>{part.replace(/\*\*/g, "")}</strong>
                         ) : (
                           part
                         )
@@ -118,7 +118,7 @@ export default function BlogArticle(): JSX.Element {
                 // Lists
                 if (line.startsWith("- ")) {
                   return (
-                    <div key={idx} className="flex gap-3 text-gray-700">
+                    <div key={`list-${idx}-${line.substring(0, 20)}`} className="flex gap-3 text-gray-700">
                       <span className="text-blue-600 font-bold">•</span>
                       <span>{line.replace(/^- /, "")}</span>
                     </div>
@@ -130,7 +130,7 @@ export default function BlogArticle(): JSX.Element {
                   const match = line.match(/^(\d+)\. (.+)$/);
                   if (match) {
                     return (
-                      <div key={idx} className="flex gap-3 text-gray-700">
+                      <div key={`numlist-${idx}-${line.substring(0, 20)}`} className="flex gap-3 text-gray-700">
                         <span className="text-blue-600 font-bold">{match[1]}.</span>
                         <span>{match[2]}</span>
                       </div>
@@ -141,7 +141,7 @@ export default function BlogArticle(): JSX.Element {
                 // Regular paragraphs
                 if (line.trim()) {
                   return (
-                    <p key={idx} className="text-gray-700 leading-relaxed">
+                    <p key={`para-${idx}-${line.substring(0, 20)}`} className="text-gray-700 leading-relaxed">
                       {line}
                     </p>
                   );

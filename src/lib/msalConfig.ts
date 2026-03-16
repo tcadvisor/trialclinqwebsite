@@ -10,12 +10,28 @@ const envRedirect = import.meta.env.VITE_AZURE_REDIRECT_URI;
 const isOldNgrokUrl = envRedirect && envRedirect.includes('vapourizable-uninterestingly-minerva.ngrok-free.dev');
 const redirectUri = (envRedirect && !isOldNgrokUrl) ? envRedirect : defaultRedirect;
 
+// Validate required environment variables
+const clientId = import.meta.env.VITE_AZURE_CLIENT_ID;
+const tenantId = import.meta.env.VITE_AZURE_TENANT_ID;
+
+if (!clientId) {
+  throw new Error(
+    'VITE_AZURE_CLIENT_ID is not set. Please add it to your .env file. ' +
+    'Get this value from Azure Portal > Azure Entra ID > App registrations > TrialCliniq'
+  );
+}
+
+if (!tenantId) {
+  throw new Error(
+    'VITE_AZURE_TENANT_ID is not set. Please add it to your .env file. ' +
+    'Get this value from Azure Portal > Azure Entra ID > Overview > Tenant ID'
+  );
+}
+
 export const msalConfig: Configuration = {
   auth: {
-    clientId: import.meta.env.VITE_AZURE_CLIENT_ID || '759d5137-c764-42fb-82c7-40681766c175',
-    authority: `https://login.microsoftonline.com/${
-      import.meta.env.VITE_AZURE_TENANT_ID || 'e7863f3f-5855-4343-8f1d-6f1aa7ba12f3'
-    }`,
+    clientId: clientId,
+    authority: `https://login.microsoftonline.com/${tenantId}`,
     redirectUri: redirectUri,
     postLogoutRedirectUri: import.meta.env.VITE_AZURE_LOGOUT_URI || defaultLogoutRedirect,
     // Keep the SPA on the callback route so our router can handle post-login navigation

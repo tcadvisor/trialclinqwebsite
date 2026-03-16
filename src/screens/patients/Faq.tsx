@@ -23,8 +23,8 @@ export default function Faq(): JSX.Element {
       <main className="max-w-3xl mx-auto px-4 py-10">
         <h1 className="text-3xl font-semibold mb-6">Frequently Asked Questions</h1>
         <div className="divide-y rounded-2xl border bg-white">
-          {faqs.map((f, i) => (
-            <details key={i} className="group open:bg-gray-50 px-6 py-5">
+          {faqs.map((f) => (
+            <details key={f.q} className="group open:bg-gray-50 px-6 py-5">
               <summary className="flex cursor-pointer list-none items-center justify-between text-lg font-medium marker:content-none">
                 {f.q}
                 <span className="text-gray-400 group-open:rotate-45 transition-transform">+</span>

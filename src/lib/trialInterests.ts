@@ -1,3 +1,5 @@
+import { addCsrfHeader } from './csrf';
+
 export type InterestedPatient = {
   id: number;
   patientId: string;
@@ -30,7 +32,7 @@ function saveLocalInterests(interests: Record<string, string[]>) {
   try {
     localStorage.setItem(INTERESTS_CACHE_KEY, JSON.stringify(interests));
   } catch {
-    console.warn("Failed to save interests to localStorage");
+    // Failed to save interests to localStorage
   }
 }
 
@@ -41,31 +43,25 @@ export async function expressInterestInTrial(
   userId: string
 ): Promise<{ ok: boolean; alreadyInterested?: boolean; message: string }> {
   try {
-    console.log("[ExpressInterest] Starting request", { nctId, patientId, userId });
+    const headers = await addCsrfHeader({
+      "Content-Type": "application/json",
+      "x-user-id": userId,
+      "x-patient-id": patientId,
+    });
 
     const response = await fetch("/api/express-interest", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-user-id": userId,
-        "x-patient-id": patientId,
-      },
+      headers,
       body: JSON.stringify({
         nctId,
         trialTitle,
       }),
     });
 
-    console.log("[ExpressInterest] Response received", {
-      status: response.status,
-      contentType: response.headers.get("content-type"),
-    });
-
     const text = await response.text();
 
     // Check if we got HTML instead of JSON (404 page)
     if (text.includes("<!DOCTYPE") || text.includes("<html")) {
-      console.warn("[ExpressInterest] Got HTML response - functions not available");
       throw new Error("Functions not deployed");
     }
 
@@ -75,7 +71,6 @@ export async function expressInterestInTrial(
       try {
         data = JSON.parse(text);
       } catch (parseErr) {
-        console.error("[ExpressInterest] Failed to parse JSON:", parseErr);
         throw new Error(`Invalid JSON response`);
       }
     }
@@ -91,7 +86,6 @@ export async function expressInterestInTrial(
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to express interest";
-    console.warn("[ExpressInterest] Using localStorage fallback");
 
     // Fallback to localStorage when function is unavailable (e.g., in dev without netlify dev)
     try {
@@ -116,7 +110,6 @@ export async function expressInterestInTrial(
         message: "Interest expressed successfully (local)",
       };
     } catch (fallbackErr) {
-      console.error("[ExpressInterest] Fallback failed:", fallbackErr);
       return {
         ok: false,
         message: "Could not express interest",
@@ -148,7 +141,6 @@ export async function getTrialInterestedPatients(
 
     // Check if we got HTML instead of JSON (404 page)
     if (text.includes("<!DOCTYPE") || text.includes("<html")) {
-      console.warn("[GetInterests] Got HTML response - functions not available");
       throw new Error("Functions not deployed");
     }
 
@@ -158,7 +150,6 @@ export async function getTrialInterestedPatients(
       try {
         data = JSON.parse(text);
       } catch (parseErr) {
-        console.error("[GetInterests] Failed to parse JSON:", parseErr);
         throw new Error("Invalid response format");
       }
     }
@@ -174,8 +165,6 @@ export async function getTrialInterestedPatients(
       message: data.message || "Success",
     };
   } catch (error) {
-    console.warn("[GetInterests] Using localStorage fallback");
-
     // Fallback to localStorage
     try {
       const interests = getLocalInterests();
@@ -201,7 +190,6 @@ export async function getTrialInterestedPatients(
         message: patients.length > 0 ? "Success (local)" : "No interested patients",
       };
     } catch (fallbackErr) {
-      console.error("[GetInterests] Fallback failed:", fallbackErr);
       return {
         ok: false,
         patients: [],

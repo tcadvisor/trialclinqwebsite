@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Mail, Users, FileText, Database, Lock, Activity } from "lucide-react";
 import { useAuth } from "../lib/auth";
+import { addCsrfHeader } from "../lib/csrf";
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -39,9 +40,10 @@ export default function LandingPage() {
     setSponsorMessage("");
 
     try {
+      const headers = await addCsrfHeader({ "Content-Type": "application/json" });
       const response = await fetch("/api/book-demo", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({
           type: "sponsor_demo",
           name: sponsorName,
@@ -77,9 +79,10 @@ export default function LandingPage() {
     setPatientMessage("");
 
     try {
+      const headers = await addCsrfHeader({ "Content-Type": "application/json" });
       const response = await fetch("/api/book-demo", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({
           type: "patient_waitlist",
           name: patientName,
@@ -115,9 +118,10 @@ export default function LandingPage() {
     setNewsletterMessage("");
 
     try {
+      const headers = await addCsrfHeader({ "Content-Type": "application/json" });
       const response = await fetch("/api/book-demo", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({
           type: "newsletter_signup",
           email: newsletterEmail,
@@ -145,9 +149,12 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <img
-              src="https://c.animaapp.com/mf3cenl8GIzqBa/img/igiwdhcu2mb98arpst9kn-2.png"
+              src="/images/trialcliniq-logo.png"
               alt="TrialClinIQ"
               className="h-8 w-auto"
+              width="124"
+              height="39"
+              loading="eager"
             />
           </div>
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
@@ -229,6 +236,10 @@ export default function LandingPage() {
               src="https://cdn.builder.io/api/v1/image/assets%2F3ef0caf3200f4046b04c16f3c60b68c9%2F318a9ab815c44d8c8942e1b43b6fc8e5?format=webp&width=800"
               alt="Tech collaboration for clinical trials"
               className="w-full h-full object-cover"
+              width="800"
+              height="320"
+              loading="eager"
+              decoding="async"
             />
           </div>
         </div>
@@ -271,6 +282,10 @@ export default function LandingPage() {
                 src="https://cdn.builder.io/api/v1/image/assets%2F3ef0caf3200f4046b04c16f3c60b68c9%2F1ad81274c36f413fa0aaf7af86a0c572?format=webp&width=800"
                 alt="Medical records and stethoscope"
                 className="w-full h-full object-cover"
+                width="800"
+                height="384"
+                loading="lazy"
+                decoding="async"
               />
             </div>
           </div>

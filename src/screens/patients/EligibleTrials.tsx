@@ -1,21 +1,29 @@
 import React from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { getRealMatchedTrialsForCurrentUser, type LiteTrial } from "../../lib/matching";
 import { expressInterestInTrial } from "../../lib/trialInterests";
 import { useAuth } from "../../lib/auth";
 import PatientHeader from "../../components/PatientHeader";
 import { generatePatientId } from "../../lib/patientIdUtils";
+import { useToast } from "../../lib/useToast";
+import { TrialTableSkeleton } from "../../components/skeletons";
+import { Modal } from "../../components/ui/modal";
+import { Pagination } from "../../components/ui/pagination";
 
 export default function EligibleTrials(): JSX.Element {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
   const [query, setQuery] = React.useState("");
   const [base, setBase] = React.useState<LiteTrial[]>([]);
   const [whyOpen, setWhyOpen] = React.useState(false);
   const [whyContent, setWhyContent] = React.useState<string>("");
+  const [whyTitle, setWhyTitle] = React.useState<string>("");
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [interestedTrials, setInterestedTrials] = React.useState<Set<string>>(new Set());
   const [expressingInterest, setExpressingInterest] = React.useState<Set<string>>(new Set());
+  const whyButtonRef = React.useRef<HTMLButtonElement>(null);
   const location = useLocation();
   const offset = React.useMemo(() => {
     const params = new URLSearchParams(location.search);
@@ -73,7 +81,7 @@ export default function EligibleTrials(): JSX.Element {
 
   const handleExpressInterest = async (trial: LiteTrial) => {
     if (!user?.userId) {
-      alert("Please log in to express interest");
+      toast.warning("Please log in to express interest");
       return;
     }
 
@@ -97,13 +105,13 @@ export default function EligibleTrials(): JSX.Element {
 
       if (result.ok) {
         setInterestedTrials(prev => new Set(prev).add(trial.nctId));
-        alert("Interest expressed successfully! Researchers will be able to see your interest in this trial.");
+        toast.success("Interest expressed successfully! Researchers will be able to see your interest in this trial.");
       } else {
-        alert(result.message || "Failed to express interest");
+        toast.error(result.message || "Failed to express interest");
       }
     } catch (err) {
       console.error("Error expressing interest:", err);
-      alert("Failed to express interest");
+      toast.error("Failed to express interest");
     } finally {
       setExpressingInterest(prev => {
         const next = new Set(prev);
@@ -146,19 +154,15 @@ export default function EligibleTrials(): JSX.Element {
           <h1 className="text-2xl sm:text-3xl font-semibold">Eligible Trials</h1>
           <div className="relative">
             <input
+              id="trial-search"
               className="w-64 rounded-full border px-4 py-2 text-sm focus:outline-none"
               placeholder="Search"
+              aria-label="Search trials"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
           </div>
         </div>
-
-        {isLoading && (
-          <div className="mb-4 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800">
-            Refreshing matches…
-          </div>
-        )}
 
         {error && (
           <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -186,6 +190,9 @@ export default function EligibleTrials(): JSX.Element {
           </div>
         )}
 
+        {isLoading ? (
+          <TrialTableSkeleton rows={25} />
+        ) : (
         <div className="overflow-hidden rounded-xl border bg-white">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-left text-gray-600">
@@ -217,10 +224,15 @@ export default function EligibleTrials(): JSX.Element {
                       <span>{t.aiScore}%</span>
                       {(t.aiRationale || t.reason) && (
                         <button
+                          ref={whyButtonRef}
                           type="button"
-                          onClick={() => { setWhyContent(`${t.title}\n\n${t.aiRationale || t.reason}`); setWhyOpen(true); }}
+                          onClick={() => {
+                            setWhyTitle(t.title);
+                            setWhyContent(t.aiRationale || t.reason || '');
+                            setWhyOpen(true);
+                          }}
                           className="ml-2 inline-flex items-center rounded-full border px-2 py-0.5 text-xs text-gray-600 hover:bg-gray-50"
-                          aria-label="Why this match"
+                          aria-label={`Why ${t.title} matches you`}
                         >
                           Why
                         </button>
@@ -300,40 +312,36 @@ export default function EligibleTrials(): JSX.Element {
               )}
             </tbody>
           </table>
-          <div className="border-t px-4 py-3 flex items-center justify-between text-sm text-gray-600">
-            <div className="flex items-center gap-2">
-              <button
-                className="rounded-lg border px-3 py-1.5 hover:bg-gray-50 disabled:opacity-50"
-                onClick={() => { const p = Math.max(1, page - 1); const params = new URLSearchParams(location.search); params.set('page', String(p)); window.history.replaceState({}, '', `${location.pathname}?${params.toString()}`); }}
-                disabled={page <= 1}
-              >
-                Previous
-              </button>
-              <button
-                className="rounded-lg border px-3 py-1.5 hover:bg-gray-50 disabled:opacity-50"
-                onClick={() => { const p = Math.min(pageCount, page + 1); const params = new URLSearchParams(location.search); params.set('page', String(p)); window.history.replaceState({}, '', `${location.pathname}?${params.toString()}`); }}
-                disabled={page >= pageCount}
-              >
-                Next
-              </button>
+          <div className="border-t px-4 py-3">
+            <Pagination
+              currentPage={page}
+              totalPages={pageCount}
+              onPageChange={(newPage) => {
+                const params = new URLSearchParams(location.search);
+                params.set('page', String(newPage));
+                navigate(`${location.pathname}?${params.toString()}`, { replace: true });
+              }}
+            />
+            <div className="text-sm text-gray-600 mt-2 text-center">
+              {items.length} {items.length === 1 ? 'match' : 'matches'}
             </div>
-            <div>Page {page} of {pageCount} · {items.length} matches</div>
           </div>
         </div>
+        )}
       </main>
 
-      {whyOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setWhyOpen(false)} />
-          <div className="relative z-10 w-full max-w-md rounded-xl border bg-white p-4 shadow-lg">
-            <div className="flex items-start justify-between">
-              <h3 className="text-sm font-semibold text-gray-800">Why this trial matches you</h3>
-              <button className="rounded-md p-1 text-gray-500 hover:bg-gray-100" onClick={() => setWhyOpen(false)} aria-label="Close">✕</button>
-            </div>
-            <div className="mt-3 whitespace-pre-wrap text-sm text-gray-700">{whyContent}</div>
-          </div>
-        </div>
-      )}
+      <Modal
+        isOpen={whyOpen}
+        onClose={() => setWhyOpen(false)}
+        title="Why this trial matches you"
+        description={whyTitle}
+        size="md"
+        closeOnBackdrop={true}
+        closeOnEsc={true}
+        returnFocusRef={whyButtonRef}
+      >
+        <div className="whitespace-pre-wrap text-sm text-gray-700">{whyContent}</div>
+      </Modal>
 
       <footer className="w-full border-t mt-16">
         <div className="w-full max-w-[1200px] mx-auto px-4 py-6 text-sm text-gray-600 flex items-center justify-between">

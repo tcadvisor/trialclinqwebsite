@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Mail, MapPin, Phone } from "lucide-react";
+import { addCsrfHeader } from "../lib/csrf";
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -28,11 +29,13 @@ export default function ContactPage() {
     setSubmitStatus("idle");
 
     try {
+      const headers = await addCsrfHeader({
+        "Content-Type": "application/json",
+      });
+
       const response = await fetch("/api/book-demo", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers,
         body: JSON.stringify({
           type: "contact_form",
           name: formData.name,
@@ -66,9 +69,12 @@ export default function ContactPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <img
-              src="https://c.animaapp.com/mf3cenl8GIzqBa/img/igiwdhcu2mb98arpst9kn-2.png"
+              src="/images/trialcliniq-logo.png"
               alt="TrialClinIQ"
               className="h-8 w-auto"
+              width="124"
+              height="39"
+              loading="eager"
             />
           </div>
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium">

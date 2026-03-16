@@ -19,6 +19,7 @@ import { buildMarkdownAppend } from "../../components/ClinicalSummaryUploader";
 import { uploadPatientFiles, getPatientFiles, savePatientProfile } from "../../lib/storage";
 import { formatPhoneNumber, getPhoneValidationError } from "../../lib/phoneValidation";
 import { generatePatientId, isValidProfileForUser } from "../../lib/patientIdUtils";
+import { getEpicPatientData, clearAllEpicData } from "../../lib/tokenManager";
 
 // Field source tracking
 type FieldSource = {
@@ -523,22 +524,30 @@ function Documents({ onCountChange }: { onCountChange?: (count: number) => void 
         <div className="ml-auto flex items-center gap-3">
           <div className="relative">
             <input
+              id="document-search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="w-64 rounded-full border px-4 py-2 text-sm focus:outline-none"
               placeholder="Search"
+              aria-label="Search documents"
             />
           </div>
           <button onClick={triggerUpload} className="inline-flex items-center gap-2 rounded-full bg-[#1033e5] text-white px-3 py-2 text-sm hover:bg-blue-700">
             Upload document
           </button>
-          <input ref={inputRef} className="hidden" type="file" multiple accept=".pdf,application/pdf" onChange={(e) => onFilesSelected(e.target.files)} />
+          <input id="document-file-upload" ref={inputRef} className="hidden" type="file" multiple accept=".pdf,application/pdf" aria-label="Upload document files" onChange={(e) => onFilesSelected(e.target.files)} />
         </div>
       </div>
 
       {overlay && (
-        <div className="fixed inset-0 z-40 bg-black/30 flex items-center justify-center" role="dialog" aria-live="polite">
-          <div className="rounded-lg bg-white px-6 py-5 shadow-md text-center">
+        <div className="fixed inset-0 z-40 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/30" aria-hidden="true" />
+          <div
+            role="alert"
+            aria-live="polite"
+            aria-atomic="true"
+            className="relative z-10 rounded-lg bg-white px-6 py-5 shadow-md text-center"
+          >
             {overlay.mode === "loading" && (
               <div className="mx-auto mb-3 h-6 w-6 border-2 border-gray-300 border-t-gray-900 rounded-full animate-spin" aria-hidden="true" />
             )}
@@ -679,10 +688,10 @@ function HealthProfileContent(): JSX.Element {
   // Load and auto-fill from EPIC data on mount
   useEffect(() => {
     try {
-      const epicRaw = localStorage.getItem("epic:patient:v1");
-      if (!epicRaw) return;
+      // SECURITY UPDATE: Get EPIC data from memory instead of localStorage
+      const epicData = getEpicPatientData();
+      if (!epicData) return;
 
-      const epicData = JSON.parse(epicRaw) as any;
       const profileData = epicData.profileData as Record<string, any>;
 
       if (!profileData) return;
@@ -1121,7 +1130,7 @@ function HealthProfileContent(): JSX.Element {
                 </div>}>
                   <ul className="divide-y">
                     {(profile?.allergies || []).map((a, i) => (
-                      <li key={i} className="py-3 flex items-start justify-between">
+                      <li key={`allergy-${i}-${a.name}`} className="py-3 flex items-start justify-between">
                         <div>
                           <div className="text-sm font-medium">
                             {a.name}
@@ -1203,7 +1212,7 @@ function HealthProfileContent(): JSX.Element {
                 </div>}>
                   <ul className="divide-y">
                     {(profile?.medications || []).map((m, i) => (
-                      <li key={i} className="py-3 flex items-start justify-between">
+                      <li key={`med-${i}-${m.name}`} className="py-3 flex items-start justify-between">
                         <div>
                           <div className="text-sm font-medium">{m.name}</div>
                           {(m.dose || m.amountDaily || m.schedule) && (
@@ -1363,7 +1372,7 @@ function HealthProfileContent(): JSX.Element {
                 <Section title="Prior Treatments">
                   <ul className="divide-y">
                     {(profile.priorTherapies || []).map((t, i) => (
-                      <li key={i} className="py-3 flex items-center justify-between text-sm">
+                      <li key={`therapy-${i}-${t.name}`} className="py-3 flex items-center justify-between text-sm">
                         <div className="text-gray-900">{t.name}{t.date ? ` — ${t.date}` : ''}</div>
                         <div className="flex items-center gap-2 text-gray-500">
                           <button onClick={() => {
@@ -1439,13 +1448,8 @@ function HealthProfileContent(): JSX.Element {
         {activeTab === "documents" && <Documents onCountChange={setDocCount} />}
 
         {activeTab === "ehr" && (() => {
-          const epicData = (() => {
-            try {
-              const raw = localStorage.getItem("epic:patient:v1");
-              if (raw) return JSON.parse(raw);
-            } catch {}
-            return null;
-          })();
+          // SECURITY UPDATE: Get EPIC data from memory instead of localStorage
+          const epicData = getEpicPatientData();
 
           if (!epicData?.patientData) {
             return (
@@ -1492,7 +1496,7 @@ function HealthProfileContent(): JSX.Element {
                   <Section title="Conditions">
                     <ul className="divide-y">
                       {(data.conditions || []).map((condition: any, i: number) => (
-                        <li key={i} className="py-3 flex items-start justify-between">
+                        <li key={`condition-${i}-${condition.code || condition.display}`} className="py-3 flex items-start justify-between">
                           <div>
                             <div className="text-sm font-medium">{condition.display || condition.code}</div>
                             {condition.status && <div className="text-xs text-gray-600 mt-1">{condition.status}</div>}
@@ -1509,7 +1513,7 @@ function HealthProfileContent(): JSX.Element {
                   <Section title="Medications">
                     <ul className="divide-y">
                       {(data.medications || []).map((med: any, i: number) => (
-                        <li key={i} className="py-3 flex items-start justify-between">
+                        <li key={`medication-${i}-${med.name}`} className="py-3 flex items-start justify-between">
                           <div>
                             <div className="text-sm font-medium">{med.name}</div>
                             {(med.dosage || med.status) && (
@@ -1528,7 +1532,7 @@ function HealthProfileContent(): JSX.Element {
                   <Section title="Allergies">
                     <ul className="divide-y">
                       {(data.allergies || []).map((allergy: any, i: number) => (
-                        <li key={i} className="py-3 flex items-start justify-between">
+                        <li key={`allergy-ehr-${i}-${allergy.substance}`} className="py-3 flex items-start justify-between">
                           <div>
                             <div className="text-sm font-medium">{allergy.substance}</div>
                             {(allergy.reaction || allergy.severity) && (
@@ -1544,6 +1548,9 @@ function HealthProfileContent(): JSX.Element {
 
               <div className="mt-6">
                 <button onClick={() => {
+                  // SECURITY UPDATE: Clear EPIC data from memory instead of localStorage
+                  clearAllEpicData();
+                  // Also remove any legacy localStorage items for backward compatibility
                   localStorage.removeItem("epic:tokens:v1");
                   localStorage.removeItem("epic:patient:v1");
                   window.location.reload();

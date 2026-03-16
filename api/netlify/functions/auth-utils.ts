@@ -1,4 +1,31 @@
-import axios from 'axios';
+/**
+ * Authentication Utilities for Azure Entra ID (formerly Azure AD)
+ *
+ * This module provides secure JWT token verification for Azure Entra ID tokens.
+ *
+ * SECURITY FEATURES:
+ * - JWT signature verification using RS256 algorithm
+ * - JWKS (JSON Web Key Set) fetching from Azure AD with caching
+ * - Token expiration validation
+ * - Issuer validation (Azure AD tenant)
+ * - Audience validation (Azure AD client ID)
+ * - Rate limiting on JWKS requests
+ *
+ * ENVIRONMENT VARIABLES REQUIRED:
+ * - VITE_AZURE_TENANT_ID or AZURE_TENANT_ID: Your Azure tenant ID
+ * - VITE_AZURE_CLIENT_ID or AZURE_CLIENT_ID: Your Azure application client ID (optional, for audience validation)
+ *
+ * USAGE:
+ * ```typescript
+ * const user = await verifyAndDecodeToken(authHeader);
+ * // user contains verified information from the JWT token
+ * ```
+ *
+ * @module auth-utils
+ */
+
+import jwt from 'jsonwebtoken';
+import jwksClient from 'jwks-rsa';
 
 export interface AuthenticatedUser {
   userId: string;
@@ -10,41 +37,48 @@ export interface AuthenticatedUser {
   oid: string; // Object ID from Azure
 }
 
-let jwksCache: any = null;
-let jwksCacheExpiry = 0;
+// JWKS client with caching
+let jwksClientInstance: jwksClient.JwksClient | null = null;
 
 /**
- * Get JWKS (JSON Web Key Set) from Azure
- * Used to validate token signatures
+ * Get or create JWKS client with caching
  */
-async function getJWKS() {
-  const now = Date.now();
-  
-  // Use cached JWKS if still valid (1 hour TTL)
-  if (jwksCache && jwksCacheExpiry > now) {
-    return jwksCache;
+function getJwksClient(): jwksClient.JwksClient {
+  if (!jwksClientInstance) {
+    const tenantId = process.env.VITE_AZURE_TENANT_ID || process.env.AZURE_TENANT_ID;
+
+    if (!tenantId) {
+      throw new Error('Azure tenant ID not configured');
+    }
+
+    jwksClientInstance = jwksClient({
+      jwksUri: `https://login.microsoftonline.com/${tenantId}/discovery/v2.0/keys`,
+      cache: true,
+      cacheMaxAge: 3600000, // Cache for 1 hour
+      rateLimit: true,
+      jwksRequestsPerMinute: 10,
+    });
   }
 
+  return jwksClientInstance;
+}
+
+/**
+ * Get signing key for JWT verification
+ */
+async function getSigningKey(kid: string): Promise<string> {
   try {
-    const tenantId = process.env.VITE_AZURE_TENANT_ID;
-    const response = await axios.get(
-      `https://login.microsoftonline.com/${tenantId}/discovery/v2.0/keys`
-    );
-    
-    jwksCache = response.data;
-    jwksCacheExpiry = now + 3600000; // Cache for 1 hour
-    
-    return jwksCache;
+    const client = getJwksClient();
+    const key = await client.getSigningKey(kid);
+    return key.getPublicKey();
   } catch (error) {
-    console.error('Failed to fetch JWKS:', error);
-    throw new Error('Failed to validate token');
+    console.error('Failed to get signing key:', error);
+    throw new Error('Failed to validate token signature');
   }
 }
 
 /**
- * Verify and decode Azure Entra ID token
- * For development: simplified token validation
- * For production: full JWT signature validation recommended
+ * Verify and decode Azure Entra ID token with proper signature verification
  */
 export async function verifyAndDecodeToken(authHeader: string): Promise<AuthenticatedUser> {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -54,26 +88,61 @@ export async function verifyAndDecodeToken(authHeader: string): Promise<Authenti
   const token = authHeader.substring(7);
 
   try {
-    // Decode token without verification (development)
-    // In production, use jsonwebtoken library to verify signature
-    const parts = token.split('.');
-    if (parts.length !== 3) {
+    // Get tenant ID and client ID from environment
+    const tenantId = process.env.VITE_AZURE_TENANT_ID || process.env.AZURE_TENANT_ID;
+    const clientId = process.env.VITE_AZURE_CLIENT_ID || process.env.AZURE_CLIENT_ID;
+
+    if (!tenantId) {
+      throw new Error('Azure tenant ID not configured');
+    }
+
+    // Decode token header to get the key ID (kid)
+    const decodedHeader = jwt.decode(token, { complete: true });
+
+    if (!decodedHeader || typeof decodedHeader === 'string') {
       throw new Error('Invalid token format');
     }
 
-    // Decode payload
-    const decoded = JSON.parse(
-      Buffer.from(parts[1], 'base64').toString('utf8')
-    );
+    const { kid } = decodedHeader.header;
+
+    if (!kid) {
+      throw new Error('Token missing key ID (kid)');
+    }
+
+    // Get the signing key
+    const signingKey = await getSigningKey(kid);
+
+    // Verify token signature and validate claims
+    const verifyOptions: jwt.VerifyOptions = {
+      algorithms: ['RS256'],
+      issuer: [
+        `https://login.microsoftonline.com/${tenantId}/v2.0`,
+        `https://sts.windows.net/${tenantId}/`,
+      ],
+    };
+
+    // Add audience validation if client ID is configured
+    if (clientId) {
+      verifyOptions.audience = clientId;
+    }
+
+    // Verify the token
+    const decoded = jwt.verify(token, signingKey, verifyOptions) as any;
+
+    // Validate expiration (jwt.verify already does this, but we check explicitly)
+    const now = Math.floor(Date.now() / 1000);
+    if (decoded.exp && decoded.exp < now) {
+      throw new Error('Token has expired');
+    }
 
     // Extract user information
     const user: AuthenticatedUser = {
       userId: decoded.oid || decoded.sub || decoded.unique_name || '',
-      email: decoded.email || decoded.unique_name || decoded.upn || '',
+      email: decoded.email || decoded.unique_name || decoded.upn || decoded.preferred_username || '',
       firstName: decoded.given_name || '',
       lastName: decoded.family_name || '',
-      role: decoded.role || 'patient',
-      tenantId: decoded.tid || process.env.VITE_AZURE_TENANT_ID || '',
+      role: decoded.role || decoded.roles?.[0] || 'patient',
+      tenantId: decoded.tid || tenantId || '',
       oid: decoded.oid || '',
     };
 
@@ -81,13 +150,19 @@ export async function verifyAndDecodeToken(authHeader: string): Promise<Authenti
       throw new Error('Invalid token: missing user ID or email');
     }
 
-    // TODO: In production, verify token signature using JWKS
-    // const jwks = await getJWKS();
-    // ... verify signature using jsonwebtoken library
-
     return user;
   } catch (error: any) {
     console.error('Token verification failed:', error);
+
+    // Provide more specific error messages
+    if (error.name === 'TokenExpiredError') {
+      throw new Error('Unauthorized: Token has expired');
+    } else if (error.name === 'JsonWebTokenError') {
+      throw new Error(`Unauthorized: Invalid token - ${error.message}`);
+    } else if (error.name === 'NotBeforeError') {
+      throw new Error('Unauthorized: Token not yet valid');
+    }
+
     throw new Error(`Unauthorized: ${error.message}`);
   }
 }

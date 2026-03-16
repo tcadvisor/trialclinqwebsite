@@ -1,21 +1,27 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import { getRealMatchedTrialsForCurrentUser, type LiteTrial } from "../../lib/matching";
 import PatientHeader from "../../components/PatientHeader";
 import { useAuth } from "../../lib/auth";
 import { computeProfileCompletion } from "../../lib/profile";
+import { Modal } from "../../components/ui/modal";
+import { useToast } from "../../lib/useToast";
+import { TrialTableSkeleton } from "../../components/skeletons";
 
 export default function Dashboard(): JSX.Element {
   const { user } = useAuth();
+  const { toast } = useToast();
   const name = user ? `${user.firstName} ${user.lastName}` : "";
   const [progress, setProgress] = useState(() => computeProfileCompletion());
   const [items, setItems] = useState<LiteTrial[]>([]);
   const [fallbackItems, setFallbackItems] = useState<LiteTrial[]>([]);
   const [whyOpen, setWhyOpen] = useState(false);
   const [whyContent, setWhyContent] = useState<string>("");
+  const [whyTitle, setWhyTitle] = useState<string>("");
   const [noResultsWithinRadius, setNoResultsWithinRadius] = useState(false);
   const [isLoadingMatches, setIsLoadingMatches] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const whyButtonRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     let cancelled = false;
     const update = async () => {
@@ -91,9 +97,11 @@ export default function Dashboard(): JSX.Element {
               You can quickly upload newly acquired medical records to make trial matches more specific
             </p>
             <input
+              id="dashboard-file-upload"
               ref={(el) => { (window as any).__dashUploadRef = el; }}
               type="file"
               className="hidden"
+              aria-label="Upload medical record file"
               onChange={(e) => {
                 const f = e.target.files && e.target.files[0];
                 if (!f) return;
@@ -117,14 +125,14 @@ export default function Dashboard(): JSX.Element {
                     list.unshift(item);
                     localStorage.setItem("tc_docs", JSON.stringify(list));
                     try { window.dispatchEvent(new Event("storage")); } catch {}
-                    alert("File added to your records. For detailed summarization, use Health Profile > Documents.");
+                    toast.success("File added to your records. For detailed summarization, use Health Profile > Documents.");
                   } catch {}
                   // reset input
                   try { (e.target as HTMLInputElement).value = ""; } catch {}
                 };
                 reader.onerror = () => {
                   try { (e.target as HTMLInputElement).value = ""; } catch {}
-                  alert("Failed to read file.");
+                  toast.error("Failed to read file.");
                 };
                 reader.readAsDataURL(f);
               }}
@@ -165,8 +173,10 @@ export default function Dashboard(): JSX.Element {
             <h2 className="text-lg font-semibold">Trial Matches</h2>
             <div className="flex items-center gap-2">
               <input
+                id="dashboard-search"
                 className="w-64 rounded-full border px-4 py-2 text-sm focus:outline-none"
                 placeholder="Search"
+                aria-label="Search trial matches"
               />
               <Link
                 to="/"
@@ -176,12 +186,6 @@ export default function Dashboard(): JSX.Element {
               </Link>
             </div>
           </div>
-
-          {isLoadingMatches && (
-            <div className="mt-4 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800">
-              Refreshing matches…
-            </div>
-          )}
 
           {error && (
             <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -204,22 +208,27 @@ export default function Dashboard(): JSX.Element {
             </div>
           )}
 
-          <div className="mt-4 overflow-hidden rounded-xl border bg-white">
-            <table className="w-full text-sm">
+          {isLoadingMatches ? (
+            <div className="mt-4">
+              <TrialTableSkeleton rows={4} />
+            </div>
+          ) : (
+          <div className="mt-4 overflow-x-auto rounded-xl border bg-white">
+            <table className="min-w-full text-sm">
               <thead className="bg-gray-50/80 backdrop-blur text-left text-gray-600">
                 <tr>
-                  <th className="px-4 py-3 font-medium">Trial Title</th>
-                  <th className="px-4 py-3 font-medium">Trial ID</th>
-                  <th className="px-4 py-3 font-medium">Trial Status</th>
-                  <th className="px-4 py-3 font-medium">Compatibility Score</th>
-                  <th className="px-4 py-3 font-medium">Interventions</th>
-                  <th className="px-4 py-3 font-medium">Actions</th>
+                  <th className="px-4 py-3 font-medium whitespace-nowrap">Trial Title</th>
+                  <th className="px-4 py-3 font-medium whitespace-nowrap">Trial ID</th>
+                  <th className="px-4 py-3 font-medium whitespace-nowrap">Trial Status</th>
+                  <th className="px-4 py-3 font-medium whitespace-nowrap">Compatibility Score</th>
+                  <th className="px-4 py-3 font-medium whitespace-nowrap">Interventions</th>
+                  <th className="px-4 py-3 font-medium whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {items.slice(0, 4).map((t) => (
                   <tr key={t.slug} className="border-t hover:bg-gray-50/60 transition-colors">
-                    <td className="px-4 py-3 align-top">
+                    <td className="px-4 py-3 align-top min-w-[200px]">
                       <Link to={`/study/${t.nctId}`} state={{ score: t.aiScore, rationale: t.aiRationale || t.reason }} className="text-gray-900 hover:underline line-clamp-2">
                         {t.title}
                       </Link>
@@ -230,7 +239,7 @@ export default function Dashboard(): JSX.Element {
                     </td>
                     <td className="px-4 py-3 text-gray-500 align-top whitespace-nowrap">{t.nctId}</td>
                     <td className="px-4 py-3 align-top">
-                      <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${t.status?.includes('Recruiting') ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>
+                      <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium whitespace-nowrap ${t.status?.includes('Recruiting') ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>
                         {t.status === 'Now Recruiting' ? 'Recruiting' : t.status}
                       </span>
                     </td>
@@ -239,10 +248,15 @@ export default function Dashboard(): JSX.Element {
                         <span className="font-semibold text-gray-900">{t.aiScore}%</span>
                         {(t.aiRationale || t.reason) && (
                           <button
+                            ref={whyButtonRef}
                             type="button"
-                            onClick={() => { setWhyContent(`${t.title}\n\n${t.aiRationale || t.reason}`); setWhyOpen(true); }}
-                            className="ml-2 inline-flex items-center rounded-full border px-2 py-0.5 text-xs text-gray-600 hover:bg-gray-100"
-                            aria-label="Why this match"
+                            onClick={() => {
+                              setWhyTitle(t.title);
+                              setWhyContent(t.aiRationale || t.reason || '');
+                              setWhyOpen(true);
+                            }}
+                            className="ml-2 inline-flex items-center rounded-full border px-2 py-0.5 text-xs text-gray-600 hover:bg-gray-100 whitespace-nowrap"
+                            aria-label={`Why ${t.title} matches you`}
                           >
                             Why
                           </button>
@@ -265,7 +279,7 @@ export default function Dashboard(): JSX.Element {
                     <td colSpan={6} className="px-4 py-6 text-center text-gray-500">
                       <div className="max-w-xl mx-auto text-center">
                         <div className="text-gray-900 font-medium">We couldn't match you to specific trials right now.</div>
-                        <p className="mt-1 text-sm text-gray-600">We’ll show similar options when they’re available. Updating your health profile or widening your travel radius can help us find closer matches.</p>
+                        <p className="mt-1 text-sm text-gray-600">We'll show similar options when they're available. Updating your health profile or widening your travel radius can help us find closer matches.</p>
                         <Link to="/patients/health-profile" className="mt-3 inline-flex items-center justify-center rounded-full bg-gray-900 px-4 py-2 text-sm text-white hover:bg-black">
                           Update preferences
                         </Link>
@@ -286,7 +300,7 @@ export default function Dashboard(): JSX.Element {
                                         {typeof (t as any).distanceMi === 'number' && <span className="text-gray-500">• {(t as any).distanceMi} mi away</span>}
                                       </div>
                                     </div>
-                                    <span className="inline-flex items-center rounded-full bg-gray-200 px-2 py-0.5 text-[11px] text-gray-700">Outside your radius</span>
+                                    <span className="inline-flex items-center rounded-full bg-gray-200 px-2 py-0.5 text-[11px] text-gray-700 whitespace-nowrap">Outside your radius</span>
                                   </div>
                                 </li>
                               ))}
@@ -301,21 +315,22 @@ export default function Dashboard(): JSX.Element {
             </table>
             <Link to="/patients/eligible?page=1" className="border-t px-4 py-3 block text-sm text-gray-600 hover:bg-gray-50 text-center">See more</Link>
           </div>
+          )}
         </section>
       </main>
 
-      {whyOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setWhyOpen(false)} />
-          <div className="relative z-10 w-full max-w-md rounded-xl border bg-white p-4 shadow-lg">
-            <div className="flex items-start justify-between">
-              <h3 className="text-sm font-semibold text-gray-800">Why this trial matches you</h3>
-              <button className="rounded-md p-1 text-gray-500 hover:bg-gray-100" onClick={() => setWhyOpen(false)} aria-label="Close">✕</button>
-            </div>
-            <div className="mt-3 whitespace-pre-wrap text-sm text-gray-700">{whyContent}</div>
-          </div>
-        </div>
-      )}
+      <Modal
+        isOpen={whyOpen}
+        onClose={() => setWhyOpen(false)}
+        title="Why this trial matches you"
+        description={whyTitle}
+        size="md"
+        closeOnBackdrop={true}
+        closeOnEsc={true}
+        returnFocusRef={whyButtonRef}
+      >
+        <div className="whitespace-pre-wrap text-sm text-gray-700">{whyContent}</div>
+      </Modal>
     </div>
   );
 }

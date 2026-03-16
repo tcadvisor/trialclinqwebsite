@@ -1,28 +1,17 @@
 import type { Handler } from "@netlify/functions";
-
-function cors(statusCode: number, body: any, extra: Record<string,string> = {}) {
-  return {
-    statusCode,
-    headers: {
-      "access-control-allow-origin": "*",
-      "access-control-allow-methods": "POST,OPTIONS",
-      "access-control-allow-headers": "content-type",
-      "content-type": "application/json",
-      ...extra,
-    },
-    body: typeof body === 'string' ? body : JSON.stringify(body),
-  };
-}
+import { createCorsHandler } from "./cors-utils";
 
 export const handler: Handler = async (event) => {
-  if (event.httpMethod === 'OPTIONS') return cors(204, '');
-  if (event.httpMethod !== 'POST') return cors(405, { error: 'Method not allowed' });
+  const cors = createCorsHandler(event);
+
+  if (event.httpMethod === 'OPTIONS') return cors.handleOptions("POST,OPTIONS");
+  if (event.httpMethod !== 'POST') return cors.response(405, { error: 'Method not allowed' });
 
   try {
     const payload = event.body ? JSON.parse(event.body) : {};
     const raw = (payload.q || '').toString();
     const q: string = raw.trim().replace(/\s+/g, ' ');
-    if (!q) return cors(400, { error: 'Missing q' });
+    if (!q) return cors.response(400, { error: 'Missing q' });
 
     // 1) ZIP-first resolver (US) - strict validation
     const zip = q.match(/^\s*(\d{5})(?:-\d{4})?\s*$/)?.[1];
@@ -38,7 +27,7 @@ export const handler: Handler = async (event) => {
           const state = String(place?.["state abbreviation"] || place?.state || '').trim();
           const label = [city, state].filter(Boolean).join(', ');
           if (Number.isFinite(lat) && Number.isFinite(lng) && state && lat > 24 && lat < 50 && lng > -130 && lng < -65) {
-            return cors(200, { lat, lng, label }, { "cache-control": "public, max-age=86400" });
+            return cors.response(200, { lat, lng, label }, undefined, { "cache-control": "public, max-age=86400" });
           }
         }
       } catch {}
@@ -98,7 +87,7 @@ export const handler: Handler = async (event) => {
       const retry = new URLSearchParams({ format: 'jsonv2', limit: '10', q: `${q}, United States` });
       arr = await fetchNominatim(retry);
     }
-    if (!arr) return cors(404, { error: 'Not found' });
+    if (!arr) return cors.response(404, { error: 'Not found' });
 
     let first = arr?.[0];
 
@@ -127,13 +116,13 @@ export const handler: Handler = async (event) => {
       first = retryArr?.[0];
     }
 
-    if (!first) return cors(404, { error: 'Not found' });
+    if (!first) return cors.response(404, { error: 'Not found' });
     const lat = Number(first?.lat);
     const lng = Number(first?.lon);
     const label = (first?.display_name || '').toString();
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return cors(404, { error: 'Not found' });
-    return cors(200, { lat, lng, label }, { "cache-control": "public, max-age=86400" });
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return cors.response(404, { error: 'Not found' });
+    return cors.response(200, { lat, lng, label }, undefined, { "cache-control": "public, max-age=86400" });
   } catch (e: any) {
-    return cors(500, { error: String(e?.message || e || 'Unknown error') });
+    return cors.response(500, { error: String(e?.message || e || 'Unknown error') });
   }
 };

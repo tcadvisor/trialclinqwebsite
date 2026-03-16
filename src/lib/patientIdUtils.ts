@@ -6,6 +6,7 @@
  */
 
 import type { User } from './auth';
+import { clearAllEpicData } from './tokenManager';
 
 /**
  * Generate a unique patient ID from user information
@@ -17,12 +18,10 @@ import type { User } from './auth';
  */
 export function generatePatientId(user: User | null | undefined): string {
   if (!user) {
-    console.warn('⚠️ Unable to generate patient ID: user missing');
     return '';
   }
 
   if (!user.userId) {
-    console.warn('⚠️ Unable to generate patient ID: user.userId missing');
     // Fallback to email-based ID if userId is not available
     const emailPrefix = (user.email || '').split('@')[0].replace(/[^a-zA-Z0-9._-]/g, '');
     return emailPrefix ? `pat-${emailPrefix}` : '';
@@ -32,7 +31,6 @@ export function generatePatientId(user: User | null | undefined): string {
   // This ensures the frontend patientId matches what the backend expects
   const patientId = user.userId;
 
-  console.log('✅ Generated patient ID from user:', { email: user.email, patientId });
   return patientId;
 }
 
@@ -76,17 +74,22 @@ export function isValidProfileForUser(
 }
 
 /**
- * Clear all patient-scoped data from localStorage
+ * Clear all patient-scoped data from localStorage and memory
  * Used when user signs out or when data mismatch is detected
+ * SECURITY UPDATE: Now also clears EPIC tokens from memory
  */
 export function clearAllPatientData(): void {
-  console.log('🧹 Clearing all patient-scoped data');
-
   try {
+    // Clear encrypted health profiles
     localStorage.removeItem('tc_health_profile_v1');
     localStorage.removeItem('tc_health_profile_metadata_v1');
     localStorage.removeItem('tc_docs');
     localStorage.removeItem('tc_eligibility_profile');
+
+    // Clear EPIC data from memory (new secure approach)
+    clearAllEpicData();
+
+    // Remove any legacy EPIC data from localStorage (for backward compatibility)
     localStorage.removeItem('epic:patient:v1');
     localStorage.removeItem('epic:tokens:v1');
   } catch (error) {

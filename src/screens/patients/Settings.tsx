@@ -11,7 +11,14 @@ export default function Settings(): JSX.Element {
       <header className="sticky top-0 z-30 bg-white/80 backdrop-blur border-b">
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <img alt="TrialCliniq" className="h-8 w-auto" src="https://c.animaapp.com/mf3cenl8GIzqBa/img/igiwdhcu2mb98arpst9kn-2.png" />
+            <img
+              alt="TrialCliniq"
+              className="h-8 w-auto"
+              src="/images/trialcliniq-logo.png"
+              width="124"
+              height="39"
+              loading="eager"
+            />
           </Link>
           <nav className="hidden md:flex items-center gap-6 text-sm">
             <Link to="/patients/dashboard" className="hover:text-gray-600">Dashboard</Link>

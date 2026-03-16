@@ -1,5 +1,6 @@
 import { Handler } from "@netlify/functions";
 import { query, initializeDatabase } from "./db";
+import { createCorsHandler } from "./cors-utils";
 
 export type InterestedPatient = {
   id: number;
@@ -8,47 +9,21 @@ export type InterestedPatient = {
   expressedAt: string;
 };
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Content-Type": "application/json",
-};
-
-const errorResponse = (statusCode: number, message: string) => ({
-  statusCode,
-  headers: corsHeaders,
-  body: JSON.stringify({
-    ok: false,
-    message,
-  }),
-});
-
-const successResponse = (statusCode: number, data: any) => ({
-  statusCode,
-  headers: corsHeaders,
-  body: JSON.stringify(data),
-});
-
 const handler: Handler = async (event, context) => {
+  const cors = createCorsHandler(event);
+
   console.log("=== Get Trial Interests Request ===");
   console.log("Method:", event.httpMethod);
 
   try {
     // OPTIONS request
     if (event.httpMethod === "OPTIONS") {
-      return {
-        statusCode: 200,
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "GET, OPTIONS",
-          "Access-Control-Allow-Headers": "Content-Type, Authorization, x-user-id",
-        },
-        body: JSON.stringify({ ok: true }),
-      };
+      return cors.handleOptions("GET,OPTIONS");
     }
 
     // Only allow GET
     if (event.httpMethod !== "GET") {
-      return errorResponse(405, "Method not allowed");
+      return cors.response(405, { ok: false, message: "Method not allowed" });
     }
 
     // Initialize database
@@ -65,7 +40,7 @@ const handler: Handler = async (event, context) => {
     console.log("Auth check - userId:", !!userId);
 
     if (!userId) {
-      return errorResponse(401, "Missing x-user-id header");
+      return cors.response(401, { ok: false, message: "Missing x-user-id header" });
     }
 
     // Get NCT ID from query params
@@ -73,7 +48,7 @@ const handler: Handler = async (event, context) => {
     console.log("Query params - nctId:", nctId);
 
     if (!nctId || !nctId.match(/^NCT\d{8}$/)) {
-      return errorResponse(400, `Invalid NCT ID format: ${nctId}`);
+      return cors.response(400, { ok: false, message: `Invalid NCT ID format: ${nctId}` });
     }
 
     const nctIdUpper = nctId.toUpperCase();
@@ -83,7 +58,7 @@ const handler: Handler = async (event, context) => {
 
     try {
       const result = await query(
-        `SELECT 
+        `SELECT
           ti.id,
           ti.patient_id as "patientId",
           ti.nct_id as "nctId",
@@ -103,7 +78,7 @@ const handler: Handler = async (event, context) => {
 
       console.log("Found interested patients:", result?.rows?.length || 0);
 
-      return successResponse(200, {
+      return cors.response(200, {
         ok: true,
         nctId: nctIdUpper,
         count: result?.rows?.length || 0,
@@ -111,11 +86,11 @@ const handler: Handler = async (event, context) => {
       });
     } catch (dbErr: any) {
       console.error("Database error fetching trial interests:", dbErr);
-      return errorResponse(500, `Database error: ${dbErr.message || "Query failed"}`);
+      return cors.response(500, { ok: false, message: `Database error: ${dbErr.message || "Query failed"}` });
     }
   } catch (err: any) {
     console.error("Unexpected error:", err);
-    return errorResponse(500, err.message || "Internal server error");
+    return cors.response(500, { ok: false, message: err.message || "Internal server error" });
   }
 };
 

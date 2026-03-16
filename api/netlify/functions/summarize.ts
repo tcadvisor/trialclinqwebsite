@@ -1,6 +1,7 @@
 import type { Handler } from "@netlify/functions";
 import Busboy from "busboy";
 import pdf from "pdf-parse";
+import { createCorsHandler } from "./cors-utils";
 
 const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
 const DEFAULT_MODEL = "gpt-4o"; // Use gpt-4o for better structured output and JSON handling
@@ -12,19 +13,6 @@ type ParsedUpload = {
   fields: Record<string, string>;
   file?: { filename: string; mimeType: string; data: Buffer };
 };
-
-function cors(statusCode: number, body: any) {
-  return {
-    statusCode,
-    headers: {
-      "access-control-allow-origin": "*",
-      "access-control-allow-methods": "POST,OPTIONS",
-      "access-control-allow-headers": "content-type,authorization",
-      "content-type": "application/json",
-    },
-    body: typeof body === "string" ? body : JSON.stringify(body),
-  };
-}
 
 function parseMultipart(event: any): Promise<ParsedUpload> {
   return new Promise((resolve, reject) => {
@@ -174,48 +162,50 @@ async function extractText(file: { mimeType: string; data: Buffer; filename: str
 }
 
 export const handler: Handler = async (event) => {
+  const cors = createCorsHandler(event);
+
   if (event.httpMethod === "OPTIONS") {
-    return cors(204, "");
+    return cors.handleOptions("POST,OPTIONS");
   }
 
   if (event.httpMethod !== "POST") {
-    return cors(405, { error: "Method not allowed" });
+    return cors.response(405, { error: "Method not allowed" });
   }
 
   const key = process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY || "";
   if (!key) {
-    return cors(500, { error: "OPENAI_API_KEY not set" });
+    return cors.response(500, { error: "OPENAI_API_KEY not set" });
   }
 
   const authHeader = event.headers?.authorization || event.headers?.Authorization || "";
   if (!authHeader) {
-    return cors(401, { error: "Missing Authorization header" });
+    return cors.response(401, { error: "Missing Authorization header" });
   }
 
   try {
     const parsed = await parseMultipart(event);
     const file = parsed.file;
-    if (!file) return cors(400, { error: "Missing file" });
+    if (!file) return cors.response(400, { error: "Missing file" });
 
     const profileId = parsed.fields.profileId || "unknown";
     const uploadId = parsed.fields.uploadId || "unknown";
     const kind = detectKind(file.mimeType, file.filename);
     if (!kind) {
-      return cors(415, { error: "Unsupported file type. Please upload a PDF file." });
+      return cors.response(415, { error: "Unsupported file type. Please upload a PDF file." });
     }
     if (looksBinary(file.data)) {
-      return cors(415, { error: "Unsupported file type. The uploaded file appears to be binary." });
+      return cors.response(415, { error: "Unsupported file type. The uploaded file appears to be binary." });
     }
 
     const text = await extractText({ ...file, filename: file.filename }, kind);
     const trimmed = text.slice(0, MAX_TEXT_CHARS);
     if (isLowQualityText(trimmed)) {
-      return cors(422, { error: "Unable to extract readable text from this PDF. Please upload a text-based PDF." });
+      return cors.response(422, { error: "Unable to extract readable text from this PDF. Please upload a text-based PDF." });
     }
     if (looksLikeResume(trimmed) && !looksMedical(trimmed)) {
-      return cors(422, { error: "This document appears to be non-medical (e.g., a resume). Please upload a clinical document." });
+      return cors.response(422, { error: "This document appears to be non-medical (e.g., a resume). Please upload a clinical document." });
     }
-    if (!trimmed.trim()) return cors(400, { error: "Empty document" });
+    if (!trimmed.trim()) return cors.response(400, { error: "Empty document" });
 
     // Log file details for debugging
     console.log(`[summarize] Processing file: ${file.filename} (${file.mimeType}, ${Buffer.byteLength(file.data)} bytes) for profile ${profileId}, upload ${uploadId}`);
@@ -257,7 +247,7 @@ export const handler: Handler = async (event) => {
       const errorMsg = textErr || `HTTP ${res.status}`;
       // Log detailed error for debugging
       console.error(`[summarize] OpenAI API error (${res.status}):`, errorMsg);
-      return cors(res.status, { error: errorMsg, detail: "OpenAI API request failed. Check API key validity." });
+      return cors.response(res.status, { error: errorMsg, detail: "OpenAI API request failed. Check API key validity." });
     }
 
     const data = await res.json();
@@ -265,7 +255,7 @@ export const handler: Handler = async (event) => {
 
     if (!content) {
       console.error("[summarize] OpenAI returned no content");
-      return cors(500, { error: "OpenAI returned empty response" });
+      return cors.response(500, { error: "OpenAI returned empty response" });
     }
 
     let out: any = {};
@@ -274,7 +264,7 @@ export const handler: Handler = async (event) => {
       console.log(`[summarize] Successfully parsed OpenAI response`);
     } catch (parseErr) {
       console.error(`[summarize] Failed to parse OpenAI JSON response:`, content.substring(0, 500));
-      return cors(500, { error: "Invalid JSON response from OpenAI", detail: "Could not parse AI response" });
+      return cors.response(500, { error: "Invalid JSON response from OpenAI", detail: "Could not parse AI response" });
     }
 
     // Validate required fields
@@ -282,13 +272,13 @@ export const handler: Handler = async (event) => {
       console.warn(`[summarize] Response missing summaryMarkdown field:`, out);
     }
 
-    return cors(200, {
+    return cors.response(200, {
       summaryMarkdown: out.summaryMarkdown || out.summary || "",
       summaryPlain: out.summaryPlain || "",
       eligibility: out.eligibility || { overall: "Unknown", criteria: [], missing: [] },
       audit: { requestId: data?.id || "unknown", generatedAt: new Date().toISOString(), profileId, uploadId, fileName: file.filename },
     });
   } catch (e: any) {
-    return cors(500, { error: String(e?.message || e || "Unknown error") });
+    return cors.response(500, { error: String(e?.message || e || "Unknown error") });
   }
 };

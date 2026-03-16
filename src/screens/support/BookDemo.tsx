@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Calendar, Clock, Send, Building2, User, Mail, Phone } from "lucide-react";
 import SiteHeader from "../../components/SiteHeader";
 import { formatPhoneNumber, getPhoneValidationError, CountryCode } from "../../lib/phoneValidation";
+import { addCsrfHeader } from "../../lib/csrf";
 
 export default function BookDemo() {
   const navigate = useNavigate();
@@ -84,9 +85,10 @@ export default function BookDemo() {
     };
 
     try {
+      const headers = await addCsrfHeader({ "Content-Type": "application/json" });
       const res = await fetch("/api/book-demo", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify(payload),
       });
 

@@ -1,7 +1,10 @@
 // src/App.tsx
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import { RequireAuth, RequireRole } from "./lib/auth";
+import { ToastProvider, useToast } from "./lib/useToast";
+import { ToastContainer } from "./components/ui/toast";
+import { initializeCsrfProtection } from "./lib/csrf";
 import LandingPage from "./routes/LandingPage";
 import TeamPage from "./routes/TeamPage";
 import ContactPage from "./routes/ContactPage";
@@ -65,7 +68,14 @@ function LoadingFallback() {
   );
 }
 
-function App() {
+function AppContent() {
+  const { toasts, removeToast } = useToast();
+
+  // Initialize CSRF protection when app loads
+  useEffect(() => {
+    initializeCsrfProtection();
+  }, []);
+
   return (
     <Router>
       <Suspense fallback={<LoadingFallback />}>
@@ -116,7 +126,16 @@ function App() {
           <Route path="/book-demo" element={<BookDemo />} />
         </Routes>
       </Suspense>
+      <ToastContainer toasts={toasts} onDismiss={removeToast} />
     </Router>
+  );
+}
+
+function App() {
+  return (
+    <ToastProvider>
+      <AppContent />
+    </ToastProvider>
   );
 }
 

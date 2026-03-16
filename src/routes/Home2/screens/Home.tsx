@@ -140,16 +140,28 @@ export default function Home() {
               src="https://cdn.builder.io/api/v1/image/assets%2F3ef0caf3200f4046b04c16f3c60b68c9%2Fc72a3e8ce37647129222f353e12e04d1?format=webp&width=800"
               alt="Healthcare professional with patient"
               className="aspect-[4/5] rounded-3xl object-cover"
+              width="267"
+              height="320"
+              loading="lazy"
+              decoding="async"
             />
             <img
               src="https://cdn.builder.io/api/v1/image/assets%2F3ef0caf3200f4046b04c16f3c60b68c9%2Ffacc7c2898e24668b8ebefd37e17c7ca?format=webp&width=800"
               alt="Doctor consulting with patient"
               className="aspect-[4/5] rounded-3xl object-cover translate-y-6"
+              width="267"
+              height="320"
+              loading="lazy"
+              decoding="async"
             />
             <img
               src="https://cdn.builder.io/api/v1/image/assets%2F3ef0caf3200f4046b04c16f3c60b68c9%2F05aeac203c0a447fa2c7d7cd8faf2429?format=webp&width=800"
               alt="Medical professional with patient"
               className="aspect-[4/5] rounded-3xl object-cover"
+              width="267"
+              height="320"
+              loading="lazy"
+              decoding="async"
             />
           </div>
           <div>
@@ -179,6 +191,10 @@ export default function Home() {
             src="https://cdn.builder.io/api/v1/image/assets%2F3ef0caf3200f4046b04c16f3c60b68c9%2F05cc97dfd2c94dd5b740abfc6e59421e?format=webp&width=800"
             alt="Researchers collaborating in laboratory"
             className="aspect-[4/3] rounded-3xl object-cover"
+            width="800"
+            height="600"
+            loading="lazy"
+            decoding="async"
           />
           <div className="space-y-6">
             <h2 className="text-3xl font-semibold">Why TrialCliniq?</h2>
@@ -368,7 +384,11 @@ export default function Home() {
             <img
               alt="TrialCliniq"
               className="h-9 w-auto"
-              src="https://c.animaapp.com/mf3cenl8GIzqBa/img/igiwdhcu2mb98arpst9kn-2-1.png"
+              src="/images/trialcliniq-logo-footer.png"
+              width="124"
+              height="39"
+              loading="lazy"
+              decoding="async"
             />
             <p className="mt-4 text-sm text-gray-600 max-w-sm">
               Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam et lacinia mi.

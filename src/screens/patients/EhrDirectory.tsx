@@ -1,6 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import SiteHeader from "../../components/SiteHeader";
+import { useToast } from "../../lib/useToast";
 
 export type EhrItem = {
   id: string;
@@ -85,6 +86,7 @@ function Card({ item, onConnect }: { item: EhrItem; onConnect: (item: EhrItem) =
 }
 
 export default function EhrDirectory(): JSX.Element {
+  const { toast } = useToast();
   const [q, setQ] = React.useState("");
   const [visible, setVisible] = React.useState(12);
   const [connecting, setConnecting] = React.useState(false);
@@ -107,18 +109,9 @@ export default function EhrDirectory(): JSX.Element {
         setConnecting(true);
         setPopupMessage("Initializing EPIC connection...");
 
-        const step1 = "Step 1: Loading configuration";
-        console.log(`[EPIC] ${step1}`);
-
         const clientId = (import.meta as any).env?.VITE_EPIC_CLIENT_ID;
         const redirectUri = (import.meta as any).env?.VITE_EPIC_REDIRECT_URI;
         const fhirUrl = (import.meta as any).env?.VITE_EPIC_FHIR_URL;
-
-        console.log(`[EPIC] Configuration loaded:`, {
-          clientId: clientId ? `${clientId.substring(0, 8)}...` : "MISSING",
-          redirectUri: redirectUri ? `${redirectUri.substring(0, 40)}...` : "MISSING",
-          fhirUrl: fhirUrl ? `${fhirUrl.substring(0, 30)}...` : "MISSING",
-        });
 
         if (!clientId || !redirectUri || !fhirUrl) {
           throw new Error(
@@ -126,12 +119,9 @@ export default function EhrDirectory(): JSX.Element {
           );
         }
 
-        const step2 = "Step 2: Fetching EPIC SMART configuration";
-        console.log(`[EPIC] ${step2}`);
-        setPopupMessage(step2);
+        setPopupMessage("Step 2: Fetching EPIC SMART configuration");
 
         const wellKnownUrl = `${fhirUrl}.well-known/smart-configuration`;
-        console.log(`[EPIC] Fetching from: ${wellKnownUrl}`);
 
         const configResponse = await fetch(wellKnownUrl);
 
@@ -148,11 +138,7 @@ export default function EhrDirectory(): JSX.Element {
           throw new Error("EPIC SMART configuration missing authorization_endpoint. Response: " + JSON.stringify(smartConfig));
         }
 
-        console.log(`[EPIC] Authorization endpoint: ${authorizationEndpoint}`);
-
-        const step3 = "Step 3: Generating PKCE challenge";
-        console.log(`[EPIC] ${step3}`);
-        setPopupMessage(step3);
+        setPopupMessage("Step 3: Generating PKCE challenge");
 
         // Generate PKCE code verifier and challenge
         const randomBytes = crypto.getRandomValues(new Uint8Array(32));
@@ -171,24 +157,17 @@ export default function EhrDirectory(): JSX.Element {
           .replace(/\//g, "_")
           .replace(/=/g, "");
 
-        console.log(`[EPIC] PKCE challenge generated (verifier length: ${codeVerifier.length}, challenge length: ${codeChallenge.length})`);
-
         // Generate state for CSRF protection
         const state = crypto.getRandomValues(new Uint8Array(16));
         const stateString = Array.from(state)
           .map((b) => b.toString(16).padStart(2, "0"))
           .join("");
 
-        console.log(`[EPIC] State generated: ${stateString}`);
-
         // Store PKCE and state for callback (use localStorage because sessionStorage is cleared on full page navigation)
         localStorage.setItem("epic_code_verifier", codeVerifier);
         localStorage.setItem("epic_state", stateString);
-        console.log(`[EPIC] Stored code_verifier and state in localStorage`);
 
-        const step4 = "Step 4: Building authorization URL";
-        console.log(`[EPIC] ${step4}`);
-        setPopupMessage(step4);
+        setPopupMessage("Step 4: Building authorization URL");
 
         // Build authorization URL
         const params = new URLSearchParams({
@@ -203,22 +182,14 @@ export default function EhrDirectory(): JSX.Element {
         });
 
         const authUrl = `${authorizationEndpoint}?${params.toString()}`;
-        console.log(`[EPIC] Authorization URL: ${authUrl.substring(0, 100)}...`);
 
-        const step5 = "Step 5: Redirecting to EPIC authorization";
-        console.log(`[EPIC] ${step5}`);
         setPopupMessage("Redirecting to EPIC for authorization...");
-
-        console.log(`[EPIC] Full auth URL: ${authUrl}`);
-        console.log(`[EPIC] Performing window.location.href redirect...`);
 
         // Direct redirect to EPIC auth (works even in sandboxed iframe)
         window.location.href = authUrl;
       } catch (error) {
-        console.error("[EPIC] Connection failed:", error);
         const errorMsg = error instanceof Error ? error.message : String(error);
-        const fullError = `EPIC Connection Error:\n\n${errorMsg}\n\nCheck the browser console (F12 → Console) for detailed logs.`;
-        alert(fullError);
+        toast.error(`EPIC Connection Error: ${errorMsg}. Check the browser console (F12 → Console) for detailed logs.`);
         setConnecting(false);
         setPopupMessage("");
       }
@@ -284,7 +255,7 @@ export default function EhrDirectory(): JSX.Element {
                   </div>
                   <button
                     onClick={() => {
-                      alert("Clicked: " + patient.name);
+                      toast.info(`Connecting as ${patient.name}`);
                       handleConnect({ id: "epic-sandbox", vendor: "Epic", organization: "EPIC Sandbox", portals: 1, isEpic: true });
                     }}
                     disabled={connecting}

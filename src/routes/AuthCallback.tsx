@@ -100,11 +100,10 @@ export default function AuthCallback() {
                         patientId,
                         email: account.username,
                       }, token);
-                      console.log('✅ Patient profile auto-synced to backend');
                     }
                   }
                 } catch (err) {
-                  console.warn('Patient profile auto-sync failed:', err);
+                  // Patient profile auto-sync failed silently
                 }
               } else if (role === 'provider') {
                 // Sync provider profile if it exists in localStorage
@@ -119,16 +118,15 @@ export default function AuthCallback() {
                         providerId,
                         email: account.username,
                       }, token);
-                      console.log('✅ Provider profile auto-synced to backend');
                     }
                   }
                 } catch (err) {
-                  console.warn('Provider profile auto-sync failed:', err);
+                  // Provider profile auto-sync failed silently
                 }
               }
             }
           } catch (syncErr) {
-            console.warn("Profile sync failed:", syncErr);
+            // Profile sync failed silently
           }
 
           localStorage.removeItem('pending_role_v1');
@@ -163,7 +161,6 @@ export default function AuthCallback() {
           });
         }
       } catch (error) {
-        console.error('Auth callback error:', error);
         localStorage.removeItem('pending_role_v1');
         localStorage.removeItem('pending_signup_v1');
         sessionStorage.removeItem(retryKey);

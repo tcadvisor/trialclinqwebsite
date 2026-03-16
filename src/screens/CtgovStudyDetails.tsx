@@ -9,6 +9,7 @@ import { fetchStudyByNctId, CtgovStudy, formatNearestSitePreview } from "../lib/
 import { Button } from "../components/ui/button";
 import { readCurrentHealthProfile, computeStudyScore } from "../lib/matching";
 import { useAuth } from "../lib/auth";
+import { StudyDetailsSkeleton } from "../components/skeletons";
 
 function splitParagraphs(text: string): string[] {
   const t = String(text || "").replace(/\r/g, "").trim();
@@ -227,9 +228,7 @@ export default function CtgovStudyDetails(): JSX.Element {
         </div>
 
         {loading && (
-          <div className="p-6 text-center text-gray-600 flex items-center justify-center gap-2">
-            <Loader2 className="h-4 w-4 animate-spin" /> Loading study…
-          </div>
+          <StudyDetailsSkeleton />
         )}
 
         {!loading && error && (
@@ -309,7 +308,7 @@ export default function CtgovStudyDetails(): JSX.Element {
                 <Separator />
                 <div className="text-sm text-gray-700 space-y-3">
                   {splitParagraphs(briefSummary).length > 0
-                    ? splitParagraphs(briefSummary).map((p, i) => (<p key={i}>{p}</p>))
+                    ? splitParagraphs(briefSummary).map((p, i) => (<p key={`summary-${i}-${p.substring(0, 50)}`}>{p}</p>))
                     : <p>No summary available.</p>}
                 </div>
               </CardContent>
@@ -321,7 +320,7 @@ export default function CtgovStudyDetails(): JSX.Element {
                   <h2 className="text-lg font-semibold">To confirm eligibility</h2>
                   <Separator />
                   <ul className="list-disc pl-5 space-y-2 text-sm text-gray-700">
-                    {suggestions.map((s, i) => (<li key={i}>{s}</li>))}
+                    {suggestions.map((s) => (<li key={s}>{s}</li>))}
                   </ul>
                   <div className="text-xs text-gray-500">Tip: update your <a className="underline" href="/patients/health-profile">Health Profile</a> so we can auto-check these.</div>
                 </CardContent>
@@ -339,7 +338,7 @@ export default function CtgovStudyDetails(): JSX.Element {
                     <div>
                       <h3 className="font-medium mb-2">Inclusion Criteria</h3>
                       <ul className="list-disc pl-5 space-y-2 text-sm text-gray-700">
-                        {inclusion.slice(0, incMax).map((item, i) => (<li key={i}>{item}</li>))}
+                        {inclusion.slice(0, incMax).map((item, i) => (<li key={`inc-${i}-${item.substring(0, 30)}`}>{item}</li>))}
                       </ul>
                       {inclusion.length > 10 && (
                         <button className="mt-2 text-xs text-blue-700 hover:underline" onClick={() => setShowAllInc((v) => !v)}>
@@ -351,7 +350,7 @@ export default function CtgovStudyDetails(): JSX.Element {
                       <h3 className="font-medium mb-2">Exclusion Criteria</h3>
                       {exclusion.length > 0 ? (
                         <ul className="list-disc pl-5 space-y-2 text-sm text-gray-700">
-                          {exclusion.slice(0, excMax).map((item, i) => (<li key={i}>{item}</li>))}
+                          {exclusion.slice(0, excMax).map((item, i) => (<li key={`exc-${i}-${item.substring(0, 30)}`}>{item}</li>))}
                         </ul>
                       ) : (
                         <div className="text-sm text-gray-700">Not specified.</div>

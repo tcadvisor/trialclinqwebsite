@@ -41,9 +41,12 @@ export default function TeamPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <img
-              src="https://c.animaapp.com/mf3cenl8GIzqBa/img/igiwdhcu2mb98arpst9kn-2.png"
+              src="/images/trialcliniq-logo.png"
               alt="TrialClinIQ"
               className="h-8 w-auto"
+              width="124"
+              height="39"
+              loading="eager"
             />
           </div>
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
@@ -92,9 +95,9 @@ export default function TeamPage() {
           </div>
 
           <div className="space-y-4">
-            {teamMembers.map((member, index) => (
+            {teamMembers.map((member) => (
               <div
-                key={index}
+                key={member.name}
                 className="bg-white border border-gray-200 rounded-xl p-8 flex items-start justify-between hover:shadow-md transition-shadow"
               >
                 <div className="flex-1">

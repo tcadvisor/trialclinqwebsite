@@ -1,5 +1,8 @@
 // Storage API utilities for Azure backend
 
+import { setEncryptedItem, getEncryptedItem } from './encryption';
+import { addCsrfHeader } from './csrf';
+
 const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 
 interface HealthProfile {
@@ -52,12 +55,14 @@ function toAuthHeader(token?: string): string {
 // Save patient profile to persistent storage
 export async function savePatientProfile(profile: HealthProfile, authToken?: string): Promise<void> {
   const authHeader = toAuthHeader(authToken);
+  const headers = await addCsrfHeader({
+    'Content-Type': 'application/json',
+    'Authorization': authHeader,
+  });
+
   const response = await fetch(`${API_BASE}/profile-write`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': authHeader,
-    },
+    headers,
     body: JSON.stringify(profile),
   });
 
@@ -66,7 +71,6 @@ export async function savePatientProfile(profile: HealthProfile, authToken?: str
     throw new Error(error.error || 'Failed to save profile');
   }
 
-  console.log('✅ Profile saved to persistent storage');
   return response.json();
 }
 
@@ -84,11 +88,13 @@ export async function uploadPatientFiles(
     formData.append('files', file);
   });
 
+  const headers = await addCsrfHeader({
+    'Authorization': authHeader,
+  });
+
   const response = await fetch(`${API_BASE}/upload-file`, {
     method: 'POST',
-    headers: {
-      'Authorization': authHeader,
-    },
+    headers,
     body: formData,
   });
 
@@ -98,7 +104,6 @@ export async function uploadPatientFiles(
   }
 
   const result = await response.json();
-  console.log('✅ Files uploaded successfully:', result.files);
   return result.files;
 }
 
@@ -118,28 +123,28 @@ export async function getPatientFiles(patientId: string, authToken?: string): Pr
   }
 
   const result = await response.json();
-  console.log('✅ Patient files retrieved:', result.files);
   return result.files;
 }
 
-// Cache patient data locally (for offline support)
-export function cacheProfileLocally(profile: HealthProfile): void {
-  localStorage.setItem('tc_health_profile_v1', JSON.stringify(profile));
-  localStorage.setItem('tc_profile_sync_time', new Date().toISOString());
+// Cache patient data locally (for offline support) - NOW ENCRYPTED
+export async function cacheProfileLocally(profile: HealthProfile): Promise<void> {
+  try {
+    await setEncryptedItem('tc_health_profile_v1', profile);
+    localStorage.setItem('tc_profile_sync_time', new Date().toISOString());
+  } catch (error) {
+    throw error;
+  }
 }
 
-// Retrieve cached profile
-export function getCachedProfile(patientId: string): HealthProfile | null {
+// Retrieve cached profile - NOW DECRYPTS DATA
+export async function getCachedProfile(patientId: string): Promise<HealthProfile | null> {
   try {
-    const cached = localStorage.getItem('tc_health_profile_v1');
-    if (cached) {
-      const profile = JSON.parse(cached);
-      if (profile.patientId === patientId) {
-        return profile;
-      }
+    const profile = await getEncryptedItem<HealthProfile>('tc_health_profile_v1');
+    if (profile && profile.patientId === patientId) {
+      return profile;
     }
   } catch (error) {
-    console.error('Error reading cached profile:', error);
+    // Error reading cached profile
   }
   return null;
 }
@@ -194,12 +199,14 @@ interface ProviderProfile {
 // Save provider profile to persistent storage
 export async function saveProviderProfile(profile: ProviderProfile, authToken?: string): Promise<void> {
   const authHeader = toAuthHeader(authToken);
+  const headers = await addCsrfHeader({
+    'Content-Type': 'application/json',
+    'Authorization': authHeader,
+  });
+
   const response = await fetch(`${API_BASE}/provider-write`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': authHeader,
-    },
+    headers,
     body: JSON.stringify(profile),
   });
 
@@ -208,28 +215,28 @@ export async function saveProviderProfile(profile: ProviderProfile, authToken?: 
     throw new Error(error.error || 'Failed to save provider profile');
   }
 
-  console.log('✅ Provider profile saved to persistent storage');
   return response.json();
 }
 
-// Cache provider profile locally
-export function cacheProviderProfileLocally(profile: ProviderProfile): void {
-  localStorage.setItem('tc_provider_profile_v1', JSON.stringify(profile));
-  localStorage.setItem('tc_provider_sync_time', new Date().toISOString());
+// Cache provider profile locally - NOW ENCRYPTED
+export async function cacheProviderProfileLocally(profile: ProviderProfile): Promise<void> {
+  try {
+    await setEncryptedItem('tc_provider_profile_v1', profile);
+    localStorage.setItem('tc_provider_sync_time', new Date().toISOString());
+  } catch (error) {
+    throw error;
+  }
 }
 
-// Retrieve cached provider profile
-export function getCachedProviderProfile(providerId: string): ProviderProfile | null {
+// Retrieve cached provider profile - NOW DECRYPTS DATA
+export async function getCachedProviderProfile(providerId: string): Promise<ProviderProfile | null> {
   try {
-    const cached = localStorage.getItem('tc_provider_profile_v1');
-    if (cached) {
-      const profile = JSON.parse(cached);
-      if (profile.providerId === providerId) {
-        return profile;
-      }
+    const profile = await getEncryptedItem<ProviderProfile>('tc_provider_profile_v1');
+    if (profile && profile.providerId === providerId) {
+      return profile;
     }
   } catch (error) {
-    console.error('Error reading cached provider profile:', error);
+    // Error reading cached provider profile
   }
   return null;
 }

@@ -45,7 +45,14 @@ export default function TrialDetails(): JSX.Element {
       <header className="flex-col w-full justify-center gap-2.5 px-2.5 py-3 bg-gray-25 flex items-center">
         <nav className="w-full max-w-[1200px] justify-between flex items-center">
           <Link to="/">
-            <img className="w-[124px] h-[39px]" alt="TrialCliniq Logo" src="https://c.animaapp.com/mf3cenl8GIzqBa/img/igiwdhcu2mb98arpst9kn-2.png" />
+            <img
+              className="w-auto max-w-[124px] h-auto max-h-[39px]"
+              alt="TrialCliniq Logo"
+              src="/images/trialcliniq-logo.png"
+              width="124"
+              height="39"
+              loading="eager"
+            />
           </Link>
           <div className="inline-flex items-center gap-2">
             <Link to="/search-results"><Button variant="outline" className="rounded-full border-[#1033e5] text-[#1033e5]">Search results</Button></Link>
@@ -115,7 +122,7 @@ export default function TrialDetails(): JSX.Element {
                   <section>
                     <h3 className="text-lg font-semibold mb-2">About this study</h3>
                     {trial.description.map((p, i)=> (
-                      <p key={i} className="text-gray-700 mb-3">{p}</p>
+                      <p key={`desc-${i}-${p.substring(0, 50)}`} className="text-gray-700 mb-3">{p}</p>
                     ))}
                   </section>
                   <section>
@@ -125,13 +132,13 @@ export default function TrialDetails(): JSX.Element {
                   <section>
                     <h3 className="text-lg font-semibold mb-2">Purpose of Study</h3>
                     <ul className="list-disc pl-5 text-gray-700 space-y-1">
-                      {trial.purpose.map((b, i)=> <li key={i}>{b}</li>)}
+                      {trial.purpose.map((b, i)=> <li key={`purpose-${i}-${b.substring(0, 30)}`}>{b}</li>)}
                     </ul>
                   </section>
                   <section>
                     <h3 className="text-lg font-semibold mb-2">Participation Benefits</h3>
                     <ul className="list-disc pl-5 text-gray-700 space-y-1">
-                      {trial.benefits.map((b, i)=> <li key={i}>{b}</li>)}
+                      {trial.benefits.map((b, i)=> <li key={`benefit-${i}-${b.substring(0, 30)}`}>{b}</li>)}
                     </ul>
                   </section>
                   <Separator />
@@ -166,13 +173,13 @@ export default function TrialDetails(): JSX.Element {
                   <div>
                     <h3 className="text-lg font-semibold mb-2">Inclusion criteria</h3>
                     <ul className="list-disc pl-5 text-gray-700 space-y-1">
-                      {trial.criteria.inclusion.map((c, i)=> <li key={i}>{c}</li>)}
+                      {trial.criteria.inclusion.map((c, i)=> <li key={`inc-${i}-${c.substring(0, 30)}`}>{c}</li>)}
                     </ul>
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold mb-2">Exclusion criteria</h3>
                     <ul className="list-disc pl-5 text-gray-700 space-y-1">
-                      {trial.criteria.exclusion.map((c, i)=> <li key={i}>{c}</li>)}
+                      {trial.criteria.exclusion.map((c, i)=> <li key={`exc-${i}-${c.substring(0, 30)}`}>{c}</li>)}
                     </ul>
                   </div>
                 </CardContent>
@@ -184,7 +191,7 @@ export default function TrialDetails(): JSX.Element {
                 <CardContent className="p-6">
                   <h3 className="text-lg font-semibold mb-3">Interventions</h3>
                   <ul className="list-disc pl-5 text-gray-700 space-y-1">
-                    {trial.interventions.map((i, idx)=> <li key={idx}>{i}</li>)}
+                    {trial.interventions.map((i)=> <li key={i}>{i}</li>)}
                   </ul>
                 </CardContent>
               </Card>
@@ -194,8 +201,8 @@ export default function TrialDetails(): JSX.Element {
               <Card>
                 <CardContent className="p-6 space-y-3">
                   <h3 className="text-lg font-semibold">Investigation centers</h3>
-                  {trial.centers.map((c, i)=> (
-                    <div key={i} className="flex items-center gap-2 text-gray-800">
+                  {trial.centers.map((c)=> (
+                    <div key={`${c.name}-${c.city}-${c.state}`} className="flex items-center gap-2 text-gray-800">
                       <MapPinIcon className="w-4 h-4 text-gray-500" />
                       <span>{c.name} — {c.city}, {c.state}</span>
                     </div>

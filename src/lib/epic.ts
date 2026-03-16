@@ -1,7 +1,16 @@
 /**
  * EPIC FHIR Integration
  * Handles OAuth 2.0 authorization and FHIR data fetching from EPIC
+ *
+ * SECURITY UPDATE: Tokens are now stored in memory instead of localStorage
  */
+
+import {
+  setEpicTokens,
+  getEpicTokens as getTokensFromMemory,
+  clearEpicTokens as clearTokensFromMemory,
+  type TokenData,
+} from './tokenManager';
 
 export interface EpicOAuthConfig {
   clientId: string;
@@ -48,8 +57,6 @@ export interface Condition {
   display: string;
   status?: string;
 }
-
-const STORAGE_KEY = "epic:tokens:v1";
 
 export function getEpicConfig(): EpicOAuthConfig {
   const clientId = (import.meta as any).env?.VITE_EPIC_CLIENT_ID as string;
@@ -153,28 +160,38 @@ export async function exchangeCodeForToken(code: string, state?: string): Promis
   }
 }
 
+/**
+ * Save EPIC tokens securely in memory (NOT localStorage)
+ * SECURITY: Tokens are now stored in memory and cleared on page refresh
+ */
 export function saveEpicTokens(tokens: EpicTokenResponse): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(tokens));
+    setEpicTokens(tokens as TokenData);
   } catch (e) {
     console.error("Failed to save EPIC tokens:", e);
   }
 }
 
+/**
+ * Get EPIC tokens from secure memory storage
+ * SECURITY: Returns tokens from memory, not localStorage
+ */
 export function getEpicTokens(): EpicTokenResponse | null {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as EpicTokenResponse;
+    return getTokensFromMemory() as EpicTokenResponse | null;
   } catch (e) {
-    console.error("Failed to parse EPIC tokens:", e);
+    console.error("Failed to get EPIC tokens:", e);
     return null;
   }
 }
 
+/**
+ * Clear EPIC tokens from memory
+ * SECURITY: Clears tokens from memory storage
+ */
 export function clearEpicTokens(): void {
   try {
-    localStorage.removeItem(STORAGE_KEY);
+    clearTokensFromMemory();
   } catch (e) {
     console.error("Failed to clear EPIC tokens:", e);
   }

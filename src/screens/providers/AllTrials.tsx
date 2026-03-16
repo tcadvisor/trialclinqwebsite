@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import SiteHeader from "../../components/SiteHeader";
 import { getAddedTrials, removeTrial } from "../../lib/providerTrials";
 import { useAuth } from "../../lib/auth";
+import { usePagination } from "../../lib/usePagination";
+import { Pagination } from "../../components/ui/pagination";
 
 type Trial = {
   title: string;
@@ -48,6 +50,17 @@ export default function AllTrials(): JSX.Element {
       (q.trim() === "" || t.title.toLowerCase().includes(q.trim().toLowerCase()) || t.id.toLowerCase().includes(q.trim().toLowerCase()))
     );
   }, [status, phase, q, trials]);
+
+  // Pagination
+  const {
+    currentPage,
+    totalPages,
+    pageItems,
+    goToPage,
+  } = usePagination({
+    items: filtered,
+    pageSize: 15,
+  });
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
@@ -97,35 +110,35 @@ export default function AllTrials(): JSX.Element {
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="text-left text-gray-500">
-                  <th className="px-4 py-3">Trial Title</th>
-                  <th className="px-4 py-3">Trial ID</th>
-                  <th className="px-4 py-3">Trial Phase</th>
-                  <th className="px-4 py-3">Trial Status</th>
-                  <th className="px-4 py-3">Sites</th>
-                  <th className="px-4 py-3">Matched</th>
-                  <th className="px-4 py-3">Pre-screening</th>
-                  <th className="px-4 py-3">Pre-screen Pass</th>
-                  <th className="px-4 py-3" />
+                  <th className="px-4 py-3 whitespace-nowrap">Trial Title</th>
+                  <th className="px-4 py-3 whitespace-nowrap">Trial ID</th>
+                  <th className="px-4 py-3 whitespace-nowrap">Trial Phase</th>
+                  <th className="px-4 py-3 whitespace-nowrap">Trial Status</th>
+                  <th className="px-4 py-3 whitespace-nowrap">Sites</th>
+                  <th className="px-4 py-3 whitespace-nowrap">Matched</th>
+                  <th className="px-4 py-3 whitespace-nowrap">Pre-screening</th>
+                  <th className="px-4 py-3 whitespace-nowrap">Pre-screen Pass</th>
+                  <th className="px-4 py-3 whitespace-nowrap" />
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {filtered.map((t) => (
+                {pageItems.map((t) => (
                   <tr key={t.id} className="relative">
-                    <td className="px-4 py-3 max-w-[280px] truncate">{t.title}</td>
-                    <td className="px-4 py-3 text-gray-600">{t.id}</td>
-                    <td className="px-4 py-3">{t.phase || '-'}</td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 max-w-[280px] min-w-[200px] truncate">{t.title}</td>
+                    <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{t.id}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">{t.phase || '-'}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">
                       {(t.status || '').toUpperCase() === 'RECRUITING' ? (
-                        <span className="rounded-full bg-emerald-100 text-emerald-700 px-2 py-1 text-xs">Recruiting</span>
+                        <span className="rounded-full bg-emerald-100 text-emerald-700 px-2 py-1 text-xs whitespace-nowrap">Recruiting</span>
                       ) : (
                         <span className="text-gray-700">{t.status || '-'}</span>
                       )}
                     </td>
-                    <td className="px-4 py-3">{t.sites ?? '-'}</td>
-                    <td className="px-4 py-3">{t.matched ?? '-'}</td>
-                    <td className="px-4 py-3">{t.prescreening ?? '-'}</td>
-                    <td className="px-4 py-3">{t.pass ?? '-'}</td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-4 py-3 whitespace-nowrap">{t.sites ?? '-'}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">{t.matched ?? '-'}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">{t.prescreening ?? '-'}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">{t.pass ?? '-'}</td>
+                    <td className="px-4 py-3 text-right whitespace-nowrap">
                       <div className="inline-block relative">
                         <button
                           className="rounded-full border px-3 py-1 text-xs hover:bg-gray-50"
@@ -136,7 +149,7 @@ export default function AllTrials(): JSX.Element {
                           Manage
                         </button>
                         {menuId === t.id && (
-                          <div className="absolute right-0 mt-2 w-36 rounded-md border bg-white shadow">
+                          <div className="absolute right-0 mt-2 w-36 rounded-md border bg-white shadow z-10">
                             <button
                               className="block w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-gray-50"
                               onClick={() => {
@@ -158,13 +171,15 @@ export default function AllTrials(): JSX.Element {
               </tbody>
             </table>
           </div>
-          <div className="flex items-center justify-between px-4 py-3 text-sm text-gray-600">
-            <div className="flex items-center gap-2">
-              <button className="rounded border px-3 py-1 hover:bg-gray-50">Previous</button>
-              <button className="rounded border px-3 py-1 hover:bg-gray-50">Next</button>
+          {filtered.length > 0 && (
+            <div className="px-4 py-3">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={goToPage}
+              />
             </div>
-            <div>Page 1 of 1</div>
-          </div>
+          )}
         </div>
 
         <div className="mt-6 text-sm text-gray-600">

@@ -69,13 +69,17 @@ export default function ProviderLogin(): JSX.Element {
           </div>
         )}
         <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            className="w-full border rounded px-3 py-2"
-            placeholder="Work email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
+          <div>
+            <label htmlFor="provider-email" className="block text-sm font-medium mb-1">Work Email</label>
+            <input
+              id="provider-email"
+              className="w-full border rounded px-3 py-2"
+              placeholder="Work email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
           {error && <div className="text-sm text-red-600">{error}</div>}
           <button
             className="w-full px-4 py-2 rounded bg-gray-900 text-white hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed"
