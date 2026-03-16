@@ -10,6 +10,10 @@ import { ChevronDownIcon, MapPinIcon, Loader2 } from "lucide-react";
 import HomeHeader from "../components/HomeHeader";
 import { buildSmartCondQuery, buildLooseCondQuery, normalizeLocation } from "../lib/searchQuery";
 import { getSpellCheckSuggestions, correctWithAI, type SpellCheckSuggestion } from "../lib/spellCheck";
+import { expandSearchQuery, getAutocompleteSuggestions, parseNaturalLanguageQuery } from "../lib/searchEngine";
+import { SearchAutocomplete } from "../components/SearchAutocomplete";
+import { cachedFetchStudies, getCacheStats } from "../lib/searchCache";
+import { rankStudies, reRankStudies, SORT_OPTIONS, type SortOption, type RankedStudy } from "../lib/searchRanking";
 import { formatStudyStatus, formatStudyType, formatPhase } from "../lib/formatters";
 import { geocodeText } from "../lib/geocode";
 import {
@@ -194,7 +198,15 @@ export const SearchResults = (): JSX.Element => {
   const [tempPageSize, setTempPageSize] = React.useState<number>(initialPageSize);
   const [tempRadius, setTempRadius] = React.useState<string>(initialRadius);
   const inferred = React.useMemo(() => inferQueryAndLocation(q, loc), [q, loc]);
-  const preparedQ = React.useMemo(() => buildSmartCondQuery(inferred.query), [inferred.query]);
+  // Use enhanced search engine for better query expansion
+  const expandedQuery = React.useMemo(() => expandSearchQuery(inferred.query), [inferred.query]);
+  const preparedQ = React.useMemo(() => {
+    // Use expanded query if we have matches, otherwise fall back to smart query
+    if (expandedQuery.matches.length > 0) {
+      return expandedQuery.ctgovQuery;
+    }
+    return buildSmartCondQuery(inferred.query);
+  }, [expandedQuery, inferred.query]);
   const preparedLoc = React.useMemo(() => normalizeLocation(inferred.loc), [inferred.loc]);
   const [status, setStatus] = React.useState<string>(initialStatus);
   const [type, setType] = React.useState<string>(initialType);
@@ -210,6 +222,8 @@ export const SearchResults = (): JSX.Element => {
   const [geoError, setGeoError] = React.useState<string>("");
 
   const [data, setData] = React.useState<CtgovResponse | null>(null);
+  const [rankedStudies, setRankedStudies] = React.useState<RankedStudy[]>([]);
+  const [sortBy, setSortBy] = React.useState<SortOption>('relevance');
   const [loading, setLoading] = React.useState<boolean>(false);
   const [error, setError] = React.useState<string>("");
   const [spellSuggestions, setSpellSuggestions] = React.useState<SpellCheckSuggestion[]>([]);
@@ -412,7 +426,34 @@ export const SearchResults = (): JSX.Element => {
     setPage(1);
   };
 
-  const studies = data?.studies ?? [];
+  // Rank studies when data changes
+  React.useEffect(() => {
+    if (data?.studies && data.studies.length > 0) {
+      const ranked = rankStudies(data.studies, {
+        query: inferred.query,
+        location: preparedLoc,
+        userLat: geo?.lat,
+        userLng: geo?.lng,
+        preferRecruiting: status === 'RECRUITING' || !status,
+      });
+      setRankedStudies(ranked);
+    } else {
+      setRankedStudies([]);
+    }
+  }, [data?.studies, inferred.query, preparedLoc, geo?.lat, geo?.lng, status]);
+
+  // Handle sort change
+  const handleSortChange = React.useCallback((newSort: SortOption) => {
+    setSortBy(newSort);
+    if (rankedStudies.length > 0) {
+      setRankedStudies(prev => reRankStudies(prev, newSort));
+    }
+  }, [rankedStudies.length]);
+
+  // Use ranked studies for display
+  const studies = rankedStudies.length > 0
+    ? rankedStudies.map(r => r.study)
+    : (data?.studies ?? []);
 
   const { isAuthenticated, user } = useAuth();
 
@@ -454,12 +495,12 @@ export const SearchResults = (): JSX.Element => {
                 <h3 className="font-semibold">Refine Your Results</h3>
                 <div>
                   <h4 className="font-medium mb-2">Condition</h4>
-                  <input
-                    type="text"
+                  <SearchAutocomplete
                     value={tempQ}
-                    onChange={(e) => setTempQ(e.target.value)}
+                    onChange={setTempQ}
                     placeholder="e.g. breast cancer"
-                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    inputClassName="text-sm"
+                    debounceMs={100}
                   />
                 </div>
                 <div>
@@ -672,6 +713,30 @@ export const SearchResults = (): JSX.Element => {
                     )}
                   </>
                 )}
+              </div>
+            )}
+
+            {/* Sort Options Header */}
+            {!loading && !error && studies.length > 0 && (
+              <div className="flex items-center justify-between mb-4 pb-4 border-b">
+                <span className="text-sm text-gray-500">
+                  Showing {studies.length} of {data?.totalCount ?? 0} results
+                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">Sort by:</span>
+                  <Select value={sortBy} onValueChange={(v) => handleSortChange(v as SortOption)}>
+                    <SelectTrigger className="w-[160px] h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SORT_OPTIONS.map(opt => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             )}
 

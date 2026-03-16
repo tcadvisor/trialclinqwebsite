@@ -1,8 +1,9 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Search, CheckCircle2, Shield, UserRound, ArrowRight } from "lucide-react";
 import HomeHeader from "../../../components/HomeHeader";
 import { useAuth } from "../../../lib/auth";
+import { SearchAutocomplete } from "../../../components/SearchAutocomplete";
 
 export default function Home() {
   const navigate = useNavigate();
@@ -79,17 +80,13 @@ export default function Home() {
             className="mt-10 bg-white/80 backdrop-blur rounded-2xl shadow-xl ring-1 ring-black/5 p-5 sm:p-7 max-w-3xl mx-auto"
           >
             <div className="grid sm:grid-cols-3 gap-3 sm:gap-4 items-end">
-              <label className="text-left text-xs text-gray-600 sm:col-span-1">
-                <div className="mb-1">I'm looking for a clinical trial</div>
-                <input
-                  type="text"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Chronic Pain"
-                  className="w-full rounded-lg border border-gray-300 px-4 py-3 placeholder:text-gray-400/80 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  aria-label="Condition"
-                />
-              </label>
+              <SearchAutocomplete
+                value={query}
+                onChange={setQuery}
+                placeholder="Breast Cancer, Diabetes, COPD..."
+                label="I'm looking for a clinical trial"
+                className="text-left sm:col-span-1"
+              />
               <label className="text-left text-xs text-gray-600 sm:col-span-1">
                 <div className="mb-1">Near</div>
                 <input
