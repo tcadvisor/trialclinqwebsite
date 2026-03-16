@@ -1,10 +1,13 @@
 import React from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import SiteHeader from "../../components/SiteHeader";
-import { signUpUser } from "../../lib/entraId";
+import { signUpUser } from "../../lib/simpleAuth";
+import { useAuth } from "../../lib/auth";
 
 export default function SignupInfo(): JSX.Element {
   const { search } = useLocation();
+  const navigate = useNavigate();
+  const { signIn } = useAuth();
   const nctParam = React.useMemo(() => new URLSearchParams(search).get("nctId") || "", [search]);
   const [error, setError] = React.useState("");
   const [isLoading, setIsLoading] = React.useState(false);
@@ -101,12 +104,28 @@ export default function SignupInfo(): JSX.Element {
 
     try {
       localStorage.setItem("pending_role_v1", "patient");
-      await signUpUser({
+      const result = await signUpUser({
         email: pending.email,
-        password: "",
+        password: pending.password || "",
         firstName: pending.firstName || "",
         lastName: pending.lastName || "",
       });
+
+      // Sign in the user after successful signup
+      signIn({
+        email: pending.email,
+        firstName: pending.firstName || "",
+        lastName: pending.lastName || "",
+        userId: result.userId,
+        role: "patient",
+      });
+
+      // Clean up pending signup data
+      localStorage.removeItem("pending_signup_v1");
+      localStorage.removeItem("pending_role_v1");
+
+      // Navigate to health profile
+      navigate("/patients/health-profile");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Sign up failed. Please try again.");
       setIsLoading(false);

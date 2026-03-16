@@ -15,6 +15,9 @@ export default function SignUpForm({ title, onSubmit, signInPath, privacyPath, e
   const [country, setCountry] = useState<CountryCode>("US");
   const [phone, setPhone] = useState("");
   const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordError, setPasswordError] = useState<string | null>(null);
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -42,6 +45,16 @@ export default function SignUpForm({ title, onSubmit, signInPath, privacyPath, e
     setPhone("");
   };
 
+  const validatePassword = (): string | null => {
+    if (password.length < 6) {
+      return "Password must be at least 6 characters";
+    }
+    if (password !== confirmPassword) {
+      return "Passwords do not match";
+    }
+    return null;
+  };
+
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     // Validate phone before submission
     if (phone.trim()) {
@@ -52,6 +65,15 @@ export default function SignUpForm({ title, onSubmit, signInPath, privacyPath, e
         return;
       }
     }
+
+    // Validate password
+    const pwdErr = validatePassword();
+    if (pwdErr) {
+      setPasswordError(pwdErr);
+      e.preventDefault();
+      return;
+    }
+
     onSubmit(e);
   };
 
@@ -107,6 +129,44 @@ export default function SignUpForm({ title, onSubmit, signInPath, privacyPath, e
               <label className="block text-sm font-medium mb-1" htmlFor="lastName">Your Last Name<span className="text-red-500">*</span></label>
               <input id="lastName" name="lastName" placeholder="Enter representative last name" className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" required />
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1" htmlFor="password">Password<span className="text-red-500">*</span></label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              placeholder="Create a password (min 6 characters)"
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setPasswordError(null);
+              }}
+              className={`w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 ${passwordError ? "border-red-500 focus:ring-red-500" : "focus:ring-blue-500"}`}
+              required
+              minLength={6}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1" htmlFor="confirmPassword">Confirm Password<span className="text-red-500">*</span></label>
+            <input
+              id="confirmPassword"
+              name="confirmPassword"
+              type="password"
+              placeholder="Confirm your password"
+              value={confirmPassword}
+              onChange={(e) => {
+                setConfirmPassword(e.target.value);
+                setPasswordError(null);
+              }}
+              className={`w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 ${passwordError ? "border-red-500 focus:ring-red-500" : "focus:ring-blue-500"}`}
+              required
+            />
+            {passwordError && (
+              <p className="mt-1 text-sm text-red-600">{passwordError}</p>
+            )}
           </div>
 
           <div>

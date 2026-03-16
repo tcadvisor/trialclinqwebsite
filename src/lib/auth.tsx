@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { getCurrentAuthUser, getMsalInstance, signOutUser } from "./entraId";
+import { getCurrentAuthUser, signOutUser, updateSessionRole } from "./simpleAuth";
 import { generatePatientId, clearAllPatientData } from "./patientIdUtils";
 
 export type User = { email: string; role: "patient" | "provider"; firstName: string; lastName: string; userId: string };
@@ -202,110 +202,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load persisted auth and check Cognito session on mount
+  // Load persisted auth session on mount
   useEffect(() => {
     const loadAuth = async () => {
       try {
-        const msal = getMsalInstance();
-        if (msal) {
-          const result = await msal.handleRedirectPromise();
-          const account = result?.account;
-          if (account) {
-            try {
-              msal.setActiveAccount(account);
-            } catch (_) {}
-            const pendingRole = readPendingRole();
-            const pending = readPendingSignup();
-            const rememberedRole = getRememberedRole(account.username);
-            const role = pendingRole || pending?.role || rememberedRole || "patient";
-            const accountFirstName = account.name?.split(" ")[0] || "";
-            const accountLastName = account.name?.split(" ").slice(1).join(" ") || "";
-            let firstName = accountFirstName;
-            let lastName = accountLastName;
-
-            // Block login if signup email doesn't match the Microsoft account used
-            const normalizeEmail = (val?: string) => (val || "").trim().toLowerCase();
-            const pendingEmail = normalizeEmail(pending?.email);
-            const accountEmail = normalizeEmail(account.username);
-            if (pendingEmail && accountEmail && pendingEmail !== accountEmail) {
-              try {
-                msal.setActiveAccount(null);
-                await msal.getTokenCache().clear();
-              } catch (_) {}
-              clearPendingSignup();
-              clearPendingRole();
-              setIsLoading(false);
-              return;
-            }
-
-            if (pending) {
-              const pendingEmail = (pending.email || "").trim().toLowerCase();
-              const accountEmail = (account.username || "").trim().toLowerCase();
-              if (!pendingEmail || pendingEmail === accountEmail) {
-                firstName = pending.firstName || firstName;
-                lastName = pending.lastName || lastName;
-                mergeProfileFromEligibility(account.username, {
-                  email: account.username,
-                  firstName,
-                  lastName,
-                  userId: account.localAccountId || account.homeAccountId || "",
-                });
-              }
-            }
-            clearPendingSignup();
-            clearPendingRole();
-            const newUser = {
-              email: account.username,
-              firstName,
-              lastName,
-              role,
-              userId: account.localAccountId || account.homeAccountId || "",
-            };
-            clearUserScopedDataIfMismatch({ email: newUser.email, userId: newUser.userId });
-            rememberRoleForEmail(newUser.email, newUser.role);
-            setUser(newUser);
-            return;
-          }
-        }
-
-        // First check if there's a valid Cognito session
-        const cognitoUser = await getCurrentAuthUser();
-        if (cognitoUser) {
+        // Check if there's a valid session
+        const authUser = await getCurrentAuthUser();
+        if (authUser) {
           const pendingRole = readPendingRole();
           const pending = readPendingSignup();
-          const rememberedRole = getRememberedRole(cognitoUser.email);
+          const rememberedRole = getRememberedRole(authUser.email);
           const role = pendingRole || pending?.role || rememberedRole || "patient";
-          let firstName = cognitoUser.firstName || "";
-          let lastName = cognitoUser.lastName || "";
+          let firstName = authUser.firstName || "";
+          let lastName = authUser.lastName || "";
+
           if (pending) {
             const pendingEmail = (pending.email || "").trim().toLowerCase();
-            const accountEmail = (cognitoUser.email || "").trim().toLowerCase();
+            const accountEmail = (authUser.email || "").trim().toLowerCase();
             if (!pendingEmail || pendingEmail === accountEmail) {
               firstName = pending.firstName || firstName;
               lastName = pending.lastName || lastName;
-              mergeProfileFromEligibility(cognitoUser.email, {
-                email: cognitoUser.email,
+              mergeProfileFromEligibility(authUser.email, {
+                email: authUser.email,
                 firstName,
                 lastName,
-                userId: cognitoUser.userId || "",
+                userId: authUser.userId || "",
               });
             }
             clearPendingSignup();
           }
           clearPendingRole();
+
           const newUser = {
-            ...cognitoUser,
-            userId: cognitoUser.userId || '',
+            ...authUser,
+            userId: authUser.userId || '',
             firstName,
             lastName,
             role,
           };
+
+          // Update session with the correct role
+          updateSessionRole(role);
+
           clearUserScopedDataIfMismatch({ email: newUser.email, userId: newUser.userId });
           rememberRoleForEmail(newUser.email, newUser.role);
           setUser(newUser);
           return;
         }
-
       } catch (_) {
         // ignore errors, user will need to sign in
       } finally {

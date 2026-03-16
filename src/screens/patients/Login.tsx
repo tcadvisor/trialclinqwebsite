@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { consumePostLoginRedirect, setPostLoginRedirect, useAuth } from "../../lib/auth";
-import { signInUser } from "../../lib/entraId";
+import { signInUser } from "../../lib/simpleAuth";
 import HomeHeader from "../../components/HomeHeader";
 
 export default function Login(): JSX.Element {
@@ -9,6 +9,7 @@ export default function Login(): JSX.Element {
   const location = useLocation();
   const { isAuthenticated, signIn, user } = useAuth();
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const authMessage = (location.state as any)?.authMessage as string | undefined;
@@ -32,18 +33,16 @@ export default function Login(): JSX.Element {
       const normalizedEmail = email.trim();
       setPostLoginRedirect(from);
 
-      // Persist email so the callback can enforce matching accounts and prefill Azure login
-      localStorage.setItem("pending_signup_v1", JSON.stringify({ email: normalizedEmail, role: "patient" as const }));
+      // Store pending role
       localStorage.setItem("pending_role_v1", "patient");
 
-      // Sign in with Azure Entra ID (redirect flow handled in AuthCallback)
+      // Sign in with email and password
       const authUser = await signInUser({
         email: normalizedEmail,
-        password: "",
+        password: password,
       });
 
       if (authUser) {
-        // Silent return path (already cached)
         signIn({ ...authUser, role: "patient" });
         const target = consumePostLoginRedirect(from);
         localStorage.removeItem("pending_signup_v1");
@@ -139,13 +138,25 @@ export default function Login(): JSX.Element {
               onChange={(e) => setEmail(e.target.value)}
             />
           </div>
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium mb-1">Password</label>
+            <input
+              id="password"
+              className="w-full border rounded px-3 py-2"
+              placeholder="Password"
+              type="password"
+              value={password}
+              required
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
           {error && <div className="text-sm text-red-600">{error}</div>}
           <button
             className="w-full px-4 py-2 rounded bg-gray-900 text-white hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed"
             type="submit"
             disabled={isLoading}
           >
-            {isLoading ? "Redirecting..." : "Continue with Microsoft"}
+            {isLoading ? "Signing in..." : "Sign In"}
           </button>
         </form>
         <p className="text-sm text-gray-600 mt-4">No account? <Link to="/patients/volunteer" className="text-blue-600 hover:underline">Sign up</Link></p>

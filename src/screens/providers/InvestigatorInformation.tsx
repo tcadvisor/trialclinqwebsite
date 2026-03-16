@@ -1,9 +1,13 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import SiteHeader from "../../components/SiteHeader";
 import { formatPhoneNumber, getPhoneValidationError } from "../../lib/phoneValidation";
-import { signUpUser } from "../../lib/entraId";
+import { signUpUser } from "../../lib/simpleAuth";
+import { useAuth } from "../../lib/auth";
 
 export default function InvestigatorInformation(): JSX.Element {
+  const navigate = useNavigate();
+  const { signIn } = useAuth();
   const [investigatorName, setInvestigatorName] = useState("");
   const [investigatorPhone, setInvestigatorPhone] = useState("");
   const [phoneError, setPhoneError] = useState<string | null>(null);
@@ -100,13 +104,29 @@ export default function InvestigatorInformation(): JSX.Element {
       const pendingRaw = localStorage.getItem("pending_signup_v1");
       const pending = pendingRaw ? JSON.parse(pendingRaw) : {};
 
-      // Now trigger Azure signup (mirrors patient flow after SignupInfo)
-      await signUpUser({
+      // Create account with simple auth
+      const result = await signUpUser({
         email: pending.email || "",
-        password: "",
+        password: pending.password || "",
         firstName: pending.firstName || "",
         lastName: pending.lastName || "",
       });
+
+      // Sign in the user after successful signup
+      signIn({
+        email: pending.email || "",
+        firstName: pending.firstName || "",
+        lastName: pending.lastName || "",
+        userId: result.userId,
+        role: "provider",
+      });
+
+      // Clean up pending signup data
+      localStorage.removeItem("pending_signup_v1");
+      localStorage.removeItem("pending_role_v1");
+
+      // Navigate to provider dashboard
+      navigate("/providers/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Sign up failed. Please try again.");
     } finally {

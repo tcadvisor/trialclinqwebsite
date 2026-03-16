@@ -10,11 +10,21 @@ import { expandSearchQuery, jaroWinklerSimilarity } from './searchEngine';
 // RANKING CONFIGURATION
 // ============================================================================
 
-const WEIGHTS = {
-  termRelevance: 0.40,    // 40% - How well the study matches the search terms
-  statusBoost: 0.25,      // 25% - Recruiting studies get priority
+// Default weights when no location is provided
+const DEFAULT_WEIGHTS = {
+  termRelevance: 0.45,    // 45% - How well the study matches the search terms
+  statusBoost: 0.30,      // 30% - Recruiting studies get priority
   recency: 0.15,          // 15% - More recent studies rank higher
-  locationMatch: 0.15,    // 15% - Location proximity (if user provided location)
+  locationMatch: 0.05,    // 5%  - Location proximity (minimal without user location)
+  completeness: 0.05,     // 5%  - Studies with complete information rank higher
+};
+
+// Weights when location IS provided - prioritize location first
+const LOCATION_WEIGHTS = {
+  locationMatch: 0.40,    // 40% - Location proximity is most important when provided
+  termRelevance: 0.30,    // 30% - Still important to match the condition
+  statusBoost: 0.20,      // 20% - Recruiting studies get priority
+  recency: 0.05,          // 5%  - Less important when searching by location
   completeness: 0.05,     // 5%  - Studies with complete information rank higher
 };
 
@@ -326,6 +336,10 @@ export function rankStudies(
 ): RankedStudy[] {
   const { query, location, userLat, userLng, preferRecruiting = true } = context;
 
+  // Determine which weights to use based on whether location is provided
+  const hasLocation = !!(location && location.trim());
+  const WEIGHTS = hasLocation ? LOCATION_WEIGHTS : DEFAULT_WEIGHTS;
+
   const ranked: RankedStudy[] = studies.map(study => {
     const termRelevance = calculateTermRelevance(study, query);
     const statusBoost = calculateStatusScore(study, preferRecruiting);
@@ -333,7 +347,7 @@ export function rankStudies(
     const locationMatch = calculateLocationScore(study, location, userLat, userLng);
     const completeness = calculateCompletenessScore(study);
 
-    // Calculate weighted score
+    // Calculate weighted score - location prioritized when provided
     const score =
       termRelevance * WEIGHTS.termRelevance +
       statusBoost * WEIGHTS.statusBoost +
