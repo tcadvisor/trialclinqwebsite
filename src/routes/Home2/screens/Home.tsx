@@ -98,13 +98,16 @@ export default function Home() {
                   aria-label="Location"
                 />
               </label>
-              <button
-                type="submit"
-                className="sm:col-span-1 inline-flex items-center justify-center gap-2 rounded-full bg-blue-600 text-white px-3 py-2 text-sm font-medium hover:bg-blue-700"
-              >
-                <Search className="h-4 w-4" />
-                Search
-              </button>
+              <div className="sm:col-span-1">
+                <div className="mb-1 text-xs text-transparent select-none">&nbsp;</div>
+                <button
+                  type="submit"
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 text-white px-4 py-3 text-sm font-medium hover:bg-blue-700"
+                >
+                  <Search className="h-4 w-4" />
+                  Search
+                </button>
+              </div>
             </div>
           </form>
 

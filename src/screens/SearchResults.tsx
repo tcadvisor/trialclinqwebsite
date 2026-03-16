@@ -802,12 +802,13 @@ export const SearchResults = (): JSX.Element => {
               );
             })}
 
-            {!error && (studies.length > 0 || data?.nextPageToken !== undefined || page > 1) && (
-              <div className="flex flex-col items-center gap-2">
-                <div className="flex items-center gap-2">
+            {!error && (studies.length > 0 || page > 1) && (
+              <div className="flex flex-col items-center gap-3 mt-8">
+                <div className="flex items-center gap-1">
                   <Button
                     variant="outline"
                     size="sm"
+                    className="h-9 w-9 p-0"
                     onClick={() => {
                       if (page > 1) {
                         const prev = page - 1;
@@ -832,7 +833,7 @@ export const SearchResults = (): JSX.Element => {
                           key={i}
                           variant={i === page ? 'default' : 'outline'}
                           size="sm"
-                          className={i === page ? 'bg-[#1033e5] text-white' : ''}
+                          className={`h-9 w-9 p-0 ${i === page ? 'bg-[#1033e5] text-white hover:bg-[#0d2bc2]' : ''}`}
                           onClick={async () => {
                             if (i === page) return;
                             if (i === 1 || tokenMapRef.current[i] !== undefined) {
@@ -873,32 +874,26 @@ export const SearchResults = (): JSX.Element => {
                     }
                     return buttons;
                   })()}
-                  {(() => {
-                    return (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          const nextToken = data?.nextPageToken;
-                          if (nextToken) {
-                            tokenMapRef.current[page + 1] = nextToken;
-                            setPage(page + 1);
-                            setPageToken(nextToken);
-                          }
-                        }}
-                        disabled={!data?.nextPageToken}
-                        aria-label="Next page"
-                      >
-                        <ChevronDownIcon className="w-4 h-4 -rotate-90" />
-                      </Button>
-                    );
-                  })()}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 w-9 p-0"
+                    onClick={() => {
+                      const nextToken = data?.nextPageToken;
+                      if (nextToken) {
+                        tokenMapRef.current[page + 1] = nextToken;
+                        setPage(page + 1);
+                        setPageToken(nextToken);
+                      }
+                    }}
+                    disabled={!data?.nextPageToken}
+                    aria-label="Next page"
+                  >
+                    <ChevronDownIcon className="w-4 h-4 -rotate-90" />
+                  </Button>
                 </div>
-                <div className="text-xs text-gray-500">
-                  {(() => {
-                    const total = calcTotalPages();
-                    return `Page ${page} of ${total}`;
-                  })()}
+                <div className="text-sm text-gray-500">
+                  Page {page} of {calcTotalPages()}
                 </div>
               </div>
             )}

@@ -1,8 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertCircle } from 'lucide-react';
-import { setPostLoginRedirect } from '../lib/auth';
-import { signInUser } from '../lib/entraId';
+import { setPostLoginRedirect, useAuth } from '../lib/auth';
+import { signInUser } from '../lib/simpleAuth';
 import { Modal } from './ui/modal';
 
 interface AuthModalProps {
@@ -14,9 +14,11 @@ interface AuthModalProps {
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultTab = 'login', role = 'patient' }) => {
   const navigate = useNavigate();
+  const { signIn } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
   const triggerButtonRef = useRef<HTMLElement>(null);
 
   const roleTitle = role === 'provider' ? 'Researcher' : 'Participant';
@@ -30,13 +32,30 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultTa
     try {
       const targetPath = role === 'provider' ? '/providers/dashboard' : '/patients/health-profile';
       const email = loginEmail.trim();
-      setPostLoginRedirect(targetPath);
+      const password = loginPassword;
 
-      // Persist email and role so Azure login enforces the correct account
-      localStorage.setItem("pending_signup_v1", JSON.stringify({ email, role }));
+      if (!email || !password) {
+        throw new Error('Email and password are required');
+      }
+
+      // Store role for the auth context to pick up
       localStorage.setItem("pending_role_v1", role);
 
-      await signInUser({ email, password: "" });
+      const authUser = await signInUser({ email, password });
+
+      if (authUser) {
+        // Sign in through context with correct role
+        signIn({
+          email: authUser.email,
+          firstName: authUser.firstName,
+          lastName: authUser.lastName,
+          role,
+          userId: authUser.userId,
+        });
+
+        onClose();
+        navigate(targetPath);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to sign in');
     } finally {
@@ -85,12 +104,27 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultTa
             />
           </div>
 
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1.5">
+              Password
+            </label>
+            <input
+              id="password"
+              type="password"
+              value={loginPassword}
+              onChange={(e) => setLoginPassword(e.target.value)}
+              placeholder="Enter your password"
+              required
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+
           <button
             type="submit"
             disabled={isLoading}
             className="w-full bg-blue-600 text-white py-2.5 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {isLoading ? 'Redirecting...' : 'Continue with Microsoft'}
+            {isLoading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
 
