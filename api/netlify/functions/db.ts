@@ -250,6 +250,228 @@ export async function initializeDatabase() {
       CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at);
     `);
 
+    // Create provider_trials table for tracking trials managed by providers
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS provider_trials (
+        id SERIAL PRIMARY KEY,
+        provider_id VARCHAR(255) NOT NULL,
+        nct_id VARCHAR(20) NOT NULL,
+        title VARCHAR(500),
+        status VARCHAR(100),
+        phase VARCHAR(50),
+        sponsor VARCHAR(500),
+        conditions JSONB,
+        nearest_site VARCHAR(500),
+        enrollment_count INTEGER,
+        start_date DATE,
+        completion_date DATE,
+        added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(provider_id, nct_id)
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_provider_trials_provider_id ON provider_trials(provider_id);
+      CREATE INDEX IF NOT EXISTS idx_provider_trials_nct_id ON provider_trials(nct_id);
+      CREATE INDEX IF NOT EXISTS idx_provider_trials_status ON provider_trials(status);
+    `);
+
+    // Create appointments table for provider scheduling
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS appointments (
+        id SERIAL PRIMARY KEY,
+        appointment_id VARCHAR(255) UNIQUE NOT NULL,
+        provider_id VARCHAR(255) NOT NULL,
+        patient_id VARCHAR(255),
+        nct_id VARCHAR(20),
+        title VARCHAR(500) NOT NULL,
+        description TEXT,
+        appointment_type VARCHAR(50) DEFAULT 'screening',
+        start_time TIMESTAMP NOT NULL,
+        end_time TIMESTAMP NOT NULL,
+        location VARCHAR(500),
+        video_link VARCHAR(500),
+        status VARCHAR(50) DEFAULT 'scheduled',
+        notes TEXT,
+        reminder_sent BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_appointments_provider_id ON appointments(provider_id);
+      CREATE INDEX IF NOT EXISTS idx_appointments_patient_id ON appointments(patient_id);
+      CREATE INDEX IF NOT EXISTS idx_appointments_nct_id ON appointments(nct_id);
+      CREATE INDEX IF NOT EXISTS idx_appointments_start_time ON appointments(start_time);
+      CREATE INDEX IF NOT EXISTS idx_appointments_status ON appointments(status);
+    `);
+
+    // Create patient_pipeline table for tracking patient status in trials
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS patient_pipeline (
+        id SERIAL PRIMARY KEY,
+        provider_id VARCHAR(255) NOT NULL,
+        patient_id VARCHAR(255) NOT NULL,
+        nct_id VARCHAR(20) NOT NULL,
+        status VARCHAR(50) DEFAULT 'interested',
+        match_score INTEGER,
+        notes TEXT,
+        contacted_at TIMESTAMP,
+        screened_at TIMESTAMP,
+        enrolled_at TIMESTAMP,
+        withdrawn_at TIMESTAMP,
+        withdrawal_reason TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(provider_id, patient_id, nct_id)
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_patient_pipeline_provider_id ON patient_pipeline(provider_id);
+      CREATE INDEX IF NOT EXISTS idx_patient_pipeline_patient_id ON patient_pipeline(patient_id);
+      CREATE INDEX IF NOT EXISTS idx_patient_pipeline_nct_id ON patient_pipeline(nct_id);
+      CREATE INDEX IF NOT EXISTS idx_patient_pipeline_status ON patient_pipeline(status);
+    `);
+
+    // Create provider_notes table for notes on patients
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS provider_notes (
+        id SERIAL PRIMARY KEY,
+        provider_id VARCHAR(255) NOT NULL,
+        patient_id VARCHAR(255) NOT NULL,
+        nct_id VARCHAR(20),
+        note_type VARCHAR(50) DEFAULT 'general',
+        content TEXT NOT NULL,
+        is_private BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_provider_notes_provider_id ON provider_notes(provider_id);
+      CREATE INDEX IF NOT EXISTS idx_provider_notes_patient_id ON provider_notes(patient_id);
+    `);
+
+    // Create custom_trials table for provider-created trials
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS custom_trials (
+        id SERIAL PRIMARY KEY,
+        trial_id VARCHAR(255) UNIQUE NOT NULL,
+        provider_id VARCHAR(255) NOT NULL,
+        title VARCHAR(500) NOT NULL,
+        brief_summary TEXT,
+        detailed_description TEXT,
+        status VARCHAR(100) DEFAULT 'draft',
+        phase VARCHAR(50),
+        study_type VARCHAR(100),
+        conditions JSONB,
+        interventions JSONB,
+        eligibility_criteria TEXT,
+        min_age INTEGER,
+        max_age INTEGER,
+        gender VARCHAR(20),
+        enrollment_target INTEGER,
+        enrollment_current INTEGER DEFAULT 0,
+        start_date DATE,
+        estimated_completion DATE,
+        primary_contact_name VARCHAR(255),
+        primary_contact_email VARCHAR(255),
+        primary_contact_phone VARCHAR(50),
+        locations JSONB,
+        documents JSONB,
+        is_published BOOLEAN DEFAULT FALSE,
+        published_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_custom_trials_provider_id ON custom_trials(provider_id);
+      CREATE INDEX IF NOT EXISTS idx_custom_trials_status ON custom_trials(status);
+      CREATE INDEX IF NOT EXISTS idx_custom_trials_is_published ON custom_trials(is_published);
+    `);
+
+    // Create site_members table for team management
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS site_members (
+        id SERIAL PRIMARY KEY,
+        site_id VARCHAR(255) NOT NULL,
+        user_id VARCHAR(255),
+        email VARCHAR(255) NOT NULL,
+        role VARCHAR(50) DEFAULT 'coordinator',
+        status VARCHAR(50) DEFAULT 'pending',
+        invited_by VARCHAR(255),
+        invited_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        accepted_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(site_id, email)
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_site_members_site_id ON site_members(site_id);
+      CREATE INDEX IF NOT EXISTS idx_site_members_user_id ON site_members(user_id);
+      CREATE INDEX IF NOT EXISTS idx_site_members_email ON site_members(email);
+      CREATE INDEX IF NOT EXISTS idx_site_members_status ON site_members(status);
+    `);
+
+    // Create messages table for provider-patient communication
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS messages (
+        id SERIAL PRIMARY KEY,
+        message_id VARCHAR(255) UNIQUE NOT NULL,
+        sender_id VARCHAR(255) NOT NULL,
+        recipient_id VARCHAR(255) NOT NULL,
+        thread_id VARCHAR(255),
+        subject VARCHAR(500),
+        content TEXT NOT NULL,
+        nct_id VARCHAR(20),
+        is_read BOOLEAN DEFAULT FALSE,
+        read_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_messages_sender_id ON messages(sender_id);
+      CREATE INDEX IF NOT EXISTS idx_messages_recipient_id ON messages(recipient_id);
+      CREATE INDEX IF NOT EXISTS idx_messages_thread_id ON messages(thread_id);
+      CREATE INDEX IF NOT EXISTS idx_messages_is_read ON messages(is_read);
+    `);
+
+    // Create auth_credentials table for secure password storage
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS auth_credentials (
+        id SERIAL PRIMARY KEY,
+        user_id VARCHAR(255) UNIQUE NOT NULL,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        email_verified BOOLEAN DEFAULT FALSE,
+        email_verification_token VARCHAR(255),
+        email_verification_expires TIMESTAMP,
+        password_reset_token VARCHAR(255),
+        password_reset_expires TIMESTAMP,
+        failed_login_attempts INTEGER DEFAULT 0,
+        locked_until TIMESTAMP,
+        last_login TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_auth_credentials_email ON auth_credentials(email);
+      CREATE INDEX IF NOT EXISTS idx_auth_credentials_user_id ON auth_credentials(user_id);
+    `);
+
+    // Create sessions table for server-side session management
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS sessions (
+        id SERIAL PRIMARY KEY,
+        session_id VARCHAR(255) UNIQUE NOT NULL,
+        user_id VARCHAR(255) NOT NULL,
+        token_hash VARCHAR(255) NOT NULL,
+        expires_at TIMESTAMP NOT NULL,
+        ip_address VARCHAR(45),
+        user_agent VARCHAR(500),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        last_accessed TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
+      CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);
+    `);
+
     console.log('✅ Database schema initialized successfully');
   } catch (error: any) {
     console.error('❌ Database initialization error:', error.message);

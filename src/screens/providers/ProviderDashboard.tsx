@@ -1,11 +1,12 @@
 import React from "react";
 import SiteHeader from "../../components/SiteHeader";
 import { Link } from "react-router-dom";
-import { getAddedTrials, AddedTrial } from "../../lib/providerTrials";
-import { getAppointments, Appointment } from "../../lib/providerAppointments";
+import { getAddedTrials, getAddedTrialsAsync, AddedTrial } from "../../lib/providerTrials";
+import { getAppointments, getAppointmentsAsync, Appointment } from "../../lib/providerAppointments";
 import { getMatchedVolunteers, MatchedVolunteer } from "../../lib/providerMatches";
 import { getTrialInterestedPatients, type InterestedPatient } from "../../lib/trialInterests";
 import { useAuth } from "../../lib/auth";
+import { BarChart3, Users, Calendar, Plus, ArrowRight, Database } from "lucide-react";
 
 export default function ProviderDashboard(): JSX.Element {
   const { user } = useAuth();
@@ -70,22 +71,88 @@ export default function ProviderDashboard(): JSX.Element {
       <main className="max-w-6xl mx-auto px-4 py-8">
         <h1 className="text-2xl font-semibold">Welcome back, {displayName}</h1>
 
-        <div className="mt-6 grid lg:grid-cols-3 gap-4">
-          <div className="rounded-2xl border bg-white p-5">
-            <div className="flex items-start gap-3">
-              <div className="h-10 w-10 rounded-full bg-blue-50 grid place-items-center text-xl">+</div>
-              <div>
-                <div className="font-medium">Add or link a trial</div>
-                <p className="text-sm text-gray-600 mt-1">Connect an existing trial to your profile or register a new one to start managing participants and matches.</p>
-              </div>
+        {/* Quick Actions */}
+        <div className="mt-6 grid grid-cols-2 md:grid-cols-5 gap-3">
+          <Link
+            to="/providers/trials"
+            className="flex items-center gap-3 rounded-xl border bg-white p-4 hover:border-gray-300 transition-colors"
+          >
+            <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+              <Plus className="h-5 w-5 text-blue-600" />
             </div>
-            <Link to="/providers/trials" className="mt-4 inline-block rounded-full bg-gray-900 px-4 py-2 text-white text-sm hover:bg-black">Add new</Link>
-          </div>
+            <div>
+              <div className="font-medium text-sm">Add Trial</div>
+              <div className="text-xs text-gray-500">Link ClinicalTrials.gov</div>
+            </div>
+          </Link>
 
+          <Link
+            to="/providers/trials/create"
+            className="flex items-center gap-3 rounded-xl border bg-white p-4 hover:border-gray-300 transition-colors"
+          >
+            <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center">
+              <BarChart3 className="h-5 w-5 text-purple-600" />
+            </div>
+            <div>
+              <div className="font-medium text-sm">Create Trial</div>
+              <div className="text-xs text-gray-500">Custom trial</div>
+            </div>
+          </Link>
+
+          <Link
+            to="/providers/team"
+            className="flex items-center gap-3 rounded-xl border bg-white p-4 hover:border-gray-300 transition-colors"
+          >
+            <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
+              <Users className="h-5 w-5 text-green-600" />
+            </div>
+            <div>
+              <div className="font-medium text-sm">Team</div>
+              <div className="text-xs text-gray-500">Manage members</div>
+            </div>
+          </Link>
+
+          <Link
+            to="/providers/analytics"
+            className="flex items-center gap-3 rounded-xl border bg-white p-4 hover:border-gray-300 transition-colors"
+          >
+            <div className="h-10 w-10 rounded-full bg-orange-100 flex items-center justify-center">
+              <ArrowRight className="h-5 w-5 text-orange-600" />
+            </div>
+            <div>
+              <div className="font-medium text-sm">Analytics</div>
+              <div className="text-xs text-gray-500">View reports</div>
+            </div>
+          </Link>
+
+          <Link
+            to="/providers/elation"
+            className="flex items-center gap-3 rounded-xl border bg-white p-4 hover:border-gray-300 transition-colors"
+          >
+            <div className="h-10 w-10 rounded-full bg-cyan-100 flex items-center justify-center">
+              <Database className="h-5 w-5 text-cyan-600" />
+            </div>
+            <div>
+              <div className="font-medium text-sm">Elation EHR</div>
+              <div className="text-xs text-gray-500">Import patients</div>
+            </div>
+          </Link>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="mt-6 grid lg:grid-cols-3 gap-4">
           <div className="rounded-2xl border bg-white p-5">
             <div className="text-sm text-gray-500">Trials Managed</div>
             <div className="mt-2 text-3xl font-semibold">{trials.length}</div>
-            <Link to="/providers/trials/all" className="mt-3 inline-block text-sm text-blue-600 hover:underline">View</Link>
+            <Link to="/providers/trials/all" className="mt-3 inline-block text-sm text-blue-600 hover:underline">View all trials</Link>
+          </div>
+
+          <div className="rounded-2xl border bg-white p-5">
+            <div className="text-sm text-gray-500">Pipeline Patients</div>
+            <div className="mt-2 text-3xl font-semibold">
+              {Array.from(interestedPatientsByTrial.values()).flat().length}
+            </div>
+            <Link to="/providers/volunteers" className="mt-3 inline-block text-sm text-blue-600 hover:underline">View pipeline</Link>
           </div>
 
           <div className="rounded-2xl border bg-white p-5">
@@ -99,7 +166,7 @@ export default function ProviderDashboard(): JSX.Element {
                 ))
               )}
             </ul>
-            <Link to="/providers/appointments" className="mt-3 w-full inline-block rounded-full border px-4 py-2 text-sm hover:bg-gray-50">View All Appointments</Link>
+            <Link to="/providers/appointments" className="mt-3 w-full inline-block rounded-full border px-4 py-2 text-sm hover:bg-gray-50 text-center">View All Appointments</Link>
           </div>
         </div>
 

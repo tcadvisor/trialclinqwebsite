@@ -38,6 +38,10 @@ const ProviderTrials = lazy(() => import("./screens/providers/Trials"));
 const AllTrials = lazy(() => import("./screens/providers/AllTrials"));
 const Appointments = lazy(() => import("./screens/providers/Appointments"));
 const Volunteers = lazy(() => import("./screens/providers/Volunteers"));
+const CreateTrial = lazy(() => import("./screens/providers/CreateTrial"));
+const TeamManagement = lazy(() => import("./screens/providers/TeamManagement"));
+const ProviderAnalytics = lazy(() => import("./screens/providers/Analytics"));
+const ElationPatients = lazy(() => import("./screens/providers/ElationPatients"));
 const Dashboard = lazy(() => import("./screens/patients/Dashboard"));
 const TrialDetails = lazy(() => import("./screens/TrialDetails"));
 const CtgovStudyDetails = lazy(() => import("./screens/CtgovStudyDetails"));
@@ -114,6 +118,11 @@ function AppContent() {
           <Route path="/providers/dashboard" element={<RequireRole role="provider" redirectTo="/providers/login"><ProviderDashboard /></RequireRole>} />
           <Route path="/providers/appointments" element={<RequireRole role="provider" redirectTo="/providers/login"><Appointments /></RequireRole>} />
           <Route path="/providers/volunteers" element={<RequireRole role="provider" redirectTo="/providers/login"><Volunteers /></RequireRole>} />
+          <Route path="/providers/trials/create" element={<RequireRole role="provider" redirectTo="/providers/login"><CreateTrial /></RequireRole>} />
+          <Route path="/providers/team" element={<RequireRole role="provider" redirectTo="/providers/login"><TeamManagement /></RequireRole>} />
+          <Route path="/providers/analytics" element={<RequireRole role="provider" redirectTo="/providers/login"><ProviderAnalytics /></RequireRole>} />
+          <Route path="/providers/elation" element={<RequireRole role="provider" redirectTo="/providers/login"><ElationPatients /></RequireRole>} />
+          <Route path="/providers/elation-callback" element={<RequireRole role="provider" redirectTo="/providers/login"><ElationPatients /></RequireRole>} />
           <Route path="/patients/dashboard" element={<RequireRole role="patient" redirectTo="/patients/login"><Dashboard /></RequireRole>} />
           <Route path="/patients/eligible" element={<EligibleTrials />} />
           <Route path="/patients/health-profile" element={<RequireRole role="patient" redirectTo="/patients/login"><HealthProfile /></RequireRole>} />

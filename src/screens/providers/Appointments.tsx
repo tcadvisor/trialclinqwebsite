@@ -1,8 +1,17 @@
 import React from "react";
 import SiteHeader from "../../components/SiteHeader";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Search, Plus, X } from "lucide-react";
 import { usePagination } from "../../lib/usePagination";
 import { Pagination } from "../../components/ui/pagination";
+import { useAuth } from "../../lib/auth";
+import {
+  getAppointmentsAsync,
+  addAppointmentAsync,
+  cancelAppointmentAsync,
+  type Appointment,
+  type AppointmentType,
+} from "../../lib/providerAppointments";
+import { getAddedTrials } from "../../lib/providerTrials";
 
 // Types
 export type CalendarEvent = {
@@ -13,6 +22,9 @@ export type CalendarEvent = {
   location: string;
   trial: string;
   color: string; // tailwind color bg-*
+  appointmentId?: string;
+  patientId?: string;
+  status?: string;
 };
 
 // Utilities
@@ -34,8 +46,202 @@ function toHM(date: Date) {
   return `${hh}${mm === "00" ? "" : ":"+mm} ${ampm}`;
 }
 
-// Events will be loaded from provider appointments storage
-// Empty by default - providers will add their own appointments
+// Create Appointment Modal
+function CreateAppointmentModal({
+  isOpen,
+  onClose,
+  onSave,
+  trials,
+  selectedDate,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (appointment: Omit<Appointment, "id">) => Promise<void>;
+  trials: { nctId: string; title: string }[];
+  selectedDate: Date;
+}) {
+  const [title, setTitle] = React.useState("");
+  const [appointmentType, setAppointmentType] = React.useState<AppointmentType>("screening");
+  const [nctId, setNctId] = React.useState("");
+  const [date, setDate] = React.useState(selectedDate.toISOString().split("T")[0]);
+  const [startTime, setStartTime] = React.useState("09:00");
+  const [endTime, setEndTime] = React.useState("10:00");
+  const [location, setLocation] = React.useState("");
+  const [notes, setNotes] = React.useState("");
+  const [saving, setSaving] = React.useState(false);
+
+  React.useEffect(() => {
+    setDate(selectedDate.toISOString().split("T")[0]);
+  }, [selectedDate]);
+
+  if (!isOpen) return null;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title || !date || !startTime || !endTime) return;
+
+    setSaving(true);
+    try {
+      const startDateTime = new Date(`${date}T${startTime}:00`);
+      const endDateTime = new Date(`${date}T${endTime}:00`);
+
+      await onSave({
+        title,
+        appointmentType,
+        nctId: nctId || undefined,
+        time: startDateTime.toISOString(),
+        startTime: startDateTime.toISOString(),
+        endTime: endDateTime.toISOString(),
+        location,
+        notes,
+      });
+
+      // Reset form
+      setTitle("");
+      setAppointmentType("screening");
+      setNctId("");
+      setStartTime("09:00");
+      setEndTime("10:00");
+      setLocation("");
+      setNotes("");
+      onClose();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-4 border-b">
+          <h2 className="text-lg font-semibold">New Appointment</h2>
+          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g., Initial Screening - John Doe"
+              className="w-full border rounded-lg px-3 py-2 text-sm"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+            <select
+              value={appointmentType}
+              onChange={(e) => setAppointmentType(e.target.value as AppointmentType)}
+              className="w-full border rounded-lg px-3 py-2 text-sm"
+            >
+              <option value="screening">Screening</option>
+              <option value="consent">Consent</option>
+              <option value="treatment">Treatment</option>
+              <option value="follow_up">Follow-up</option>
+              <option value="assessment">Assessment</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Trial (optional)</label>
+            <select
+              value={nctId}
+              onChange={(e) => setNctId(e.target.value)}
+              className="w-full border rounded-lg px-3 py-2 text-sm"
+            >
+              <option value="">No specific trial</option>
+              {trials.map((t) => (
+                <option key={t.nctId} value={t.nctId}>
+                  {t.nctId} - {t.title.slice(0, 50)}...
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Date *</label>
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="w-full border rounded-lg px-3 py-2 text-sm"
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Start Time *</label>
+              <input
+                type="time"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+                className="w-full border rounded-lg px-3 py-2 text-sm"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">End Time *</label>
+              <input
+                type="time"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+                className="w-full border rounded-lg px-3 py-2 text-sm"
+                required
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+            <input
+              type="text"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              placeholder="e.g., Room 204, Building A"
+              className="w-full border rounded-lg px-3 py-2 text-sm"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Additional notes..."
+              rows={3}
+              className="w-full border rounded-lg px-3 py-2 text-sm resize-none"
+            />
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 border rounded-lg px-4 py-2 text-sm hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving || !title}
+              className="flex-1 bg-gray-900 text-white rounded-lg px-4 py-2 text-sm hover:bg-black disabled:opacity-50"
+            >
+              {saving ? "Creating..." : "Create Appointment"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
 
 // Mini month calendar
 function MiniMonth({ value, onSelect }: { value: Date; onSelect: (d: Date) => void }) {
@@ -262,11 +468,101 @@ function ListView({ events, pageItems, currentPage, totalPages, onPageChange }: 
 }
 
 export default function Appointments(): JSX.Element {
+  const { user } = useAuth();
+  const userId = user?.userId || "";
   const [current, setCurrent] = React.useState<Date>(new Date());
   const [view, setView] = React.useState<"day"|"week"|"month"|"list">("week");
-  const [events] = React.useState<CalendarEvent[]>([]);
+  const [events, setEvents] = React.useState<CalendarEvent[]>([]);
   const [trialFilter, setTrialFilter] = React.useState<string>("All");
   const [query, setQuery] = React.useState("");
+  const [showCreateModal, setShowCreateModal] = React.useState(false);
+  const [loading, setLoading] = React.useState(true);
+  const [providerTrials, setProviderTrials] = React.useState<{ nctId: string; title: string }[]>([]);
+
+  // Load appointments from backend
+  React.useEffect(() => {
+    if (!userId) return;
+
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        // Load trials
+        const trials = getAddedTrials(userId);
+        setProviderTrials(trials.map(t => ({ nctId: t.nctId, title: t.title })));
+
+        // Load appointments
+        const appointments = await getAppointmentsAsync(userId);
+
+        // Convert to CalendarEvent format
+        const calendarEvents: CalendarEvent[] = appointments.map((apt) => ({
+          id: apt.id || apt.appointmentId || "",
+          appointmentId: apt.appointmentId,
+          title: apt.title,
+          start: new Date(apt.startTime || apt.time),
+          end: apt.endTime ? new Date(apt.endTime) : new Date(new Date(apt.startTime || apt.time).getTime() + 60 * 60 * 1000),
+          location: apt.location || "",
+          trial: apt.nctId || apt.trial || "",
+          color: apt.color || getColorForType(apt.appointmentType),
+          patientId: apt.patientId,
+          status: apt.status,
+        }));
+
+        setEvents(calendarEvents);
+      } catch (error) {
+        console.error("Failed to load appointments:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [userId]);
+
+  const getColorForType = (type?: string): string => {
+    switch (type) {
+      case "screening": return "bg-blue-100";
+      case "consent": return "bg-green-100";
+      case "treatment": return "bg-purple-100";
+      case "follow_up": return "bg-yellow-100";
+      case "assessment": return "bg-orange-100";
+      default: return "bg-gray-100";
+    }
+  };
+
+  const handleCreateAppointment = async (appointment: Omit<Appointment, "id">) => {
+    if (!userId) return;
+
+    const result = await addAppointmentAsync(userId, appointment);
+
+    if (result.ok && result.appointment) {
+      // Add to local events
+      const newEvent: CalendarEvent = {
+        id: result.appointment.id || result.appointment.appointmentId || "",
+        appointmentId: result.appointment.appointmentId,
+        title: result.appointment.title,
+        start: new Date(result.appointment.startTime || result.appointment.time),
+        end: result.appointment.endTime
+          ? new Date(result.appointment.endTime)
+          : new Date(new Date(result.appointment.startTime || result.appointment.time).getTime() + 60 * 60 * 1000),
+        location: result.appointment.location || "",
+        trial: result.appointment.nctId || "",
+        color: getColorForType(result.appointment.appointmentType),
+        status: result.appointment.status,
+      };
+
+      setEvents((prev) => [...prev, newEvent]);
+    }
+  };
+
+  const handleCancelAppointment = async (appointmentId: string) => {
+    if (!userId || !appointmentId) return;
+
+    const result = await cancelAppointmentAsync(userId, appointmentId);
+
+    if (result.ok) {
+      setEvents((prev) => prev.filter((e) => e.id !== appointmentId && e.appointmentId !== appointmentId));
+    }
+  };
 
   const weekStart = React.useMemo(() => startOfWeek(current), [current]);
   const trials = React.useMemo(() => ["All", ...Array.from(new Set(events.map(e => e.trial)))], [events]);
@@ -301,6 +597,13 @@ export default function Appointments(): JSX.Element {
             <ViewTabs view={view} setView={setView} />
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="flex items-center gap-2 bg-gray-900 text-white rounded-full px-4 py-2 text-sm hover:bg-black"
+            >
+              <Plus className="h-4 w-4" />
+              New Appointment
+            </button>
             <div className="relative">
               <Search className="h-4 w-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
               <input value={query} onChange={(e)=>setQuery(e.target.value)} placeholder="Search by Patient, Trial or Keyword" className="pl-9 pr-3 py-2 rounded-full border text-sm w-64" />
@@ -348,7 +651,21 @@ export default function Appointments(): JSX.Element {
             </div>
           </div>
         )}
+
+        {loading && (
+          <div className="mt-8 flex justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+          </div>
+        )}
       </main>
+
+      <CreateAppointmentModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSave={handleCreateAppointment}
+        trials={providerTrials}
+        selectedDate={current}
+      />
     </div>
   );
 }
