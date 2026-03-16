@@ -1,7 +1,7 @@
 // src/App.tsx
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Suspense, lazy, useEffect } from "react";
-import { RequireAuth, RequireRole } from "./lib/auth";
+import { AuthProvider, RequireAuth, RequireRole } from "./lib/auth";
 import { ToastProvider, useToast } from "./lib/useToast";
 import { ToastContainer } from "./components/ui/toast";
 import { initializeCsrfProtection } from "./lib/csrf";
@@ -142,9 +142,11 @@ function AppContent() {
 
 function App() {
   return (
-    <ToastProvider>
-      <AppContent />
-    </ToastProvider>
+    <AuthProvider>
+      <ToastProvider>
+        <AppContent />
+      </ToastProvider>
+    </AuthProvider>
   );
 }
 
