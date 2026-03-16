@@ -6,7 +6,7 @@ import { getAppointments, getAppointmentsAsync, Appointment } from "../../lib/pr
 import { getMatchedVolunteers, MatchedVolunteer } from "../../lib/providerMatches";
 import { getTrialInterestedPatients, type InterestedPatient } from "../../lib/trialInterests";
 import { useAuth } from "../../lib/auth";
-import { BarChart3, Users, Calendar, Plus, ArrowRight, Database } from "lucide-react";
+import { BarChart3, Users, Calendar, Plus, ArrowRight, Database, Upload } from "lucide-react";
 
 export default function ProviderDashboard(): JSX.Element {
   const { user } = useAuth();
@@ -72,7 +72,7 @@ export default function ProviderDashboard(): JSX.Element {
         <h1 className="text-2xl font-semibold">Welcome back, {displayName}</h1>
 
         {/* Quick Actions */}
-        <div className="mt-6 grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="mt-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           <Link
             to="/providers/trials"
             className="flex items-center gap-3 rounded-xl border bg-white p-4 hover:border-gray-300 transition-colors"
@@ -135,6 +135,19 @@ export default function ProviderDashboard(): JSX.Element {
             <div>
               <div className="font-medium text-sm">Elation EHR</div>
               <div className="text-xs text-gray-500">Import patients</div>
+            </div>
+          </Link>
+
+          <Link
+            to="/providers/custom-database"
+            className="flex items-center gap-3 rounded-xl border bg-white p-4 hover:border-gray-300 transition-colors"
+          >
+            <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center">
+              <Upload className="h-5 w-5 text-indigo-600" />
+            </div>
+            <div>
+              <div className="font-medium text-sm">Custom Data</div>
+              <div className="text-xs text-gray-500">Upload CSV/Excel</div>
             </div>
           </Link>
         </div>

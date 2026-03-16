@@ -1,7 +1,8 @@
 import { Link, useNavigate } from "react-router-dom";
 import SiteHeader from "../../components/SiteHeader";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { X, ChevronDown } from "lucide-react";
+import { validatePostalCode } from "../../lib/addressValidation";
 
 const US_STATES_AND_TERRITORIES = [
   "Alabama",
@@ -351,7 +352,34 @@ export default function SiteInformation(): JSX.Element {
   const [fundingOrg, setFundingOrg] = useState("");
   const [conditions, setConditions] = useState<string[]>([]);
   const [languages, setLanguages] = useState<string[]>([]);
-  const [errors, setErrors] = useState<{ conditions?: string; languages?: string }>({});
+  const [errors, setErrors] = useState<{ conditions?: string; languages?: string; zipcode?: string }>({});
+  const [zipcodeTouched, setZipcodeTouched] = useState(false);
+
+  // Validate zipcode based on selected country
+  const handleZipcodeBlur = useCallback(() => {
+    setZipcodeTouched(true);
+    if (zipcode.trim() && country) {
+      const countryCode = country === "United States" ? "US" : country === "Canada" ? "CA" : country === "United Kingdom" ? "UK" : "US";
+      const result = validatePostalCode(zipcode, countryCode);
+      if (!result.valid) {
+        setErrors((prev) => ({ ...prev, zipcode: result.error }));
+      } else {
+        setErrors((prev) => ({ ...prev, zipcode: undefined }));
+        // Format the zipcode if needed
+        if (result.formatted && result.formatted !== zipcode) {
+          setZipcode(result.formatted);
+        }
+      }
+    } else {
+      setErrors((prev) => ({ ...prev, zipcode: undefined }));
+    }
+  }, [zipcode, country]);
+
+  const isZipcodeValid = useMemo(() => {
+    if (!zipcode.trim() || !country) return true; // Don't invalidate if not filled yet
+    const countryCode = country === "United States" ? "US" : country === "Canada" ? "CA" : country === "United Kingdom" ? "UK" : "US";
+    return validatePostalCode(zipcode, countryCode).valid;
+  }, [zipcode, country]);
 
   // Load initial data from localStorage if it exists
   useEffect(() => {
@@ -484,8 +512,37 @@ export default function SiteInformation(): JSX.Element {
                 <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Enter site full address" className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" required />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Zipcode<span className="text-red-500">*</span></label>
-                <input value={zipcode} onChange={(e) => setZipcode(e.target.value)} placeholder="Enter zipcode" className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" required />
+                <label className="block text-sm font-medium mb-1">
+                  {country === "Canada" ? "Postal Code" : country === "United Kingdom" ? "Postcode" : "Zipcode"}
+                  <span className="text-red-500">*</span>
+                </label>
+                <input
+                  value={zipcode}
+                  onChange={(e) => {
+                    setZipcode(e.target.value);
+                    if (errors.zipcode) setErrors((prev) => ({ ...prev, zipcode: undefined }));
+                  }}
+                  onBlur={handleZipcodeBlur}
+                  placeholder={
+                    country === "Canada"
+                      ? "e.g. A1A 1A1"
+                      : country === "United Kingdom"
+                      ? "e.g. SW1A 1AA"
+                      : "e.g. 12345"
+                  }
+                  className={`w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 ${
+                    zipcodeTouched && errors.zipcode
+                      ? "border-red-500 focus:ring-red-500"
+                      : "focus:ring-blue-500"
+                  }`}
+                  required
+                />
+                {zipcodeTouched && errors.zipcode && (
+                  <p className="text-xs text-red-600 mt-1">{errors.zipcode}</p>
+                )}
+                {zipcodeTouched && !errors.zipcode && zipcode && isZipcodeValid && (
+                  <p className="text-xs text-green-600 mt-1">Valid {country === "Canada" ? "postal code" : country === "United Kingdom" ? "postcode" : "ZIP code"}</p>
+                )}
               </div>
             </div>
 

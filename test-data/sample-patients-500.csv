@@ -1,0 +1,401 @@
+firstName,lastName,email,phone,dob,age,sex,address,city,state,zipcode,country,conditions,medications,allergies,notes
+Emma,Johnson,emma.johnson@email.com,555-0101,1985-03-15,39,Female,123 Oak Street,New York,NY,10001,United States,Type 2 Diabetes;Hypertension,Metformin;Lisinopril,Penicillin,Regular checkups needed
+James,Williams,james.williams@email.com,555-0102,1978-07-22,46,Male,456 Maple Ave,Los Angeles,CA,90012,United States,Chronic Kidney Disease;Hypertension,Losartan;Amlodipine,Sulfa,Stage 3 CKD
+Olivia,Brown,olivia.brown@email.com,555-0103,1992-11-08,32,Female,789 Pine Road,Chicago,IL,60601,United States,Breast Cancer,Tamoxifen,None,In remission 2 years
+William,Jones,william.jones@email.com,555-0104,1965-04-30,59,Male,321 Cedar Lane,Houston,TX,77001,United States,COPD;Emphysema,Spiriva;Advair,Aspirin,Former smoker
+Sophia,Garcia,sophia.garcia@email.com,555-0105,1988-09-12,36,Female,654 Birch Blvd,Phoenix,AZ,85001,United States,Rheumatoid Arthritis,Humira;Methotrexate,Latex,Moderate disease activity
+Benjamin,Miller,benjamin.miller@email.com,555-0106,1972-01-25,53,Male,987 Elm Court,Philadelphia,PA,19101,United States,Coronary Artery Disease;Hyperlipidemia,Atorvastatin;Aspirin;Metoprolol,None,Post-stent placement 2022
+Isabella,Davis,isabella.davis@email.com,555-0107,1995-06-18,29,Female,147 Walnut Street,San Antonio,TX,78201,United States,Multiple Sclerosis,Ocrevus,Contrast Dye,RRMS diagnosed 2020
+Mason,Rodriguez,mason.rodriguez@email.com,555-0108,1960-12-03,64,Male,258 Spruce Ave,San Diego,CA,92101,United States,Prostate Cancer,Lupron,Iodine,Gleason score 7
+Mia,Martinez,mia.martinez@email.com,555-0109,1983-08-27,41,Female,369 Ash Drive,Dallas,TX,75201,United States,Lupus;Fibromyalgia,Plaquenil;Cymbalta,NSAIDs,Flare-ups monthly
+Ethan,Anderson,ethan.anderson@email.com,555-0110,1990-02-14,35,Male,471 Hickory Lane,San Jose,CA,95101,United States,Crohn's Disease,Remicade,Eggs,Currently in remission
+Ava,Thomas,ava.thomas@email.com,555-0111,1975-05-09,49,Female,582 Willow Way,Austin,TX,78701,United States,Ovarian Cancer,Carboplatin;Paclitaxel,Shellfish,Stage IIIC
+Noah,Taylor,noah.taylor@email.com,555-0112,1968-10-21,56,Male,693 Poplar Place,Jacksonville,FL,32099,United States,Heart Failure;Atrial Fibrillation,Entresto;Eliquis;Carvedilol,ACE Inhibitors,EF 35%
+Charlotte,Moore,charlotte.moore@email.com,555-0113,1997-03-06,27,Female,804 Chestnut Circle,Fort Worth,TX,76101,United States,Asthma;Eczema,Symbicort;Dupixent,Peanuts,Severe persistent asthma
+Liam,Jackson,liam.jackson@email.com,555-0114,1982-07-19,42,Male,915 Magnolia Street,Columbus,OH,43085,United States,Type 1 Diabetes,Insulin Pump,None,A1C 7.2
+Amelia,Martin,amelia.martin@email.com,555-0115,1958-11-30,66,Female,126 Dogwood Drive,Charlotte,NC,28201,United States,Osteoporosis;Osteoarthritis,Prolia;Celebrex,Codeine,T-score -2.8
+Lucas,Lee,lucas.lee@email.com,555-0116,1993-04-11,31,Male,237 Sycamore Ave,San Francisco,CA,94101,United States,HIV,Biktarvy,None,Undetectable viral load
+Harper,Perez,harper.perez@email.com,555-0117,1970-08-24,54,Female,348 Redwood Road,Indianapolis,IN,46201,United States,Lung Cancer,Keytruda,Morphine,Stage IV NSCLC
+Alexander,White,alexander.white@email.com,555-0118,1986-01-07,39,Male,459 Juniper Lane,Seattle,WA,98101,United States,Psoriasis;Psoriatic Arthritis,Cosentyx,None,PASI score 12
+Evelyn,Harris,evelyn.harris@email.com,555-0119,1963-06-16,61,Female,560 Cypress Court,Denver,CO,80201,United States,Parkinson's Disease,Sinemet;Azilect,Haloperidol,Hoehn and Yahr Stage 2
+Daniel,Sanchez,daniel.sanchez@email.com,555-0120,1991-09-29,33,Male,671 Palm Street,Washington,DC,20001,United States,Ulcerative Colitis,Humira;Mesalamine,Sulfa,Moderate UC
+Abigail,Clark,abigail.clark@email.com,555-0121,1977-02-12,48,Female,782 Olive Ave,Boston,MA,02101,United States,Migraine;Depression,Aimovig;Lexapro,Triptans,15+ headache days/month
+Michael,Lewis,michael.lewis@email.com,555-0122,1955-12-25,69,Male,893 Hazel Drive,El Paso,TX,79901,United States,Bladder Cancer,BCG Therapy,None,Non-muscle invasive
+Emily,Robinson,emily.robinson@email.com,555-0123,1984-05-18,40,Female,104 Beech Blvd,Nashville,TN,37201,United States,Endometriosis,Orilissa,Latex,Considering IVF
+Jacob,Walker,jacob.walker@email.com,555-0124,1969-10-01,55,Male,215 Fir Lane,Detroit,MI,48201,United States,Liver Cirrhosis,Lactulose;Rifaximin,Acetaminophen,Child-Pugh B
+Sofia,Hall,sofia.hall@email.com,555-0125,1996-03-24,28,Female,326 Larch Street,Oklahoma City,OK,73101,United States,Polycystic Ovary Syndrome,Metformin;Spironolactone,None,Trying to conceive
+Matthew,Allen,matthew.allen@email.com,555-0126,1962-07-07,62,Male,437 Alder Court,Portland,OR,97201,United States,Melanoma,Opdivo,None,Stage IIIB resected
+Chloe,Young,chloe.young@email.com,555-0127,1989-11-13,35,Female,548 Sequoia Place,Las Vegas,NV,89101,United States,Celiac Disease,None,Gluten,Strict GF diet
+David,Hernandez,david.hernandez@email.com,555-0128,1974-04-26,50,Male,659 Oakwood Ave,Louisville,KY,40201,United States,Sleep Apnea;Obesity,CPAP,None,BMI 38
+Grace,King,grace.king@email.com,555-0129,1981-08-09,43,Female,760 Pinewood Drive,Baltimore,MD,21201,United States,Systemic Sclerosis,Cellcept,Penicillin,Diffuse cutaneous
+Joshua,Wright,joshua.wright@email.com,555-0130,1957-01-22,68,Male,871 Cedarwood Lane,Milwaukee,WI,53201,United States,Macular Degeneration,Eylea Injections,None,Wet AMD both eyes
+Victoria,Lopez,victoria.lopez@email.com,555-0131,1994-06-05,30,Female,982 Maplewood Street,Albuquerque,NM,87101,United States,Epilepsy,Keppra;Lamictal,Carbamazepine,Focal seizures
+Andrew,Hill,andrew.hill@email.com,555-0132,1966-09-18,58,Male,193 Elmwood Court,Tucson,AZ,85701,United States,Pancreatic Cancer,FOLFIRINOX,None,Locally advanced
+Penelope,Scott,penelope.scott@email.com,555-0133,1987-12-31,37,Female,304 Birchwood Ave,Fresno,CA,93701,United States,Ankylosing Spondylitis,Enbrel,Sulfa,HLA-B27 positive
+Christopher,Green,christopher.green@email.com,555-0134,1971-03-14,54,Male,415 Willowbrook Drive,Sacramento,CA,95814,United States,Gout;Hypertension,Uloric;Amlodipine,Allopurinol,Frequent flares
+Lily,Adams,lily.adams@email.com,555-0135,1998-07-27,26,Female,526 Aspen Lane,Mesa,AZ,85201,United States,Anxiety;ADHD,Buspar;Adderall,None,College student
+Ryan,Baker,ryan.baker@email.com,555-0136,1959-11-09,65,Male,637 Sprucewood Place,Kansas City,MO,64101,United States,Esophageal Cancer,Chemoradiation,Contrast Dye,Stage III
+Zoey,Gonzalez,zoey.gonzalez@email.com,555-0137,1983-02-22,42,Female,748 Ashwood Street,Virginia Beach,VA,23450,United States,Graves Disease,Methimazole,Iodine,Considering RAI
+Nathan,Nelson,nathan.nelson@email.com,555-0138,1976-06-04,48,Male,859 Hickorywood Court,Atlanta,GA,30301,United States,Hemophilia A,Hemlibra,None,Severe factor VIII deficiency
+Aria,Carter,aria.carter@email.com,555-0139,1992-09-17,32,Female,960 Walnutwood Ave,Colorado Springs,CO,80901,United States,Endometrial Cancer,Keytruda,None,MSI-high
+Anthony,Mitchell,anthony.mitchell@email.com,555-0140,1964-12-30,60,Male,171 Poplartree Drive,Omaha,NE,68101,United States,Peripheral Artery Disease,Cilostazol;Aspirin,Clopidogrel,Claudication symptoms
+Layla,Roberts,layla.roberts@email.com,555-0141,1979-04-13,45,Female,282 Cherrywood Lane,Raleigh,NC,27601,United States,Sjogren's Syndrome,Restasis;Pilocarpine,None,Secondary to RA
+Tyler,Turner,tyler.turner@email.com,555-0142,1988-07-26,36,Male,393 Dogwoodtree Street,Miami,FL,33101,United States,Testicular Cancer,BEP Chemotherapy,Bleomycin,Stage IIB
+Hannah,Phillips,hannah.phillips@email.com,555-0143,1973-10-08,51,Female,504 Sycamorewood Court,Long Beach,CA,90801,United States,Gastroparesis,Reglan,Erythromycin,Diabetic gastroparesis
+Brandon,Campbell,brandon.campbell@email.com,555-0144,1956-01-21,69,Male,615 Redwoodtree Ave,Oakland,CA,94601,United States,Benign Prostatic Hyperplasia,Flomax;Finasteride,Alpha Blockers,IPSS score 22
+Addison,Parker,addison.parker@email.com,555-0145,1995-05-04,29,Female,726 Junipertree Drive,Minneapolis,MN,55401,United States,Hashimoto's Thyroiditis,Synthroid,None,TSH controlled
+Justin,Evans,justin.evans@email.com,555-0146,1967-08-17,57,Male,837 Cypresstree Lane,Tulsa,OK,74101,United States,ALS,Riluzole,None,Limb onset 18 months ago
+Natalie,Edwards,natalie.edwards@email.com,555-0147,1990-11-30,34,Female,948 Palmtree Street,Wichita,KS,67201,United States,Interstitial Cystitis,Elmiron,Sulfa,Painful bladder syndrome
+Austin,Collins,austin.collins@email.com,555-0148,1961-02-12,64,Male,159 Olivetree Court,New Orleans,LA,70112,United States,Stomach Cancer,Herceptin,None,HER2 positive
+Savannah,Stewart,savannah.stewart@email.com,555-0149,1984-06-25,40,Female,260 Hazeltree Ave,Cleveland,OH,44101,United States,Primary Biliary Cholangitis,Ursodiol,None,Stage 2
+Kevin,Sanchez,kevin.sanchez@email.com,555-0150,1978-09-07,46,Male,371 Beechtree Drive,Bakersfield,CA,93301,United States,Narcolepsy,Xyrem;Modafinil,None,Type 1 with cataplexy
+Audrey,Morris,audrey.morris@email.com,555-0151,1970-12-20,54,Female,482 Firtree Lane,Tampa,FL,33601,United States,Ovarian Cancer,Lynparza,Platinum,BRCA1 positive
+Dylan,Rogers,dylan.rogers@email.com,555-0152,1993-03-05,31,Male,593 Larchtree Street,Honolulu,HI,96801,United States,Cystic Fibrosis,Trikafta,Tobramycin,FEV1 72%
+Leah,Reed,leah.reed@email.com,555-0153,1965-06-18,59,Female,704 Aldertree Court,Aurora,CO,80010,United States,Myasthenia Gravis,Mestinon;Cellcept,None,Generalized MG
+Christian,Cook,christian.cook@email.com,555-0154,1986-09-01,38,Male,815 Sequoiatree Ave,Anaheim,CA,92801,United States,Bipolar Disorder,Lithium;Seroquel,Lamotrigine,Type I stable
+Brooklyn,Morgan,brooklyn.morgan@email.com,555-0155,1999-12-14,25,Female,926 Oaklandtree Drive,St. Louis,MO,63101,United States,Type 1 Diabetes,Insulin Pump,None,A1C 6.8
+Jason,Bell,jason.bell@email.com,555-0156,1958-02-27,67,Male,137 Pinelandtree Lane,Riverside,CA,92501,United States,Chronic Lymphocytic Leukemia,Ibrutinib,None,Rai Stage II
+Stella,Murphy,stella.murphy@email.com,555-0157,1982-05-10,42,Female,248 Cedarlandtree Street,Pittsburgh,PA,15201,United States,Dermatomyositis,Prednisone;IVIG,None,Classic DM
+Aaron,Bailey,aaron.bailey@email.com,555-0158,1975-08-23,49,Male,359 Mapleviewtree Court,Lexington,KY,40501,United States,Hepatitis C,Mavyret,None,Completed treatment
+Claire,Rivera,claire.rivera@email.com,555-0159,1991-11-05,33,Female,460 Birchlake Drive,Anchorage,AK,99501,United States,Primary Immunodeficiency,IVIG,None,CVID
+Zachary,Cooper,zachary.cooper@email.com,555-0160,1968-01-18,57,Male,571 Willowcreek Ave,Stockton,CA,95201,United States,Multiple Myeloma,Revlimid;Velcade,Thalidomide,Standard risk
+Samantha,Richardson,samantha.richardson@email.com,555-0161,1997-04-30,27,Female,682 Aspenmountain Lane,Newark,NJ,07101,United States,Sickle Cell Disease,Hydroxyurea,Morphine,Frequent crises
+Eric,Cox,eric.cox@email.com,555-0162,1963-07-13,61,Male,793 Sprucehill Street,Plano,TX,75023,United States,Idiopathic Pulmonary Fibrosis,Esbriet,None,FVC 68%
+Skylar,Howard,skylar.howard@email.com,555-0163,1980-10-26,44,Female,904 Ashvalley Court,Lincoln,NE,68501,United States,Antiphospholipid Syndrome,Warfarin,Heparin,History of DVT
+Adam,Ward,adam.ward@email.com,555-0164,1972-01-08,53,Male,115 Hickoryridge Ave,Buffalo,NY,14201,United States,Waldenstrom Macroglobulinemia,Rituximab,None,IgM 4500
+Madelyn,Torres,madelyn.torres@email.com,555-0165,1994-04-21,30,Female,226 Walnutbrook Drive,Jersey City,NJ,07301,United States,Eosinophilic Esophagitis,Dupixent,Milk,Dysphagia improving
+Sean,Peterson,sean.peterson@email.com,555-0166,1960-07-04,64,Male,337 Poplarstream Lane,Chula Vista,CA,91901,United States,Thyroid Cancer,Levothyroxine,Iodine,Post-thyroidectomy
+Aubrey,Gray,aubrey.gray@email.com,555-0167,1989-10-17,35,Female,448 Cherrybrook Street,Orlando,FL,32801,United States,Behcet's Disease,Colchicine;Humira,None,Oral and genital ulcers
+Jose,Ramirez,jose.ramirez@email.com,555-0168,1977-12-30,47,Male,559 Dogwoodridge Court,Toledo,OH,43601,United States,Chronic Pancreatitis,Creon,Alcohol,Pain management focus
+Hazel,James,hazel.james@email.com,555-0169,1985-03-14,40,Female,660 Sycamorevalley Ave,Fort Wayne,IN,46801,United States,Huntington's Disease,Tetrabenazine,None,Gene positive symptomatic
+Bryan,Watson,bryan.watson@email.com,555-0170,1969-06-27,55,Male,771 Redwoodhill Drive,St. Petersburg,FL,33701,United States,Non-Hodgkin Lymphoma,R-CHOP,Rituximab,DLBCL Stage III
+Violet,Brooks,violet.brooks@email.com,555-0171,1996-09-09,28,Female,882 Junipercrest Lane,Chandler,AZ,85224,United States,Pemphigus Vulgaris,Rituximab;Prednisone,None,Mucocutaneous
+Patrick,Kelly,patrick.kelly@email.com,555-0172,1962-11-22,62,Male,993 Cypressmeadow Street,Laredo,TX,78040,United States,Chronic Hepatitis B,Entecavir,None,HBeAg negative
+Ruby,Price,ruby.price@email.com,555-0173,1983-02-05,42,Female,104 Palmshore Court,Madison,WI,53701,United States,Addison's Disease,Hydrocortisone;Fludrocortisone,None,Primary adrenal insufficiency
+Gregory,Sanders,gregory.sanders@email.com,555-0174,1976-05-18,48,Male,215 Olivepark Ave,Lubbock,TX,79401,United States,Charcot-Marie-Tooth Disease,Physical Therapy,None,Type 1A
+Bella,Bennett,bella.bennett@email.com,555-0175,1998-08-01,26,Female,326 Hazelwood Drive,Durham,NC,27701,United States,Juvenile Idiopathic Arthritis,Enbrel,NSAIDs,Polyarticular JIA
+Philip,Wood,philip.wood@email.com,555-0176,1964-10-14,60,Male,437 Beechcreek Lane,Garland,TX,75040,United States,Renal Cell Carcinoma,Sutent,None,Clear cell Stage IV
+Katherine,Barnes,katherine.barnes@email.com,555-0177,1987-01-27,38,Female,548 Firspring Street,Glendale,AZ,85301,United States,Hidradenitis Suppurativa,Humira,Penicillin,Hurley Stage II
+Dennis,Ross,dennis.ross@email.com,555-0178,1971-04-09,53,Male,659 Larchhill Court,Hialeah,FL,33010,United States,Hereditary Hemochromatosis,Phlebotomy,None,C282Y homozygous
+Ellie,Henderson,ellie.henderson@email.com,555-0179,1992-07-22,32,Female,760 Alderdale Ave,Scottsdale,AZ,85250,United States,Acromegaly,Sandostatin,None,Post-surgical residual
+Timothy,Coleman,timothy.coleman@email.com,555-0180,1959-10-05,65,Male,871 Sequoiavista Drive,Irving,TX,75060,United States,Amyloidosis,Daratumumab,None,AL amyloidosis cardiac
+Nora,Jenkins,nora.jenkins@email.com,555-0181,1984-12-18,40,Female,982 Oakgrove Lane,Fremont,CA,94536,United States,Pheochromocytoma,Alpha Blockers,None,Awaiting surgery
+Jeffrey,Perry,jeffrey.perry@email.com,555-0182,1967-03-02,58,Male,193 Pinecrest Street,San Bernardino,CA,92401,United States,Carcinoid Tumor,Sandostatin LAR,None,Small bowel primary
+Lillian,Powell,lillian.powell@email.com,555-0183,1979-05-15,45,Female,304 Cedarmont Court,Spokane,WA,99201,United States,Chronic Fatigue Syndrome,Amitriptyline,None,Meeting ME/CFS criteria
+Raymond,Long,raymond.long@email.com,555-0184,1955-08-28,69,Male,415 Maplelake Ave,Yonkers,NY,10701,United States,Aortic Stenosis,None,Warfarin,Severe AS TAVR candidate
+Eva,Patterson,eva.patterson@email.com,555-0185,1990-11-10,34,Female,526 Birchview Drive,Tacoma,WA,98401,United States,Lichen Planus,Tacrolimus Ointment,None,Oral and cutaneous
+Russell,Hughes,russell.hughes@email.com,555-0186,1973-01-23,52,Male,637 Willowdale Lane,Norfolk,VA,23501,United States,Hereditary Angioedema,Takhzyro,ACE Inhibitors,Type I HAE
+Maya,Flores,maya.flores@email.com,555-0187,1995-04-06,29,Female,748 Aspenbrook Street,Richmond,VA,23218,United States,Pulmonary Arterial Hypertension,Opsumit;Uptravi,None,FC III PAH
+Keith,Washington,keith.washington@email.com,555-0188,1966-06-19,58,Male,859 Sprucemount Court,Boise,ID,83701,United States,Chronic Myeloid Leukemia,Imatinib,None,Major molecular response
+Alice,Butler,alice.butler@email.com,555-0189,1981-09-01,43,Female,960 Ashwood Ave,Des Moines,IA,50301,United States,Neuromyelitis Optica,Soliris,None,AQP4 positive
+Gerald,Simmons,gerald.simmons@email.com,555-0190,1958-11-14,66,Male,171 Hickorywood Drive,Birmingham,AL,35201,United States,Polycythemia Vera,Hydroxyurea,Aspirin,JAK2 positive
+Eliana,Foster,eliana.foster@email.com,555-0191,1993-02-27,31,Female,282 Walnutdale Lane,Baton Rouge,LA,70801,United States,Autoimmune Hepatitis,Azathioprine;Prednisone,None,Type 1 AIH
+Roy,Gonzales,roy.gonzales@email.com,555-0192,1974-05-10,50,Male,393 Poplarcrest Street,Rochester,NY,14601,United States,Duodenal Cancer,Whipple Surgery,None,Post-operative
+Clara,Bryant,clara.bryant@email.com,555-0193,1986-07-23,38,Female,504 Cherryspring Court,Modesto,CA,95351,United States,Sarcoidosis,Prednisone,None,Pulmonary Stage II
+Randy,Alexander,randy.alexander@email.com,555-0194,1969-10-05,55,Male,615 Dogwoodlake Ave,Fayetteville,NC,28301,United States,Osteosarcoma,High-dose Methotrexate,None,Localized disease
+Luna,Russell,luna.russell@email.com,555-0195,1997-12-18,27,Female,726 Sycamorecrest Drive,Shreveport,LA,71101,United States,Cyclic Vomiting Syndrome,Amitriptyline,None,Monthly episodes
+Wayne,Griffin,wayne.griffin@email.com,555-0196,1962-02-01,63,Male,837 Redwoodbrook Lane,Worcester,MA,01601,United States,Chronic Thromboembolic Pulmonary Hypertension,Adempas,Warfarin,Inoperable CTEPH
+Ariana,Diaz,ariana.diaz@email.com,555-0197,1980-04-14,44,Female,948 Juniperdale Street,Oxnard,CA,93030,United States,Ménière's Disease,Betahistine,None,Bilateral disease
+Eugene,Hayes,eugene.hayes@email.com,555-0198,1975-07-27,49,Male,159 Cypresslake Court,Fontana,CA,92335,United States,Focal Segmental Glomerulosclerosis,Rituximab,None,Nephrotic syndrome
+Madeline,Myers,madeline.myers@email.com,555-0199,1988-10-09,36,Female,260 Palmspring Ave,Huntington Beach,CA,92647,United States,Postural Orthostatic Tachycardia Syndrome,Fludrocortisone;Midodrine,None,POTS with EDS
+Carl,Ford,carl.ford@email.com,555-0200,1963-12-22,61,Male,371 Olivemount Drive,Moreno Valley,CA,92551,United States,Cholangiocarcinoma,Gemcitabine;Cisplatin,None,Intrahepatic
+Lydia,Hamilton,lydia.hamilton@email.com,555-0201,1991-03-07,34,Female,482 Hazelbrook Lane,Glendale,CA,91201,United States,Chronic Inflammatory Demyelinating Polyneuropathy,IVIG,None,CIDP stable
+Jerry,Graham,jerry.graham@email.com,555-0202,1968-05-20,56,Male,593 Beechspring Street,Santa Clarita,CA,91350,United States,Achalasia,Botox Injections,None,Type II achalasia
+Naomi,Sullivan,naomi.sullivan@email.com,555-0203,1983-08-02,41,Female,704 Fircrest Court,Amarillo,TX,79101,United States,IgA Nephropathy,Lisinopril,None,Proteinuria 1.5g/day
+Douglas,Fisher,douglas.fisher@email.com,555-0204,1976-10-15,48,Male,815 Larchdale Ave,Huntsville,AL,35801,United States,Neuroendocrine Tumor,Lanreotide,None,Pancreatic NET G2
+Diana,Crawford,diana.crawford@email.com,555-0205,1994-01-28,31,Female,926 Alderspring Drive,Grand Rapids,MI,49501,United States,Mastocytosis,Cromolyn,NSAIDs,Cutaneous mastocytosis
+Jesse,Owens,jesse.owens@email.com,555-0206,1961-04-10,63,Male,137 Sequoialake Lane,Little Rock,AR,72201,United States,Essential Thrombocythemia,Hydroxyurea,None,JAK2 positive
+Sarah,Watson,sarah.watson@email.com,555-0207,1987-06-23,37,Female,248 Oakbrook Street,Salt Lake City,UT,84101,United States,Interstitial Lung Disease,Pirfenidone,None,Connective tissue ILD
+Martin,Kim,martin.kim@email.com,555-0208,1972-09-06,52,Male,359 Pinemount Court,Tallahassee,FL,32301,United States,Hemochromatosis,Therapeutic Phlebotomy,None,Ferritin controlled
+Jennifer,Howard,jennifer.howard@email.com,555-0209,1979-11-19,45,Female,460 Cedarlake Ave,Worcester,MA,01608,United States,Chronic Urticaria,Xolair,NSAIDs,CSU severe
+Frank,Jenkins,frank.jenkins@email.com,555-0210,1965-02-01,60,Male,571 Maplespring Drive,Sioux Falls,SD,57101,United States,Myelodysplastic Syndrome,Vidaza,None,IPSS Intermediate-2
+Maria,Sanchez,maria.sanchez@email.com,555-0211,1990-04-14,34,Female,682 Birchcrest Lane,Providence,RI,02901,United States,Mixed Connective Tissue Disease,Plaquenil;Prednisone,None,Overlap syndrome
+Lawrence,Kim,lawrence.kim@email.com,555-0212,1957-07-27,67,Male,793 Willowmount Street,Jackson,MS,39201,United States,Chronic Obstructive Pulmonary Disease;Alpha-1 Antitrypsin Deficiency,Zemaira;Spiriva,None,PiZZ genotype
+Angela,Martinez,angela.martinez@email.com,555-0213,1984-09-09,40,Female,904 Aspendale Court,Chattanooga,TN,37401,United States,Stiff Person Syndrome,Valium;IVIG,None,GAD antibody positive
+Walter,Rodriguez,walter.rodriguez@email.com,555-0214,1970-12-22,54,Male,115 Sprucelake Ave,Cape Coral,FL,33904,United States,Paget's Disease of Bone,Reclast,None,Polyostotic
+Catherine,Lewis,catherine.lewis@email.com,555-0215,1996-02-05,29,Female,226 Ashspring Drive,Fort Collins,CO,80521,United States,Chronic Migraine,Botox;Nurtec,Triptans,20+ headache days
+George,Lee,george.lee@email.com,555-0216,1963-05-18,61,Male,337 Hickorylake Lane,Knoxville,TN,37901,United States,Mesothelioma,Opdivo;Yervoy,Asbestos,Pleural mesothelioma
+Rebecca,Walker,rebecca.walker@email.com,555-0217,1981-07-01,43,Female,448 Walnutspring Street,Port St. Lucie,FL,34952,United States,Uveitis,Humira,None,Pan-uveitis bilateral
+Henry,Hall,henry.hall@email.com,555-0218,1974-10-14,50,Male,559 Poplarlake Court,Dayton,OH,45401,United States,Takayasu Arteritis,Tocilizumab,None,Large vessel vasculitis
+Amy,Young,amy.young@email.com,555-0219,1989-12-27,35,Female,660 Cherrymount Ave,Santa Rosa,CA,95401,United States,Eosinophilic Granulomatosis with Polyangiitis,Mepolizumab,Aspirin,EGPA with asthma
+Arthur,Allen,arthur.allen@email.com,555-0220,1966-03-10,59,Male,771 Dogwoodspring Drive,Overland Park,KS,66201,United States,Hairy Cell Leukemia,Cladribine,None,In complete remission
+Stephanie,Hernandez,stephanie.hernandez@email.com,555-0221,1993-05-23,31,Female,882 Sycamorelake Lane,Hollywood,FL,33019,United States,Ehlers-Danlos Syndrome,Physical Therapy,NSAIDs,Hypermobile type
+Scott,King,scott.king@email.com,555-0222,1958-08-06,66,Male,993 Redwooddale Street,Eugene,OR,97401,United States,Primary Myelofibrosis,Jakafi,None,Intermediate-2 risk
+Amanda,Wright,amanda.wright@email.com,555-0223,1986-10-19,38,Female,104 Junipermount Court,Salem,OR,97301,United States,Chronic Spontaneous Urticaria,Xolair,None,Antihistamine refractory
+Paul,Lopez,paul.lopez@email.com,555-0224,1971-01-01,54,Male,215 Cypressspring Ave,Peoria,AZ,85381,United States,Hypersensitivity Pneumonitis,Prednisone,Bird Proteins,Chronic HP
+Rachel,Hill,rachel.hill@email.com,555-0225,1978-03-14,47,Female,326 Palmdale Drive,Garden Grove,CA,92840,United States,Giant Cell Arteritis,Actemra,Prednisone,GCA with LVV
+Mark,Scott,mark.scott@email.com,555-0226,1964-06-27,60,Male,437 Olivespring Lane,Lakewood,CO,80226,United States,Soft Tissue Sarcoma,Doxorubicin,None,Leiomyosarcoma
+Nicole,Green,nicole.green@email.com,555-0227,1995-08-10,29,Female,548 Hazelmount Street,Corona,CA,92879,United States,Lupus Nephritis,Benlysta;Cellcept,Sulfa,Class IV LN
+Brian,Adams,brian.adams@email.com,555-0228,1967-11-23,57,Male,659 Beechlake Court,Pembroke Pines,FL,33024,United States,Primary Sclerosing Cholangitis,Ursodiol,None,With IBD
+Kelly,Baker,kelly.baker@email.com,555-0229,1982-01-06,43,Female,760 Firlake Ave,Tempe,AZ,85281,United States,Polymyalgia Rheumatica,Prednisone,None,PMR without GCA
+Donald,Nelson,donald.nelson@email.com,555-0230,1959-04-19,65,Male,871 Larchspring Drive,Springfield,MO,65801,United States,Chronic Prostatitis,Tamsulosin,Fluoroquinolones,CP/CPPS type III
+Vanessa,Carter,vanessa.carter@email.com,555-0231,1991-06-01,33,Female,982 Alderdale Lane,Oceanside,CA,92054,United States,Chronic Pelvic Pain Syndrome,Amitriptyline,None,Pelvic floor dysfunction
+Steven,Mitchell,steven.mitchell@email.com,555-0232,1973-09-14,51,Male,193 Sequoiabrook Street,Pasadena,CA,91101,United States,Aplastic Anemia,Eltrombopag;Cyclosporine,None,Severe AA
+Beth,Perez,beth.perez@email.com,555-0233,1980-11-27,44,Female,304 Oakmount Court,McKinney,TX,75069,United States,Chronic Active EBV,Monitoring,None,CAEBV disease
+Kenneth,Roberts,kenneth.roberts@email.com,555-0234,1956-02-09,69,Male,415 Pinedale Ave,Sunnyvale,CA,94086,United States,Mantle Cell Lymphoma,Ibrutinib,None,Blastoid variant
+Michelle,Turner,michelle.turner@email.com,555-0235,1988-04-22,36,Female,526 Cedarspring Drive,Murrieta,CA,92562,United States,Primary Ovarian Insufficiency,HRT,None,POI at age 28
+Eric,Phillips,eric.phillips@email.com,555-0236,1976-07-05,48,Male,637 Maplelake Lane,Clarksville,TN,37040,United States,Chronic Granulomatous Disease,Prophylactic Antibiotics,None,X-linked CGD
+Laura,Campbell,laura.campbell@email.com,555-0237,1993-09-18,31,Female,748 Birchmount Street,Frisco,TX,75034,United States,Chronic Regional Pain Syndrome,Gabapentin,None,CRPS Type I
+Ronald,Parker,ronald.parker@email.com,555-0238,1961-12-01,63,Male,859 Willowbrook Court,Killeen,TX,76541,United States,Small Cell Lung Cancer,Carboplatin;Etoposide,None,Extensive stage
+Melissa,Evans,melissa.evans@email.com,555-0239,1985-01-14,40,Female,960 Aspenspring Ave,McAllen,TX,78501,United States,SAPHO Syndrome,Humira,None,Chronic osteomyelitis
+Larry,Edwards,larry.edwards@email.com,555-0240,1968-04-27,56,Male,171 Sprucedale Drive,Roseville,CA,95678,United States,Hereditary Hemorrhagic Telangiectasia,Iron Infusions,None,HHT with epistaxis
+Kimberly,Collins,kimberly.collins@email.com,555-0241,1977-06-10,47,Female,282 Ashbrook Lane,Kansas City,KS,66101,United States,Chronic Lyme Disease,Doxycycline,Cephalosporins,PTLDS
+Christopher,Stewart,christopher.stewart@email.com,555-0242,1970-09-23,54,Male,393 Hickorydale Street,Vancouver,WA,98660,United States,Castleman Disease,Siltuximab,None,Unicentric CD
+Caroline,Sanchez,caroline.sanchez@email.com,555-0243,1994-11-06,30,Female,504 Walnutmount Court,Gilbert,AZ,85295,United States,Periodic Paralysis,Acetazolamide,Potassium,Hypokalemic type
+Richard,Morris,richard.morris@email.com,555-0244,1963-01-19,62,Male,615 Poplarmount Ave,North Las Vegas,NV,89030,United States,Mycosis Fungoides,PUVA;Bexarotene,None,Stage IB CTCL
+Brittany,Rogers,brittany.rogers@email.com,555-0245,1987-03-04,38,Female,726 Cherrylake Drive,Chesapeake,VA,23320,United States,Chronic Recurrent Multifocal Osteomyelitis,NSAIDs,None,CRMO pediatric onset
+Joseph,Reed,joseph.reed@email.com,555-0246,1972-06-17,52,Male,837 Dogwoodbrook Lane,Irvine,CA,92612,United States,Systemic Mastocytosis,Midostaurin,NSAIDs,ISM with organ involvement
+Sandra,Cook,sandra.cook@email.com,555-0247,1966-08-30,58,Female,948 Sycamorespring Street,Fremont,CA,94538,United States,Adult-Onset Still's Disease,Tocilizumab,None,AOSD with macrophage activation
+Charles,Morgan,charles.morgan@email.com,555-0248,1959-11-12,65,Male,159 Redwoodmount Court,Laredo,TX,78040,United States,Diffuse Large B-Cell Lymphoma,R-CHOP,Rituximab,CR after 6 cycles
+Patricia,Bell,patricia.bell@email.com,555-0249,1981-01-25,44,Female,260 Juniperlake Ave,Winston-Salem,NC,27101,United States,Chronic Vestibular Migraine,Topiramate,Triptans,Daily dizziness
+Thomas,Murphy,thomas.murphy@email.com,555-0250,1975-04-08,49,Male,371 Cypressbrook Drive,Richmond,CA,94801,United States,Neurosarcoidosis,High-dose Prednisone,None,CNS involvement
+Amanda,Bailey,amanda.bailey@email.com,555-0251,1992-06-21,32,Female,482 Palmspring Lane,Mesquite,TX,75149,United States,Chronic Active Hepatitis B,Vemlidy,Interferon,HBeAg negative CHB
+Gary,Rivera,gary.rivera@email.com,555-0252,1965-09-03,59,Male,593 Olivemount Street,Midland,TX,79701,United States,Chronic Lymphocytic Thyroiditis,Levothyroxine,None,Hashimoto's with goiter
+Joyce,Cooper,joyce.cooper@email.com,555-0253,1978-11-16,46,Female,704 Hazelspring Court,Thornton,CO,80229,United States,Lichen Sclerosus,Clobetasol,None,Vulvar LS
+Vincent,Richardson,vincent.richardson@email.com,555-0254,1971-02-28,54,Male,815 Beechdale Ave,Beaumont,TX,77701,United States,Schnitzler Syndrome,Anakinra,None,Monoclonal gammopathy
+Christina,Cox,christina.cox@email.com,555-0255,1984-04-13,40,Female,926 Firbrook Drive,Surprise,AZ,85374,United States,Chronic Anticoagulation,Eliquis,Warfarin,AFib and DVT history
+Jack,Howard,jack.howard@email.com,555-0256,1957-07-26,67,Male,137 Larchmount Lane,Elgin,IL,60120,United States,Granulomatosis with Polyangiitis,Rituximab,None,GPA remission
+Janet,Ward,janet.ward@email.com,555-0257,1990-09-08,34,Female,248 Alderbrook Street,Costa Mesa,CA,92626,United States,Chronic Migraine with Aura,Emgality,Oral Contraceptives,With visual aura
+Terry,Torres,terry.torres@email.com,555-0258,1968-12-21,56,Male,359 Sequoiadale Court,Arvada,CO,80002,United States,Adenocarcinoma of Unknown Primary,Pembrolizumab,None,CUP treatment
+Rose,Peterson,rose.peterson@email.com,555-0259,1983-02-04,42,Female,460 Oakspring Ave,Denton,TX,76201,United States,Chronic Lyme Arthritis,Hydroxychloroquine,Tetracyclines,Post-Lyme syndrome
+Albert,Gray,albert.gray@email.com,555-0260,1961-05-17,63,Male,571 Pinebrook Drive,Topeka,KS,66601,United States,POEMS Syndrome,Lenalidomide,Thalidomide,Polyneuropathy
+Marie,Ramirez,marie.ramirez@email.com,555-0261,1976-07-30,48,Female,682 Cedarlake Lane,Norman,OK,73069,United States,Chronic Pouchitis,Rifaximin,Cipro,Post-colectomy for UC
+Willie,James,willie.james@email.com,555-0262,1969-10-12,55,Male,793 Maplecrest Street,Columbia,SC,29201,United States,Chronic Beryllium Disease,Prednisone,Beryllium,Occupational exposure
+Catherine,Watson,catherine.watson@email.com,555-0263,1995-12-25,29,Female,904 Birchdale Court,Pearland,TX,77581,United States,Interstitial Cystitis;Vulvodynia,Elmiron,None,IC/BPS with vulvodynia
+Howard,Brooks,howard.brooks@email.com,555-0264,1962-03-09,63,Male,115 Willowspring Ave,Murfreesboro,TN,37127,United States,Chronic Aspergillosis,Voriconazole,Amphotericin,CPA with cavitation
+Denise,Kelly,denise.kelly@email.com,555-0265,1980-05-22,44,Female,226 Aspenmount Drive,West Valley City,UT,84120,United States,Chronic Granulomatous Disease Carrier,None,None,X-linked carrier
+Russell,Price,russell.price@email.com,555-0266,1973-08-04,51,Male,337 Sprucecrest Lane,Round Rock,TX,78664,United States,Adult Polyglucosan Body Disease,Physical Therapy,None,APBD with neuropathy
+Teresa,Sanders,teresa.sanders@email.com,555-0267,1986-10-17,38,Female,448 Ashdale Street,New Haven,CT,06510,United States,Chronic Pericarditis,Colchicine;Rilonacept,NSAIDs,Recurrent pericarditis
+Eugene,Bennett,eugene.bennett@email.com,555-0268,1960-01-30,65,Male,559 Hickorybrook Court,West Jordan,UT,84081,United States,Cutaneous T-Cell Lymphoma,Mogamulizumab,None,MF Stage IIB
+Lisa,Wood,lisa.wood@email.com,555-0269,1977-03-15,48,Female,660 Walnutcrest Ave,Green Bay,WI,54301,United States,Chronic Intestinal Pseudo-Obstruction,Erythromycin,None,CIPO with gastroparesis
+Edward,Barnes,edward.barnes@email.com,555-0270,1970-06-28,54,Male,771 Poplardale Drive,Waco,TX,76701,United States,Systemic Light Chain Amyloidosis,Daratumumab,None,AL cardiac involvement
+Ann,Ross,ann.ross@email.com,555-0271,1993-08-11,31,Female,882 Cherrybrook Lane,Sparks,NV,89431,United States,Chronic Urethral Syndrome,Pelvic Floor PT,None,Female urethral syndrome
+Raymond,Henderson,raymond.henderson@email.com,555-0272,1965-11-24,59,Male,993 Dogwooddale Street,South Fulton,GA,30349,United States,Chronic Cholestasis,Ursodiol,None,Intrahepatic cholestasis
+Mildred,Coleman,mildred.coleman@email.com,555-0273,1958-01-07,67,Female,104 Sycamoremount Court,Roanoke,VA,24011,United States,Chronic Mesenteric Ischemia,Stenting,Contrast,Mesenteric artery disease
+Roger,Jenkins,roger.jenkins@email.com,555-0274,1982-04-20,42,Male,215 Redwoodspring Ave,Lakeland,FL,33801,United States,Adult Onset Immunodeficiency,IVIG,None,Anti-IFN-gamma antibodies
+Betty,Perry,betty.perry@email.com,555-0275,1975-06-03,49,Female,326 Juniperbrook Drive,Miramar,FL,33023,United States,Chronic Meningitis,None,Sulfa,Idiopathic chronic meningitis
+Billy,Powell,billy.powell@email.com,555-0276,1968-09-16,56,Male,437 Cypressmount Lane,Las Cruces,NM,88001,United States,Familial Mediterranean Fever,Colchicine,None,Homozygous MEFV
+Gloria,Long,gloria.long@email.com,555-0277,1991-11-29,33,Female,548 Palmlake Street,Lewisville,TX,75029,United States,Chronic Migraine;Medication Overuse Headache,Aimovig,Butalbital,MOH resolved
+Samuel,Patterson,samuel.patterson@email.com,555-0278,1964-02-11,61,Male,659 Olivedale Court,Kenosha,WI,53140,United States,Chronic Neutrophilic Leukemia,Ruxolitinib,None,CNL CSF3R positive
+Dorothy,Hughes,dorothy.hughes@email.com,555-0279,1979-04-24,45,Female,760 Hazelcrest Ave,Beaverton,OR,97005,United States,Chronic Eosinophilic Pneumonia,Prednisone,None,CEP idiopathic
+Fred,Flores,fred.flores@email.com,555-0280,1972-07-07,52,Male,871 Beechspring Drive,Columbia,MO,65201,United States,IgG4-Related Disease,Rituximab,None,Pancreatic IgG4-RD
+Judith,Washington,judith.washington@email.com,555-0281,1985-09-20,39,Female,982 Firdale Lane,Downey,CA,90240,United States,Chronic Graft vs Host Disease,Ruxolitinib,None,Chronic GVHD skin/liver
+Louis,Butler,louis.butler@email.com,555-0282,1967-12-02,57,Male,193 Larchcrest Street,Sandy Springs,GA,30328,United States,Chronic Hypersensitivity Pneumonitis,Nintedanib,Avian,CHP fibrotic
+Diane,Simmons,diane.simmons@email.com,555-0283,1978-01-15,47,Female,304 Aldermount Court,Antioch,CA,94509,United States,Chronic Intestinal Failure,TPN,None,Short bowel syndrome
+Clarence,Foster,clarence.foster@email.com,555-0284,1960-04-28,64,Male,415 Sequoiacrest Ave,San Angelo,TX,76901,United States,Chronic Myelomonocytic Leukemia,Azacitidine,None,CMML-1
+Janice,Gonzales,janice.gonzales@email.com,555-0285,1983-06-11,41,Female,526 Oakdale Drive,Centennial,CO,80112,United States,Chronic Recurrent Uveitis,Humira,Steroids,Panuveitis bilateral
+Harry,Bryant,harry.bryant@email.com,555-0286,1976-08-24,48,Male,637 Pinelake Lane,Odessa,TX,79761,United States,Chronic Renal Failure,Hemodialysis,Iodinated Contrast,ESKD on HD
+Sara,Alexander,sara.alexander@email.com,555-0287,1989-11-06,35,Female,748 Cedarbrook Street,Lowell,MA,01850,United States,Chronic Spontaneous Urticaria;Angioedema,Xolair,ACE Inhibitors,CSU with angioedema
+Frank,Russell,frank.russell@email.com,555-0288,1962-01-19,63,Male,859 Maplespring Court,Temecula,CA,92590,United States,Chronic Thromboembolic Disease,Riociguat,None,CTED without PH
+Elizabeth,Griffin,elizabeth.griffin@email.com,555-0289,1994-03-04,31,Female,960 Birchcrest Ave,High Point,NC,27260,United States,Chronic Vestibular Dysfunction,Vestibular PT,None,Bilateral vestibulopathy
+Carl,Diaz,carl.diaz@email.com,555-0290,1969-06-17,55,Male,171 Willowmount Drive,Richardson,TX,75080,United States,Chronic Wasting Syndrome,Nutritional Support,None,HIV-associated wasting
+Nancy,Hayes,nancy.hayes@email.com,555-0291,1981-08-30,43,Female,282 Aspenbrook Lane,Stamford,CT,06901,United States,Cryoglobulinemia,Rituximab,None,Type II HCV-associated
+Joe,Myers,joe.myers@email.com,555-0292,1974-11-12,50,Male,393 Sprucedale Street,Rochester Hills,MI,48306,United States,Erdheim-Chester Disease,Vemurafenib,None,BRAF-positive ECD
+Linda,Ford,linda.ford@email.com,555-0293,1966-01-25,59,Female,504 Ashcrest Court,Carmel,IN,46032,United States,Evans Syndrome,Rituximab,None,AIHA + ITP
+Anthony,Hamilton,anthony.hamilton@email.com,555-0294,1959-04-08,65,Male,615 Hickorymount Ave,Vacaville,CA,95687,United States,Familial Adenomatous Polyposis,Celecoxib,NSAIDs,Post-colectomy surveillance
+Karen,Graham,karen.graham@email.com,555-0295,1987-06-21,37,Female,726 Walnutdale Drive,Westminster,CO,80030,United States,Familial Hypercholesterolemia,Repatha;Rosuvastatin,Statins (some),Heterozygous FH
+Peter,Sullivan,peter.sullivan@email.com,555-0296,1970-09-03,54,Male,837 Poplarbrook Lane,League City,TX,77573,United States,Familial Pulmonary Fibrosis,Nintedanib,None,TERT mutation carrier
+Mary,Fisher,mary.fisher@email.com,555-0297,1963-11-16,61,Female,948 Cherrymount Street,Davie,FL,33314,United States,Felty Syndrome,Rituximab,None,RA + splenomegaly + neutropenia
+James,Crawford,james.crawford@email.com,555-0298,1956-02-28,69,Male,159 Dogwoodcrest Court,Allen,TX,75002,United States,Follicular Lymphoma,Obinutuzumab,None,Grade 1-2 FL
+Susan,Owens,susan.owens@email.com,555-0299,1978-04-13,46,Female,260 Sycamoredale Ave,Concord,CA,94519,United States,Functional Dyspepsia,Amitriptyline,Prokinetics,Rome IV criteria
+Robert,Kim,robert.kim@email.com,555-0300,1971-07-26,53,Male,371 Redwoodbrook Drive,New Braunfels,TX,78130,United States,Gastric Lymphoma,Rituximab,None,MALT lymphoma H.pylori negative
+Dorothy,Howard,dorothy.howard@email.com,555-0301,1984-09-08,40,Female,482 Juniperdale Lane,Edinburg,TX,78539,United States,Generalized Anxiety Disorder;PTSD,Buspar;Prazosin,SSRIs,Complex PTSD
+John,Ward,john.ward@email.com,555-0302,1967-12-21,57,Male,593 Cypresscrest Street,Visalia,CA,93291,United States,Glioblastoma,Temozolomide,None,GBM IDH wildtype
+Barbara,Torres,barbara.torres@email.com,555-0303,1980-02-04,45,Female,704 Palmbrook Court,Hesperia,CA,92345,United States,Granuloma Annulare,Topical Tacrolimus,None,Generalized GA
+William,Peterson,william.peterson@email.com,555-0304,1973-05-17,51,Male,815 Olivedale Ave,Sioux City,IA,51101,United States,HER2-Positive Breast Cancer,Herceptin,None,Male breast cancer
+Elizabeth,Gray,elizabeth.gray@email.com,555-0305,1996-07-30,28,Female,926 Hazelbrook Drive,Menifee,CA,92584,United States,Hereditary Spastic Paraplegia,Physical Therapy,None,SPG4 mutation
+David,Ramirez,david.ramirez@email.com,555-0306,1961-10-12,63,Male,137 Beechmount Lane,Rio Rancho,NM,87124,United States,Histiocytic Sarcoma,CHOP,None,Aggressive histiocytic neoplasm
+Margaret,James,margaret.james@email.com,555-0307,1974-12-25,50,Female,248 Firdale Street,San Leandro,CA,94577,United States,Hypereosinophilic Syndrome,Mepolizumab,Imatinib,FIP1L1-PDGFRA negative
+Richard,Watson,richard.watson@email.com,555-0308,1957-03-09,68,Male,359 Larchbrook Court,Nampa,ID,83686,United States,Hypertrophic Cardiomyopathy,Mavacamten,Beta Blockers,Obstructive HCM
+Jennifer,Brooks,jennifer.brooks@email.com,555-0309,1990-05-22,34,Female,460 Alderdale Ave,O'Fallon,MO,63366,United States,Hypophosphatasia,Strensiq,None,Adult-onset HPP
+Charles,Kelly,charles.kelly@email.com,555-0310,1965-08-04,59,Male,571 Sequoiamount Drive,Longview,TX,75601,United States,Idiopathic CD4 Lymphocytopenia,Monitoring,Live Vaccines,ICL syndrome
+Michelle,Price,michelle.price@email.com,555-0311,1988-10-17,36,Female,682 Oakbrook Lane,Tracy,CA,95376,United States,Idiopathic Intracranial Hypertension,Diamox,None,IIH with papilledema
+Ronald,Sanders,ronald.sanders@email.com,555-0312,1963-01-30,62,Male,793 Pinecrest Street,Deltona,FL,32725,United States,Idiopathic Membranous Nephropathy,Rituximab,None,PLA2R positive MN
+Laura,Bennett,laura.bennett@email.com,555-0313,1977-03-15,48,Female,904 Cedarspring Court,South Gate,CA,90280,United States,Idiopathic Multicentric Castleman Disease,Siltuximab,None,iMCD TAFRO
+Kevin,Wood,kevin.wood@email.com,555-0314,1970-06-28,54,Male,115 Mapledale Ave,Yorba Linda,CA,92886,United States,Idiopathic Orbital Inflammation,Prednisone,None,Orbital pseudotumor
+Joyce,Barnes,joyce.barnes@email.com,555-0315,1983-08-11,41,Female,226 Birchspring Drive,Redding,CA,96001,United States,Idiopathic Subglottic Stenosis,Serial Dilations,None,iSGS requiring procedures
+Gerald,Ross,gerald.ross@email.com,555-0316,1966-11-24,58,Male,337 Willowcrest Lane,Lawton,OK,73501,United States,IgA Vasculitis,Prednisone,None,Adult HSP with nephritis
+Virginia,Henderson,virginia.henderson@email.com,555-0317,1979-01-07,46,Female,448 Aspenlake Street,Turlock,CA,95380,United States,Immune Thrombocytopenia,Promacta,Rituximab,Chronic ITP
+Phillip,Coleman,phillip.coleman@email.com,555-0318,1972-04-20,52,Male,559 Sprucemount Court,Woodbury,MN,55125,United States,Inflammatory Bowel Disease Unclassified,Entyvio,TNF Inhibitors,IBDU with features of both
+Deborah,Jenkins,deborah.jenkins@email.com,555-0319,1985-06-03,39,Female,660 Ashdale Ave,Chino,CA,91708,United States,Inflammatory Myositis,IVIG;Mycophenolate,None,Antisynthetase syndrome
+Roy,Perry,roy.perry@email.com,555-0320,1958-09-16,66,Male,771 Hickorybrook Drive,San Marcos,CA,92069,United States,Intrahepatic Cholangiocarcinoma,Gem/Cis,None,Locally advanced iCCA
+Brenda,Powell,brenda.powell@email.com,555-0321,1991-11-29,33,Female,882 Walnutspring Lane,Deerfield Beach,FL,33441,United States,Iron-Refractory Iron Deficiency Anemia,IV Iron,Oral Iron,IRIDA syndrome
+Randy,Long,randy.long@email.com,555-0322,1964-02-11,61,Male,993 Poplardale Street,Citrus Heights,CA,95610,United States,Isolated CNS Vasculitis,Cyclophosphamide,None,PACNS
+Angela,Patterson,angela.patterson@email.com,555-0323,1977-04-24,47,Female,104 Cherryspring Court,Greenville,NC,27834,United States,Junctional Epidermolysis Bullosa,Wound Care,None,JEB mild phenotype
+Donald,Hughes,donald.hughes@email.com,555-0324,1970-07-07,54,Male,215 Dogwoodlake Ave,State College,PA,16801,United States,Juvenile Polyposis Syndrome,Surveillance Colonoscopy,None,SMAD4 mutation
+Diana,Flores,diana.flores@email.com,555-0325,1993-09-20,31,Female,326 Sycamorebrook Drive,Hillsboro,OR,97123,United States,Langerhans Cell Histiocytosis,Cytarabine,None,Multisystem LCH
+Raymond,Washington,raymond.washington@email.com,555-0326,1966-12-02,58,Male,437 Redwooddale Lane,Apple Valley,CA,92307,United States,Large Granular Lymphocyte Leukemia,Methotrexate,None,T-LGL leukemia
+Sharon,Butler,sharon.butler@email.com,555-0327,1989-01-15,36,Female,548 Junipermount Street,Sugar Land,TX,77478,United States,Late-Onset Pompe Disease,Lumizyme,None,Adult Pompe disease
+Joe,Simmons,joe.simmons@email.com,555-0328,1962-04-28,62,Male,659 Cypressdale Court,St. Charles,MO,63301,United States,Leptomeningeal Carcinomatosis,Intrathecal Chemotherapy,None,Breast cancer primary
+Carol,Foster,carol.foster@email.com,555-0329,1975-06-11,49,Female,760 Palmcrest Ave,St. George,UT,84770,United States,Lichen Planopilaris,Plaquenil,None,Scarring alopecia
+Eugene,Gonzales,eugene.gonzales@email.com,555-0330,1968-08-24,56,Male,871 Olivemount Drive,Oshkosh,WI,54901,United States,Liver Metastases,FOLFIRI,5-FU,Colorectal primary
+Debra,Bryant,debra.bryant@email.com,555-0331,1981-10-06,43,Female,982 Hazeldale Lane,Madera,CA,93637,United States,Localized Scleroderma,Methotrexate,None,Morphea profunda
+Larry,Alexander,larry.alexander@email.com,555-0332,1974-01-19,51,Male,193 Beechcrest Street,Mansfield,TX,76063,United States,Low-Grade Glioma,Temozolomide,None,Astrocytoma IDH mutant
+Kathleen,Russell,kathleen.russell@email.com,555-0333,1967-03-04,58,Female,304 Fircrest Court,Federal Way,WA,98003,United States,Lupus Anticoagulant Syndrome,Aspirin,Warfarin,LA positive no events
+Matthew,Griffin,matthew.griffin@email.com,555-0334,1960-06-17,64,Male,415 Larchdale Ave,Napa,CA,94558,United States,Lynch Syndrome,Surveillance,Aspirin,MSH2 mutation carrier
+Ruth,Diaz,ruth.diaz@email.com,555-0335,1983-08-30,41,Female,526 Alderbrook Drive,Redlands,CA,92373,United States,Lymphangioleiomyomatosis,Sirolimus,None,Sporadic LAM
+Patrick,Hayes,patrick.hayes@email.com,555-0336,1976-11-12,48,Male,637 Sequoiaspring Lane,Bryan,TX,77801,United States,Lymphocytic Colitis,Budesonide,None,Microscopic colitis
+Sandra,Myers,sandra.myers@email.com,555-0337,1969-01-25,56,Female,748 Oakdale Street,Lake Elsinore,CA,92530,United States,Lymphomatoid Granulomatosis,R-CHOP,None,LYG Grade 3
+Vincent,Ford,vincent.ford@email.com,555-0338,1962-04-08,62,Male,859 Pinespring Court,Taylorsville,UT,84123,United States,Malignant Pleural Effusion,PleurX,None,Lung cancer primary
+Tammy,Hamilton,tammy.hamilton@email.com,555-0339,1985-06-21,39,Female,960 Cedardale Ave,Dublin,CA,94568,United States,Marfan Syndrome,Losartan,None,FBN1 mutation
+Howard,Graham,howard.graham@email.com,555-0340,1978-09-03,46,Male,171 Maplecrest Drive,Carson,CA,90745,United States,MELAS Syndrome,Supplements,None,Mitochondrial disease
+Frances,Sullivan,frances.sullivan@email.com,555-0341,1971-11-16,53,Female,282 Birchdale Lane,Conroe,TX,77301,United States,Membranoproliferative Glomerulonephritis,Eculizumab,None,C3 glomerulopathy
+Russell,Fisher,russell.fisher@email.com,555-0342,1964-01-28,61,Male,393 Willowdale Street,Lake Forest,CA,92630,United States,Merkel Cell Carcinoma,Avelumab,None,MCC Stage III
+Helen,Crawford,helen.crawford@email.com,555-0343,1987-04-13,37,Female,504 Aspenspring Court,San Clemente,CA,92672,United States,Microscopic Polyangiitis,Rituximab,None,MPO-ANCA positive
+Henry,Owens,henry.owens@email.com,555-0344,1960-06-26,64,Male,615 Sprucecrest Ave,Harrisonburg,VA,22801,United States,Mild Cognitive Impairment,Aduhelm,None,Amnestic MCI
+Cheryl,Kim,cheryl.kim@email.com,555-0345,1983-08-08,41,Female,726 Ashbrook Drive,Bend,OR,97701,United States,Mixed Phenotype Acute Leukemia,Intensive Chemo,None,MPAL B/myeloid
+Bobby,Howard,bobby.howard@email.com,555-0346,1976-11-21,48,Male,837 Hickorymount Lane,Pharr,TX,78577,United States,Monoclonal B-Cell Lymphocytosis,Surveillance,None,High-count MBL
+Joyce,Ward,joyce.ward@email.com,555-0347,1969-01-04,56,Female,948 Walnutdale Street,Battle Creek,MI,49015,United States,Morphea Profunda,Methotrexate,None,Deep morphea
+Willie,Torres,willie.torres@email.com,555-0348,1962-04-17,62,Male,159 Poplarmount Court,Longmont,CO,80501,United States,Mucinous Adenocarcinoma,FOLFOX,5-FU,Appendiceal primary
+Janet,Peterson,janet.peterson@email.com,555-0349,1985-06-30,39,Female,260 Cherrycrest Ave,Germantown,MD,20874,United States,Multicentric Reticulohistiocytosis,Methotrexate,None,MRH with polyarthritis
+Carl,Gray,carl.gray@email.com,555-0350,1958-09-12,66,Male,371 Dogwooddale Drive,White Plains,NY,10601,United States,Multiple Endocrine Neoplasia Type 2,Vandetanib,None,MEN2A RET mutation
+Marie,Ramirez,marie.ramirez@email.com,555-0351,1991-11-25,33,Female,482 Sycamoredale Lane,Lodi,CA,95240,United States,Multiple System Atrophy,Droxidopa,None,MSA-P subtype
+Frank,James,frank.james@email.com,555-0352,1974-02-08,51,Male,593 Redwoodspring Street,Hattiesburg,MS,39401,United States,Myelofibrosis with Myeloid Metaplasia,Jakafi,None,MF intermediate-2
+Judith,Watson,judith.watson@email.com,555-0353,1967-04-21,57,Female,704 Junipercrest Court,North Richland Hills,TX,76180,United States,Myxedema Coma,Levothyroxine IV,Iodine,Severe hypothyroidism
+Steve,Brooks,steve.brooks@email.com,555-0354,1960-07-04,64,Male,815 Cypressspring Ave,Rock Hill,SC,29730,United States,Necrotizing Fasciitis Survivor,Physical Therapy,None,Post-NF rehabilitation
+Norma,Kelly,norma.kelly@email.com,555-0355,1983-09-17,41,Female,926 Palmdale Drive,Evansville,IN,47701,United States,Neonatal Lupus History,Monitoring,None,Anti-Ro positive mother
+Timothy,Price,timothy.price@email.com,555-0356,1976-12-30,48,Male,137 Olivebrook Lane,Bismarck,ND,58501,United States,Nephrogenic Systemic Fibrosis,Supportive Care,Gadolinium,NSF post-MRI
+Joan,Sanders,joan.sanders@email.com,555-0357,1969-02-12,56,Female,248 Hazelmount Street,Flagstaff,AZ,86001,United States,Neurofibromatosis Type 1,Selumetinib,None,NF1 with plexiform
+Gary,Bennett,gary.bennett@email.com,555-0358,1962-05-25,62,Male,359 Beechdale Court,Hanford,CA,93230,United States,Neurogenic Bladder,Self-Catheterization,None,Spinal cord injury
+Lillian,Wood,lillian.wood@email.com,555-0359,1985-07-08,39,Female,460 Fircrest Ave,Prescott,AZ,86301,United States,Neuromyelitis Optica Spectrum Disorder,Enspryng,None,AQP4-IgG positive
+Edward,Barnes,edward.barnes@email.com,555-0360,1978-10-21,46,Male,571 Larchspring Drive,San Rafael,CA,94901,United States,Nonalcoholic Steatohepatitis,Resmetirom,None,NASH F3 fibrosis
+Tamara,Ross,tamara.ross@email.com,555-0361,1971-12-04,53,Female,682 Alderdale Lane,Rocklin,CA,95677,United States,Ocular Cicatricial Pemphigoid,Rituximab,None,OCP with symblepharon
+Jimmy,Henderson,jimmy.henderson@email.com,555-0362,1964-03-17,61,Male,793 Sequoiamount Street,Jonesboro,AR,72401,United States,Oculopharyngeal Muscular Dystrophy,Speech Therapy,None,OPMD with dysphagia
+Gloria,Coleman,gloria.coleman@email.com,555-0363,1987-05-30,37,Female,904 Oakspring Court,Valdosta,GA,31601,United States,Optic Neuritis,IV Methylprednisolone,None,Isolated ON
+Jack,Jenkins,jack.jenkins@email.com,555-0364,1980-08-12,44,Male,115 Pinedale Ave,Gainesville,FL,32601,United States,Orbital Cellulitis Sequela,None,Penicillin,Post-infection monitoring
+Heather,Perry,heather.perry@email.com,555-0365,1973-10-25,51,Female,226 Cedarbrook Drive,Kennewick,WA,99336,United States,Osmotic Demyelination Syndrome,Rehabilitation,None,Central pontine myelinolysis
+Matthew,Powell,matthew.powell@email.com,555-0366,1966-01-07,59,Male,337 Maplespring Lane,Yuma,AZ,85364,United States,Osteonecrosis of the Jaw,Dental Surgery,Bisphosphonates,BRONJ history
+Betty,Long,betty.long@email.com,555-0367,1979-03-22,46,Female,448 Birchcrest Street,Lynchburg,VA,24501,United States,Ovarian Hyperstimulation Syndrome History,None,Gonadotropins,Post-IVF OHSS
+Ralph,Patterson,ralph.patterson@email.com,555-0368,1972-06-05,52,Male,559 Willowbrook Court,Boynton Beach,FL,33426,United States,Paget Disease of Bone,Reclast,None,Polyostotic Paget's
+Kathryn,Hughes,kathryn.hughes@email.com,555-0369,1985-08-18,39,Female,660 Aspendale Ave,Yakima,WA,98901,United States,Palindromic Rheumatism,Plaquenil,NSAIDs,RA precursor
+Jerry,Flores,jerry.flores@email.com,555-0370,1978-11-01,46,Male,771 Sprucecrest Drive,Delray Beach,FL,33444,United States,Pancreatic Cystic Neoplasm,Surveillance,None,IPMN main duct
+Virginia,Washington,virginia.washington@email.com,555-0371,1971-01-14,54,Female,882 Ashspring Lane,Springdale,AR,72762,United States,Panhypopituitarism,HRT,None,Post-pituitary surgery
+Samuel,Butler,samuel.butler@email.com,555-0372,1964-04-27,60,Male,993 Hickorydale Street,Coeur d'Alene,ID,83814,United States,Papillary Thyroid Cancer,Levothyroxine Suppression,RAI,PTC post-thyroidectomy
+Mildred,Simmons,mildred.simmons@email.com,555-0373,1987-06-10,37,Female,104 Walnutbrook Court,Mission Viejo,CA,92691,United States,Paroxysmal Nocturnal Hemoglobinuria,Ultomiris,None,PNH clone 85%
+Craig,Foster,craig.foster@email.com,555-0374,1980-09-23,44,Male,215 Poplarcrest Ave,Warwick,RI,02886,United States,Parsonage-Turner Syndrome,Physical Therapy,None,Brachial neuritis
+Louise,Gonzales,louise.gonzales@email.com,555-0375,1973-11-06,51,Female,326 Cherrydale Drive,Reno,NV,89501,United States,Pemphigoid Gestationis History,Monitoring,None,History in prior pregnancy
+Terry,Bryant,terry.bryant@email.com,555-0376,1966-02-19,59,Male,437 Dogwoodmount Lane,Wilmington,NC,28401,United States,Penile Cancer,Partial Penectomy,None,HPV-related SCC
+Rose,Alexander,rose.alexander@email.com,555-0377,1989-04-04,35,Female,548 Sycamorespring Street,Chico,CA,95926,United States,Perimenopausal Symptoms,HRT,None,Early perimenopause
+Howard,Russell,howard.russell@email.com,555-0378,1982-07-17,42,Male,659 Redwoodcrest Court,Roswell,GA,30076,United States,Peritoneal Carcinomatosis,HIPEC,None,Appendiceal mucinous neoplasm
+Phyllis,Griffin,phyllis.griffin@email.com,555-0379,1975-09-30,49,Female,760 Junipermount Ave,Alhambra,CA,91801,United States,Pernicious Anemia,B12 Injections,None,Autoimmune gastritis
+Randy,Diaz,randy.diaz@email.com,555-0380,1968-12-12,56,Male,871 Cypressdale Drive,Champaign,IL,61820,United States,Peyronie's Disease,Xiaflex,None,Penile curvature
+Donna,Hayes,donna.hayes@email.com,555-0381,1991-01-25,34,Female,982 Palmbrook Lane,Bloomington,MN,55420,United States,Phobic Disorders,CBT;Buspar,SSRIs,Social anxiety
+Earl,Myers,earl.myers@email.com,555-0382,1984-04-08,40,Male,193 Olivedale Street,Lawrence,KS,66044,United States,Pilonidal Disease,Surgery,None,Recurrent pilonidal cyst
+Evelyn,Ford,evelyn.ford@email.com,555-0383,1977-06-21,47,Female,304 Hazelmount Court,Milpitas,CA,95035,United States,Pituitary Adenoma,Cabergoline,None,Prolactinoma
+Jesse,Hamilton,jesse.hamilton@email.com,555-0384,1970-09-03,54,Male,415 Beechbrook Ave,Danbury,CT,06810,United States,Plasma Cell Neoplasm,Daratumumab,None,Plasmacytoma
+Wanda,Graham,wanda.graham@email.com,555-0385,1983-11-16,41,Female,526 Firdale Drive,Manteca,CA,95336,United States,Pleuropulmonary Blastoma Survivor,Surveillance,None,PPB in childhood
+Bruce,Sullivan,bruce.sullivan@email.com,555-0386,1976-01-29,49,Male,637 Larchcrest Lane,Rogers,AR,72756,United States,Plummer-Vinson Syndrome,Iron Infusions,None,PVS with dysphagia
+Shirley,Fisher,shirley.fisher@email.com,555-0387,1969-04-13,55,Female,748 Aldermount Street,Upland,CA,91786,United States,POEMS Syndrome,Lenalidomide,Thalidomide,Polyneuropathy dominant
+Albert,Crawford,albert.crawford@email.com,555-0388,1962-06-26,62,Male,859 Sequoiaspring Court,Moore,OK,73160,United States,Polycystic Liver Disease,Lanreotide,None,Isolated PLD
+Martha,Owens,martha.owens@email.com,555-0389,1985-09-08,39,Female,960 Oakdale Ave,Renton,WA,98055,United States,Polycystic Ovary Syndrome;Insulin Resistance,Metformin;Spironolactone,None,PCOS with metabolic syndrome
+Adam,Kim,adam.kim@email.com,555-0390,1978-11-21,46,Male,171 Pinebrook Drive,Schenectady,NY,12301,United States,Polymorphous Light Eruption,Photoprotection,None,PMLE severe
+Janice,Howard,janice.howard@email.com,555-0391,1971-02-04,54,Female,282 Cedarspring Lane,Medford,OR,97501,United States,Post-COVID Syndrome,Rehabilitation,None,Long COVID fatigue
+Richard,Ward,richard.ward@email.com,555-0392,1964-04-17,60,Male,393 Maplecrest Street,Sarasota,FL,34230,United States,Post-Transplant Lymphoproliferative Disorder,Rituximab,None,PTLD post-kidney
+Jacqueline,Torres,jacqueline.torres@email.com,555-0393,1987-06-30,37,Female,504 Birchdale Court,Kenner,LA,70062,United States,Postpartum Thyroiditis,Monitoring,None,Hypothyroid phase
+Dennis,Peterson,dennis.peterson@email.com,555-0394,1980-09-12,44,Male,615 Willowmount Ave,Idaho Falls,ID,83401,United States,Postherpetic Neuralgia,Lyrica,Gabapentin,PHN post-shingles
+Catherine,Gray,catherine.gray@email.com,555-0395,1973-11-25,51,Female,726 Aspencrest Drive,Apple Valley,MN,55124,United States,Potter Syndrome Survivor,None,None,Born with Potter's
+Louis,Ramirez,louis.ramirez@email.com,555-0396,1966-02-08,59,Male,837 Sprucedale Lane,Quincy,MA,02169,United States,Primary Aldosteronism,Eplerenone,None,Bilateral adrenal hyperplasia
+Theresa,James,theresa.james@email.com,555-0397,1989-04-21,35,Female,948 Ashcrest Street,Porterville,CA,93257,United States,Primary Amenorrhea,HRT,None,Turner syndrome mosaic
+Harry,Watson,harry.watson@email.com,555-0398,1982-07-04,42,Male,159 Hickoryspring Court,Hammond,IN,46320,United States,Primary Angiitis of the CNS,Cyclophosphamide,None,PACNS biopsy-proven
+Carolyn,Brooks,carolyn.brooks@email.com,555-0399,1975-09-17,49,Female,260 Walnutmount Ave,Hoover,AL,35244,United States,Primary Biliary Cholangitis;Sjogren's,Ursodiol;Pilocarpine,None,PBC-AIH overlap
+Joe,Kelly,joe.kelly@email.com,555-0400,1968-12-30,56,Male,371 Poplarmount Drive,Eau Claire,WI,54701,United States,Primary CNS Lymphoma,High-dose MTX,Steroids,PCNSL CR
+Bonnie,Price,bonnie.price@email.com,555-0401,1991-02-12,34,Female,482 Cherrymount Lane,El Cajon,CA,92020,United States,Primary Hyperaldosteronism,Spironolactone,None,Conn syndrome
+Chris,Sanders,chris.sanders@email.com,555-0402,1984-05-25,40,Male,593 Dogwoodcrest Street,Cranston,RI,02910,United States,Primary Hyperoxaluria,Lumasiran,Vitamin C,PH1 AGXT mutation
+Jean,Bennett,jean.bennett@email.com,555-0403,1977-08-08,47,Female,704 Sycamorebrook Court,Westminster,CA,92683,United States,Primary Lateral Sclerosis,Physical Therapy,None,PLS upper motor neuron
+Harold,Wood,harold.wood@email.com,555-0404,1970-10-21,54,Male,815 Redwooddale Ave,Livermore,CA,94550,United States,Primary Mediastinal B-Cell Lymphoma,DA-EPOCH-R,None,PMBCL young adult
+Marilyn,Barnes,marilyn.barnes@email.com,555-0405,1983-01-04,42,Female,926 Juniperlake Drive,Carlsbad,CA,92008,United States,Primary Membranous Nephropathy,Rituximab,None,PLA2R-positive MN
+Johnny,Ross,johnny.ross@email.com,555-0406,1976-03-17,49,Male,137 Cypresscrest Lane,Greenwood,IN,46142,United States,Primary Sclerosing Cholangitis;Ulcerative Colitis,Ursodiol,None,PSC-IBD
+Anne,Henderson,anne.henderson@email.com,555-0407,1969-05-30,55,Female,248 Palmspring Street,Bellingham,WA,98225,United States,Primary Sjogren Syndrome,Rituximab,NSAIDs,SS with neuropathy
+Russell,Coleman,russell.coleman@email.com,555-0408,1962-08-12,62,Male,359 Olivemount Court,Shawnee,KS,66203,United States,Progressive Multifocal Leukoencephalopathy Survivor,Monitoring,None,PML post-immunosuppression
+Kathy,Jenkins,kathy.jenkins@email.com,555-0409,1985-10-25,39,Female,460 Hazeldale Ave,Harlingen,TX,78550,United States,Progressive Supranuclear Palsy,Levodopa,None,PSP-RS
+Andrew,Perry,andrew.perry@email.com,555-0410,1978-01-07,47,Male,571 Beechcrest Drive,Montebello,CA,90640,United States,Prostate Cancer Active Surveillance,PSA Monitoring,None,Gleason 6 AS
+Stephanie,Powell,stephanie.powell@email.com,555-0411,1971-03-22,54,Female,682 Firspring Lane,Pawtucket,RI,02860,United States,Protein-Losing Enteropathy,Octreotide,None,PLE intestinal lymphangiectasia
+Jesse,Long,jesse.long@email.com,555-0412,1964-06-05,60,Male,793 Larchlake Street,Beaumont,CA,92223,United States,Pseudogout,Colchicine,NSAIDs,CPPD disease
+Sharon,Patterson,sharon.patterson@email.com,555-0413,1987-08-18,37,Female,904 Aldercrest Court,Rowlett,TX,75088,United States,Pseudomyxoma Peritonei,HIPEC,None,Appendiceal mucinous neoplasm
+Keith,Hughes,keith.hughes@email.com,555-0414,1980-11-01,44,Male,115 Sequoiadale Ave,Grand Junction,CO,81501,United States,Pseudotumor Cerebri,Diamox,None,IIH with headache
+Frances,Flores,frances.flores@email.com,555-0415,1973-01-14,52,Female,226 Oakbrook Drive,Rosemead,CA,91770,United States,Psoriatic Arthritis,Taltz,Methotrexate,PsA axial involvement
+Ernest,Washington,ernest.washington@email.com,555-0416,1966-04-27,58,Male,337 Pinespring Lane,Johns Creek,GA,30097,United States,Pulmonary Alveolar Proteinosis,Whole Lung Lavage,None,Autoimmune PAP
+Ruby,Butler,ruby.butler@email.com,555-0417,1989-06-10,35,Female,448 Cedardale Street,Castle Rock,CO,80104,United States,Pulmonary Embolism History,Eliquis,Warfarin,Provoked PE resolved
+Benjamin,Simmons,benjamin.simmons@email.com,555-0418,1982-09-23,42,Male,559 Maplemount Court,Palm Coast,FL,32137,United States,Pulmonary Hypertension Group 3,Oxygen,None,PH due to lung disease
+Christina,Foster,christina.foster@email.com,555-0419,1975-11-06,49,Female,660 Birchspring Ave,Davenport,IA,52801,United States,Pure Red Cell Aplasia,Cyclosporine,None,Acquired PRCA
+Wayne,Gonzales,wayne.gonzales@email.com,555-0420,1968-02-19,57,Male,771 Willowdale Drive,St. Joseph,MO,64501,United States,Pyoderma Gangrenosum,Humira,None,PG with IBD
+Evelyn,Bryant,evelyn.bryant@email.com,555-0421,1991-04-04,33,Female,882 Aspenbrook Lane,Mount Pleasant,SC,29464,United States,Pyruvate Kinase Deficiency,Mitapivat,Blood Transfusions,PK deficiency moderate
+Justin,Alexander,justin.alexander@email.com,555-0422,1984-07-17,40,Male,993 Sprucemount Street,Kannapolis,NC,28081,United States,Q Fever Chronic,Doxycycline,None,Chronic Q fever endocarditis
+Sara,Russell,sara.russell@email.com,555-0423,1977-09-30,47,Female,104 Ashdale Court,Lakewood,NJ,08701,United States,Radiation Fibrosis Syndrome,Physical Therapy,None,Post-breast radiation
+Martin,Griffin,martin.griffin@email.com,555-0424,1970-12-12,54,Male,215 Hickorylake Ave,League City,TX,77573,United States,Radiation-Induced Brachial Plexopathy,Pain Management,None,Post-radiation injury
+Denise,Diaz,denise.diaz@email.com,555-0425,1983-01-25,42,Female,326 Walnutspring Drive,Flower Mound,TX,75028,United States,Ramsay Hunt Syndrome,Antivirals,None,Post-herpes zoster
+Philip,Hayes,philip.hayes@email.com,555-0426,1976-04-08,48,Male,437 Poplardale Lane,Newnan,GA,30263,United States,Reactive Arthritis,NSAIDs,None,Post-infectious ReA
+Michelle,Myers,michelle.myers@email.com,555-0427,1969-06-21,55,Female,548 Cherrybrook Street,Fountain Valley,CA,92708,United States,Rectal Cancer,Chemoradiation,None,Locally advanced rectal
+Edward,Ford,edward.ford@email.com,555-0428,1962-09-03,62,Male,659 Dogwoodspring Court,Sumter,SC,29150,United States,Recurrent C. Difficile Infection,FMT,Fluoroquinolones,Multiple CDI episodes
+Judy,Hamilton,judy.hamilton@email.com,555-0429,1985-11-16,39,Female,760 Sycamorelake Ave,Hendersonville,TN,37075,United States,Recurrent Miscarriage,Progesterone,None,3+ losses workup
+Brian,Graham,brian.graham@email.com,555-0430,1978-01-29,47,Male,871 Redwoodbrook Drive,Buckeye,AZ,85326,United States,Recurrent Pericarditis,Rilonacept,Colchicine,Colchicine-resistant
+Natalie,Sullivan,natalie.sullivan@email.com,555-0431,1971-04-13,53,Female,982 Juniperdaleale Lane,La Habra,CA,90631,United States,Recurrent Pregnancy Loss,LDA;Progesterone,None,Antiphospholipid
+Kenneth,Fisher,kenneth.fisher@email.com,555-0432,1964-06-26,60,Male,193 Cypressmount Street,Santee,CA,92071,United States,Recurrent Respiratory Papillomatosis,Surgical Debulking,None,RRP adult-onset
+Diane,Crawford,diane.crawford@email.com,555-0433,1987-09-08,37,Female,304 Palmcrest Court,Goose Creek,SC,29445,United States,Reflex Sympathetic Dystrophy,Ketamine Infusions,None,CRPS Type I
+Larry,Owens,larry.owens@email.com,555-0434,1980-11-21,44,Male,415 Olivespring Ave,Twin Falls,ID,83301,United States,Refractory Angina,Ranolazine,Nitrates,Despite optimal therapy
+Angela,Kim,angela.kim@email.com,555-0435,1973-02-04,52,Female,526 Hazelbrook Drive,Port Arthur,TX,77640,United States,Refractory Celiac Disease,Steroids,Gluten,Type II RCD
+Gregory,Howard,gregory.howard@email.com,555-0436,1966-04-17,58,Male,637 Beechdale Lane,Pasco,WA,99301,United States,Refractory Cytopenia,Cyclosporine,None,RCMD MDS
+Katherine,Ward,katherine.ward@email.com,555-0437,1989-06-30,35,Female,748 Fircrest Street,Petaluma,CA,94952,United States,Refractory Epilepsy,VNS;Briviact,Multiple AEDs,Drug-resistant epilepsy
+Vincent,Torres,vincent.torres@email.com,555-0438,1982-09-12,42,Male,859 Larchdale Court,Parker,CO,80134,United States,Refractory Gout,Pegloticase,Allopurinol,Crystal-proven gout
+Carolyn,Peterson,carolyn.peterson@email.com,555-0439,1975-11-25,49,Female,960 Alderspring Ave,Casper,WY,82601,United States,Relapsing Polychondritis,Tocilizumab,None,RP with airway involvement
+Gerald,Gray,gerald.gray@email.com,555-0440,1968-02-08,57,Male,171 Sequoiabrook Drive,Hackensack,NJ,07601,United States,Renal Artery Stenosis,Stenting,None,Bilateral RAS
+Joyce,Ramirez,joyce.ramirez@email.com,555-0441,1991-04-21,33,Female,282 Oakmount Lane,East Orange,NJ,07017,United States,Resistant Hypertension,Spironolactone,ACE-I,On 4+ agents
+Andrew,James,andrew.james@email.com,555-0442,1984-07-04,40,Male,393 Pinemount Street,Marana,AZ,85653,United States,Restrictive Cardiomyopathy,Diuretics,None,RCM amyloid negative
+Helen,Watson,helen.watson@email.com,555-0443,1977-09-17,47,Female,504 Cedarbrook Court,Haltom City,TX,76117,United States,Retinitis Pigmentosa,Supplements,None,RP with tunnel vision
+Steve,Brooks,steve.brooks@email.com,555-0444,1970-12-30,54,Male,615 Maplelake Ave,La Mesa,CA,91941,United States,Retroperitoneal Fibrosis,Tamoxifen,None,Idiopathic RPF
+Marion,Kelly,marion.kelly@email.com,555-0445,1983-02-12,42,Female,726 Birchmount Drive,Plainfield,IL,60585,United States,Rett Syndrome Carrier,Monitoring,None,MECP2 carrier
+Paul,Price,paul.price@email.com,555-0446,1976-05-25,48,Male,837 Willowspring Lane,Perris,CA,92571,United States,Rhabdomyosarcoma Adult,VAC Chemotherapy,None,Alveolar RMS
+Frances,Sanders,frances.sanders@email.com,555-0447,1969-08-08,55,Female,948 Aspendale Street,San Jacinto,CA,92583,United States,Rheumatic Heart Disease,Warfarin,None,Mitral stenosis
+Raymond,Bennett,raymond.bennett@email.com,555-0448,1962-10-21,62,Male,159 Sprucecrest Court,Anderson,SC,29621,United States,Richter Transformation,R-EPOCH,None,CLL to DLBCL
+Nancy,Wood,nancy.wood@email.com,555-0449,1985-01-04,40,Female,260 Ashbrook Ave,Woodstock,GA,30188,United States,Rosai-Dorfman Disease,Sirolimus,None,Sinus histiocytosis
+Fred,Barnes,fred.barnes@email.com,555-0450,1978-03-17,47,Male,371 Hickorymount Drive,Kokomo,IN,46901,United States,Sarcoid Cardiomyopathy,Methotrexate;ICD,None,Cardiac sarcoidosis
+Irene,Ross,irene.ross@email.com,555-0451,1971-05-30,53,Female,482 Walnutbrook Lane,Wellington,FL,33414,United States,Sarcoidosis Multisystem,Methotrexate,None,Pulmonary and skin
+Kenneth,Henderson,kenneth.henderson@email.com,555-0452,1964-08-12,60,Male,593 Poplarspring Street,Yorba Linda,CA,92886,United States,Schnitzler Syndrome,Canakinumab,Anakinra,Urticarial vasculitis
+Rose,Coleman,rose.coleman@email.com,555-0453,1987-10-25,37,Female,704 Cherrydale Court,San Ramon,CA,94582,United States,Scleroderma Renal Crisis,ACE Inhibitors,None,SRC survivor
+Bobby,Jenkins,bobby.jenkins@email.com,555-0454,1980-01-07,45,Male,815 Dogwooddale Ave,Lehi,UT,84043,United States,Secondary Adrenal Insufficiency,Hydrocortisone,None,Post-pituitary surgery
+Annie,Perry,annie.perry@email.com,555-0455,1973-03-22,52,Female,926 Sycamorecrest Drive,Galveston,TX,77550,United States,Secondary Progressive MS,Ocrevus,None,SPMS active
+Carl,Powell,carl.powell@email.com,555-0456,1966-06-05,58,Male,137 Redwoodspring Lane,Menomonie,WI,54751,United States,Seminoma,Surveillance,None,Stage I post-orchiectomy
+Ellen,Long,ellen.long@email.com,555-0457,1989-08-18,35,Female,248 Junipercrest Street,Goodyear,AZ,85338,United States,Severe Aplastic Anemia,ATG/Cyclosporine,None,SAA responding
+Harold,Patterson,harold.patterson@email.com,555-0458,1982-11-01,42,Male,359 Cypressdale Court,Westfield,IN,46074,United States,Severe Asthma,Dupixent;Prednisone,Aspirin,Type 2 severe asthma
+Irma,Hughes,irma.hughes@email.com,555-0459,1975-01-14,50,Female,460 Palmdale Ave,Midland,MI,48640,United States,Severe Combined Immunodeficiency Carrier,Monitoring,None,SCID carrier X-linked
+Sean,Flores,sean.flores@email.com,555-0460,1968-04-27,56,Male,571 Olivebrook Drive,Prescott Valley,AZ,86314,United States,Short Bowel Syndrome,TPN,None,Post-surgical SBS
+Theresa,Washington,theresa.washington@email.com,555-0461,1991-06-10,33,Female,682 Hazelmount Lane,North Port,FL,34286,United States,Shy-Drager Syndrome,Droxidopa,None,MSA-A subtype
+Adam,Butler,adam.butler@email.com,555-0462,1984-09-23,40,Male,793 Beechlake Street,Baytown,TX,77520,United States,Sickle Cell Trait,None,Dehydration,SCT counseling
+Pamela,Simmons,pamela.simmons@email.com,555-0463,1977-11-06,47,Female,904 Firlake Court,Revere,MA,02151,United States,Sigmoid Volvulus History,None,None,Post-surgical
+Brandon,Foster,brandon.foster@email.com,555-0464,1970-02-19,55,Male,115 Larchdaleave Ave,Middletown,OH,45042,United States,Silent Thyroiditis,Monitoring,None,Transient thyroiditis
+Louise,Gonzales,louise.gonzales@email.com,555-0465,1983-04-04,41,Female,226 Alderbrook Drive,West Des Moines,IA,50265,United States,Sinus Tarsi Syndrome,Physical Therapy,None,Chronic ankle instability
+Russell,Bryant,russell.bryant@email.com,555-0466,1976-07-17,48,Male,337 Sequoiamount Lane,Franklin,TN,37064,United States,Sjogren Syndrome;Lymphoma Risk,Rituximab,None,SS high lymphoma risk
+Teresa,Alexander,teresa.alexander@email.com,555-0467,1969-09-30,55,Female,448 Oakspring Street,Rancho Cordova,CA,95670,United States,Skin Cancer Survivor,Surveillance,None,Multiple BCCs
+Donald,Russell,donald.russell@email.com,555-0468,1962-12-12,62,Male,559 Pinedale Court,Lake Charles,LA,70601,United States,Sleep Disorders,CPAP;Trazodone,None,OSA + insomnia
+Maria,Griffin,maria.griffin@email.com,555-0469,1985-01-25,40,Female,660 Cedarlake Ave,Peoria,IL,61602,United States,Slow Transit Constipation,Linzess,None,Colonic inertia
+Roy,Diaz,roy.diaz@email.com,555-0470,1978-04-08,46,Male,771 Maplebrook Drive,Dothan,AL,36301,United States,Small Bowel Adenocarcinoma,FOLFOX,None,Duodenal primary
+Beverly,Hayes,beverly.hayes@email.com,555-0471,1971-06-21,53,Female,882 Birchcrest Lane,Suffolk,VA,23434,United States,Small Fiber Neuropathy,Gabapentin,None,SFN idiopathic
+Jose,Myers,jose.myers@email.com,555-0472,1964-09-03,60,Male,993 Willowbrook Street,Colton,CA,92324,United States,Small Lymphocytic Lymphoma,Ibrutinib,None,SLL/CLL on treatment
+Jean,Ford,jean.ford@email.com,555-0473,1987-11-16,37,Female,104 Aspendalespring Court,Palm Harbor,FL,34683,United States,Smith-Magenis Syndrome Sibling,Monitoring,None,SMS family support
+Terry,Hamilton,terry.hamilton@email.com,555-0474,1980-01-29,45,Male,215 Sprucemount Ave,Palm Beach Gardens,FL,33410,United States,Sneddon Syndrome,Aspirin,None,Livedo + stroke
+Judith,Graham,judith.graham@email.com,555-0475,1973-04-13,51,Female,326 Ashdale Drive,Kingsport,TN,37660,United States,Solitary Fibrous Tumor,Surgery,None,SFT benign resected
+Willie,Sullivan,willie.sullivan@email.com,555-0476,1966-06-26,58,Male,437 Hickorybrook Lane,Waukegan,IL,60085,United States,Spasmodic Dysphonia,Botox Injections,None,SD adductor type
+Sarah,Fisher,sarah.fisher@email.com,555-0477,1989-09-08,35,Female,548 Walnutcrest Street,Missouri City,TX,77459,United States,Spinal Muscular Atrophy Type 3,Spinraza,None,SMA III ambulatory
+Patrick,Crawford,patrick.crawford@email.com,555-0478,1982-11-21,42,Male,659 Poplarbrook Court,Cathedral City,CA,92234,United States,Spinocerebellar Ataxia,Physical Therapy,None,SCA Type 3
+Martha,Owens,martha.owens@email.com,555-0479,1975-02-04,50,Female,760 Cherrylake Ave,Brentwood,CA,94513,United States,Spontaneous Coronary Artery Dissection,Beta Blocker,None,SCAD survivor
+Ralph,Kim,ralph.kim@email.com,555-0480,1968-04-17,56,Male,871 Dogwoodmount Drive,San Luis Obispo,CA,93401,United States,Squamous Cell Carcinoma Skin,Cemiplimab,None,Advanced cSCC
+Norma,Howard,norma.howard@email.com,555-0481,1991-06-30,33,Female,982 Sycamorespring Lane,Apex,NC,27502,United States,Stargardt Disease,Supplements,None,ABCA4 mutation
+Chris,Ward,chris.ward@email.com,555-0482,1984-09-12,40,Male,193 Redwoodcrest Street,San Marcos,TX,78666,United States,Statin Intolerance,Ezetimibe;PCSK9i,All Statins,Multiple statin myopathy
+Christine,Torres,christine.torres@email.com,555-0483,1977-11-25,47,Female,304 Juniperdale Court,Monroe,LA,71201,United States,Still Disease Adult Onset,Anakinra,None,AOSD systemic
+Arthur,Peterson,arthur.peterson@email.com,555-0484,1970-02-08,55,Male,415 Cypressbrook Ave,Altoona,PA,16601,United States,Stomach Cancer Diffuse Type,FLOT,None,Signet ring cell
+Clara,Gray,clara.gray@email.com,555-0485,1983-04-21,41,Female,526 Palmspring Drive,Portage,MI,49002,United States,Stress Cardiomyopathy History,Beta Blocker,None,Takotsubo recovered
+Samuel,Ramirez,samuel.ramirez@email.com,555-0486,1976-07-04,48,Male,637 Olivedale Lane,Novato,CA,94945,United States,Subacute Cutaneous Lupus,Plaquenil,Sun,SCLE photosensitive
+Lillian,James,lillian.james@email.com,555-0487,1969-09-17,55,Female,748 Hazeldalebrook Street,Yucaipa,CA,92399,United States,Subacute Thyroiditis,NSAIDs,None,De Quervain thyroiditis
+Fred,Watson,fred.watson@email.com,555-0488,1962-12-30,62,Male,859 Beechspring Court,Dunwoody,GA,30338,United States,Subglottic Stenosis,Serial Dilations,None,Idiopathic SGS
+Edith,Brooks,edith.brooks@email.com,555-0489,1985-02-12,40,Female,960 Firdaledale Ave,Tigard,OR,97223,United States,Superior Semicircular Canal Dehiscence,Surgery,None,SSCD with autophony
+Eugene,Kelly,eugene.kelly@email.com,555-0490,1978-05-25,46,Male,171 Larchbrook Drive,Attleboro,MA,02703,United States,Supraventricular Tachycardia,Ablation,None,SVT post-ablation
+Mildred,Price,mildred.price@email.com,555-0491,1971-08-08,53,Female,282 Alderdale Lane,Reading,PA,19601,United States,Susac Syndrome,IVIG;Steroids,None,Susac triad
+Lawrence,Sanders,lawrence.sanders@email.com,555-0492,1964-10-21,60,Male,393 Sequoialake Street,Chambersburg,PA,17201,United States,Sweet Syndrome,Prednisone,None,Acute febrile neutrophilic dermatosis
+Phyllis,Bennett,phyllis.bennett@email.com,555-0493,1987-01-04,38,Female,504 Oaklake Court,Eastvale,CA,92880,United States,Synovial Chondromatosis,Arthroscopy,None,Knee SC
+Johnny,Wood,johnny.wood@email.com,555-0494,1980-03-17,45,Male,615 Pinebrook Ave,Commerce City,CO,80022,United States,Systemic Capillary Leak Syndrome,IVIG,None,Clarkson disease
+Wanda,Barnes,wanda.barnes@email.com,555-0495,1973-05-30,51,Female,726 Cedarspring Drive,Rancho Santa Margarita,CA,92688,United States,Systemic Vasculitis,Rituximab,None,MPA systemic
+Carl,Ross,carl.ross@email.com,555-0496,1966-08-12,58,Male,837 Mapledaledale Lane,San Juan Capistrano,CA,92675,United States,T-Cell Large Granular Lymphocytic Leukemia,Methotrexate,None,T-LGL with neutropenia
+Edna,Henderson,edna.henderson@email.com,555-0497,1989-10-25,35,Female,948 Birchbrook Street,Kannapolis,NC,28083,United States,T-Cell Prolymphocytic Leukemia,Alemtuzumab,None,T-PLL aggressive
+Harold,Coleman,harold.coleman@email.com,555-0498,1982-01-07,43,Male,159 Willowdaledale Court,Bloomington,IL,61701,United States,Tarsal Tunnel Syndrome,Decompression Surgery,None,Post-surgical TTS
+Betty,Jenkins,betty.jenkins@email.com,555-0499,1975-03-22,50,Female,260 Aspenbrook Ave,Apple Valley,CA,92308,United States,Temporal Arteritis,Tocilizumab,Prednisone,GCA with visual loss
+Vincent,Perry,vincent.perry@email.com,555-0500,1968-06-05,56,Male,371 Sprucedale Drive,North Little Rock,AR,72114,United States,Testicular Lymphoma,R-CHOP,None,Primary testicular DLBCL

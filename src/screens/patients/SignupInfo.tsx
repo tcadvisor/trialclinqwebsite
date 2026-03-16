@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import SiteHeader from "../../components/SiteHeader";
 import { signUpUser } from "../../lib/simpleAuth";
 import { useAuth } from "../../lib/auth";
+import { validateLocation } from "../../lib/addressValidation";
 
 export default function SignupInfo(): JSX.Element {
   const { search } = useLocation();
@@ -27,13 +28,39 @@ export default function SignupInfo(): JSX.Element {
   const [medInput, setMedInput] = React.useState("");
   const [agree1, setAgree1] = React.useState(false);
   const [agree2, setAgree2] = React.useState(false);
+  const [zipError, setZipError] = React.useState("");
+  const [zipTouched, setZipTouched] = React.useState(false);
 
   const years = React.useMemo(() => {
     const now = new Date().getFullYear();
     return Array.from({ length: 80 }, (_, i) => String(now - i));
   }, []);
 
-  const canSubmit = agree1 && agree2 && dob && weight && gender && race && language && zip && distance;
+  // Validate location on blur
+  const handleZipBlur = React.useCallback(() => {
+    setZipTouched(true);
+    if (zip.trim()) {
+      const result = validateLocation(zip);
+      if (!result.valid) {
+        setZipError(result.error || "Invalid location");
+      } else {
+        setZipError("");
+        // Optionally format the input
+        if (result.formatted && result.formatted !== zip) {
+          setZip(result.formatted);
+        }
+      }
+    } else {
+      setZipError("");
+    }
+  }, [zip]);
+
+  const isZipValid = React.useMemo(() => {
+    if (!zip.trim()) return false;
+    return validateLocation(zip).valid;
+  }, [zip]);
+
+  const canSubmit = agree1 && agree2 && dob && weight && gender && race && language && zip && distance && isZipValid;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -191,7 +218,25 @@ export default function SignupInfo(): JSX.Element {
               </div>
               <div className="sm:col-span-2">
                 <label className="block text-sm font-medium">Your Location (City, State or ZIP)<span className="text-red-500">*</span></label>
-                <input value={zip} onChange={(e)=>setZip(e.target.value)} className="mt-2 w-full rounded-full border px-4 py-2" placeholder="e.g. 10001 or Buffalo, NY" required />
+                <input
+                  value={zip}
+                  onChange={(e) => {
+                    setZip(e.target.value);
+                    if (zipError) setZipError("");
+                  }}
+                  onBlur={handleZipBlur}
+                  className={`mt-2 w-full rounded-full border px-4 py-2 ${
+                    zipTouched && zipError ? "border-red-500 focus:ring-red-500" : ""
+                  }`}
+                  placeholder="e.g. 10001 or Buffalo, NY"
+                  required
+                />
+                {zipTouched && zipError && (
+                  <p className="mt-1 text-sm text-red-600">{zipError}</p>
+                )}
+                {zipTouched && !zipError && zip && isZipValid && (
+                  <p className="mt-1 text-sm text-green-600">Valid location</p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium">Travel Distance<span className="text-red-500">*</span></label>

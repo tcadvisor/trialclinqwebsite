@@ -42,6 +42,7 @@ const CreateTrial = lazy(() => import("./screens/providers/CreateTrial"));
 const TeamManagement = lazy(() => import("./screens/providers/TeamManagement"));
 const ProviderAnalytics = lazy(() => import("./screens/providers/Analytics"));
 const ElationPatients = lazy(() => import("./screens/providers/ElationPatients"));
+const CustomPatientUpload = lazy(() => import("./screens/providers/CustomPatientUpload"));
 const Dashboard = lazy(() => import("./screens/patients/Dashboard"));
 const TrialDetails = lazy(() => import("./screens/TrialDetails"));
 const CtgovStudyDetails = lazy(() => import("./screens/CtgovStudyDetails"));
@@ -123,6 +124,7 @@ function AppContent() {
           <Route path="/providers/analytics" element={<RequireRole role="provider" redirectTo="/providers/login"><ProviderAnalytics /></RequireRole>} />
           <Route path="/providers/elation" element={<RequireRole role="provider" redirectTo="/providers/login"><ElationPatients /></RequireRole>} />
           <Route path="/providers/elation-callback" element={<RequireRole role="provider" redirectTo="/providers/login"><ElationPatients /></RequireRole>} />
+          <Route path="/providers/custom-database" element={<RequireRole role="provider" redirectTo="/providers/login"><CustomPatientUpload /></RequireRole>} />
           <Route path="/patients/dashboard" element={<RequireRole role="patient" redirectTo="/patients/login"><Dashboard /></RequireRole>} />
           <Route path="/patients/eligible" element={<EligibleTrials />} />
           <Route path="/patients/health-profile" element={<RequireRole role="patient" redirectTo="/patients/login"><HealthProfile /></RequireRole>} />
