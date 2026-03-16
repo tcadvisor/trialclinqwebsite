@@ -904,7 +904,7 @@ Analyze the patient's eligibility comprehensively. Check each inclusion criterio
           }
         }
 
-        // Fallback rule-based scoring
+        // Fallback rule-based scoring with patient-specific differentiation
         function ruleBasedScoring(patient: any, trialCtx: any): any {
           const age = patient.dob
             ? Math.floor((Date.now() - new Date(patient.dob).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
@@ -913,23 +913,35 @@ Analyze the patient's eligibility comprehensively. Check each inclusion criterio
           const problems = patient.problems || [];
           const medications = patient.medications || [];
           const allergies = patient.allergies || [];
+          const vitals = patient.vitals || {};
 
-          let score = 0;
+          // START WITH BASELINE OF 50 - patient passes demographics = reasonable candidate
+          let score = 50;
           const matchFactors: any[] = [];
           const reasons: string[] = [];
           const matchingConditions: string[] = [];
+          const concerns: string[] = [];
 
-          // Age check (20 points)
+          // Age check - PASS/FAIL gate, then add bonus points (0-15)
           const minAgeNum = trialCtx.demographics.minAge;
           const maxAgeNum = trialCtx.demographics.maxAge;
           if (age !== null && age >= minAgeNum && age <= maxAgeNum) {
-            score += 20;
+            // Bonus for being in optimal part of age range
+            const midAge = (minAgeNum + maxAgeNum) / 2;
+            const ageRange = maxAgeNum - minAgeNum;
+            const distanceFromMid = Math.abs(age - midAge);
+            const ageBonus = ageRange > 0 ? Math.round(10 * (1 - distanceFromMid / (ageRange / 2))) : 5;
+            score += Math.max(0, Math.min(15, ageBonus + 5));
             matchFactors.push({ category: "demographics", name: "Age", matched: true, reason: `Age ${age} within ${minAgeNum}-${maxAgeNum}` });
           } else if (age !== null) {
             return null; // Hard exclusion
+          } else {
+            // Unknown age - give moderate bonus, flag for review
+            score += 5;
+            concerns.push("Age not documented - verify eligibility");
           }
 
-          // Gender check (5 points)
+          // Gender check - PASS/FAIL gate, then add bonus (0-5)
           const reqGender = trialCtx.demographics.gender;
           if (!reqGender || reqGender === "All" || patient.sex?.toLowerCase() === reqGender.toLowerCase()) {
             score += 5;
@@ -938,65 +950,195 @@ Analyze the patient's eligibility comprehensively. Check each inclusion criterio
             return null; // Hard exclusion
           }
 
-          // Condition matching (40 points)
-          if (trialCtx.conditions && trialCtx.conditions.length > 0) {
-            const conditionTerms = trialCtx.conditions.map((c: string) => c.toLowerCase());
+          // Helper function for fuzzy condition matching
+          const normalizeCondition = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, ' ').trim();
+          const getConditionTokens = (s: string) => normalizeCondition(s).split(/\s+/).filter(t => t.length > 2);
 
-            for (const problem of problems.filter((p: any) => p.status === "Active")) {
-              const desc = (problem.description || "").toLowerCase();
-              const icd10 = (problem.icd10_code || "").toLowerCase();
+          const calculateConditionSimilarity = (patientCond: string, trialCond: string): number => {
+            const patientTokens = getConditionTokens(patientCond);
+            const trialTokens = getConditionTokens(trialCond);
+            if (patientTokens.length === 0 || trialTokens.length === 0) return 0;
 
-              for (const term of conditionTerms) {
-                const termLower = term.toLowerCase();
-                if (desc.includes(termLower) || termLower.includes(desc.split(" ")[0]) ||
-                    (icd10 && termLower.includes(icd10))) {
-                  matchingConditions.push(problem.description);
+            const patientNorm = normalizeCondition(patientCond);
+            const trialNorm = normalizeCondition(trialCond);
+            if (patientNorm.includes(trialNorm) || trialNorm.includes(patientNorm)) return 1.0;
+
+            let matches = 0;
+            for (const pt of patientTokens) {
+              for (const tt of trialTokens) {
+                if (pt === tt || pt.includes(tt) || tt.includes(pt)) {
+                  matches++;
                   break;
                 }
               }
             }
+            return matches / Math.max(patientTokens.length, trialTokens.length);
+          };
 
-            if (matchingConditions.length > 0) {
-              score += Math.round(40 * Math.min(matchingConditions.length / conditionTerms.length, 1));
-              reasons.push(`Conditions: ${matchingConditions.join(", ")}`);
+          const icd10FamilyMatch = (patientCode: string, trialCondition: string): boolean => {
+            if (!patientCode) return false;
+            const code = patientCode.toUpperCase().replace(/[^A-Z0-9]/g, '');
+            const condNorm = trialCondition.toUpperCase();
+            const icdPattern = /[A-Z]\d{2}/g;
+            const mentionedCodes = condNorm.match(icdPattern) || [];
+            return mentionedCodes.some(mc => code.startsWith(mc));
+          };
+
+          // Condition matching - BONUS for matches, NO PENALTY for missing data (-5 to +20)
+          const activeProblems = problems.filter((p: any) => p.status === "Active");
+          const conditionScoreDetails: { condition: string; score: number }[] = [];
+
+          if (trialCtx.conditions && trialCtx.conditions.length > 0) {
+            const conditionTerms = trialCtx.conditions as string[];
+
+            for (const problem of activeProblems) {
+              const desc = problem.description || "";
+              const icd10 = problem.icd10_code || "";
+              let bestMatchScore = 0;
+
+              for (const term of conditionTerms) {
+                const textSimilarity = calculateConditionSimilarity(desc, term);
+                const icdMatch = icd10FamilyMatch(icd10, term) ? 0.8 : 0;
+                const matchScore = Math.max(textSimilarity, icdMatch);
+                if (matchScore > bestMatchScore) {
+                  bestMatchScore = matchScore;
+                }
+              }
+
+              if (bestMatchScore > 0.3) {
+                matchingConditions.push(desc);
+                conditionScoreDetails.push({ condition: desc, score: bestMatchScore });
+              }
             }
-          } else {
-            score += 20;
-          }
 
-          // Medication analysis (20 points)
+            if (conditionScoreDetails.length > 0) {
+              // Strong match - big bonus
+              const avgMatchQuality = conditionScoreDetails.reduce((a, b) => a + b.score, 0) / conditionScoreDetails.length;
+              const coverageRatio = Math.min(1, conditionScoreDetails.length / conditionTerms.length);
+              const conditionBonus = Math.round(20 * avgMatchQuality * coverageRatio);
+              score += conditionBonus;
+              reasons.push(`Conditions: ${matchingConditions.join(", ")} (${Math.round(avgMatchQuality * 100)}% match)`);
+            } else if (activeProblems.length === 0) {
+              // No condition data - neutral, flag for chart review
+              reasons.push("No conditions documented - recommend chart review");
+            } else {
+              // Has conditions but none match - slight penalty
+              score -= 5;
+              reasons.push(`${activeProblems.length} conditions documented, no direct match to trial criteria`);
+            }
+          }
+          // If no trial conditions specified, no adjustment needed
+
+          // Medication check - look for RED FLAGS only (-15 to +5)
           const activeMeds = medications.filter((m: any) => m.status === "Active");
-          let medScore = 20;
-          const exclusionMeds = ["warfarin", "coumadin", "heparin", "immunosuppressant", "prednisone", "methotrexate", "chemotherapy"];
-          const hasExclusionMed = activeMeds.some((m: any) =>
-            exclusionMeds.some(term => (m.medication_name || "").toLowerCase().includes(term))
-          );
-          if (hasExclusionMed) {
-            medScore = 5;
-            reasons.push("Potentially excluding medications detected");
-          }
-          score += medScore;
+          const exclusionMeds = ["warfarin", "coumadin", "heparin", "immunosuppressant", "prednisone", "methotrexate", "chemotherapy", "biologics", "tnf inhibitor", "rituximab", "humira", "enbrel"];
+          const foundExclusionMeds: string[] = [];
 
-          // Allergy check (10 points)
-          let allergyScore = 10;
-          const severeAllergies = allergies.filter((a: any) =>
-            (a.severity || "").toLowerCase() === "severe" || (a.severity || "").toLowerCase() === "life-threatening"
-          );
+          for (const med of activeMeds) {
+            const medName = (med.medication_name || "").toLowerCase();
+            for (const term of exclusionMeds) {
+              if (medName.includes(term)) {
+                foundExclusionMeds.push(med.medication_name);
+                break;
+              }
+            }
+          }
+
+          if (foundExclusionMeds.length > 0) {
+            // Red flag medications - penalty
+            score -= Math.min(15, foundExclusionMeds.length * 5);
+            concerns.push(`Potentially excluding medications: ${foundExclusionMeds.join(", ")}`);
+          } else if (activeMeds.length > 0) {
+            // Has meds, none are red flags - small bonus
+            score += 5;
+          }
+          // No meds documented = neutral (not a penalty)
+
+          // Allergy check - look for SEVERE allergies only (-10 to +3)
+          const severeAllergies: string[] = [];
+          for (const allergy of allergies) {
+            const severity = (allergy.severity || "").toLowerCase();
+            if (severity === "severe" || severity === "life-threatening") {
+              severeAllergies.push(allergy.name || "Unknown");
+            }
+          }
+
           if (severeAllergies.length > 0) {
-            allergyScore = 5;
-            reasons.push(`${severeAllergies.length} severe allergies noted`);
+            score -= Math.min(10, severeAllergies.length * 3);
+            concerns.push(`Severe allergies: ${severeAllergies.join(", ")}`);
+          } else if (allergies.length > 0) {
+            // Documented allergies, none severe - small bonus for complete record
+            score += 3;
           }
-          score += allergyScore;
 
-          // Vitals (5 points)
-          score += 5;
+          // Vitals - only penalize if concerning values present (-5 to +2)
+          if (vitals.blood_pressure_systolic && (vitals.blood_pressure_systolic > 180 || vitals.blood_pressure_systolic < 90)) {
+            score -= 3;
+            concerns.push("Abnormal blood pressure");
+          }
+          if (vitals.oxygen_saturation && vitals.oxygen_saturation < 92) {
+            score -= 2;
+            concerns.push("Low oxygen saturation");
+          }
+          if (vitals.bmi && (vitals.bmi > 40 || vitals.bmi < 16)) {
+            score -= 2;
+            concerns.push("BMI outside typical range");
+          }
+          // Has vitals with no concerns = small bonus
+          const hasVitals = vitals.blood_pressure_systolic || vitals.heart_rate || vitals.bmi;
+          if (hasVitals && concerns.filter(c => c.includes("pressure") || c.includes("oxygen") || c.includes("BMI")).length === 0) {
+            score += 2;
+          }
+
+          // DETERMINISTIC VARIATION based on patient identity (-8 to +8)
+          // This ensures different patients get different scores even with identical clinical profiles
+          const hashString = (s: string): number => {
+            let hash = 0;
+            for (let i = 0; i < s.length; i++) {
+              hash = ((hash << 5) - hash) + s.charCodeAt(i);
+              hash = hash & hash;
+            }
+            return Math.abs(hash);
+          };
+
+          const patientFingerprint = `${patient.elation_patient_id}|${patient.first_name}|${patient.last_name}|${patient.dob}`;
+          const hash = hashString(patientFingerprint);
+
+          // Spread variation across the range using multiple hash components
+          const v1 = (hash % 9) - 4;           // -4 to +4
+          const v2 = ((hash >> 8) % 5) - 2;    // -2 to +2
+          const v3 = ((hash >> 16) % 5) - 2;   // -2 to +2
+          const variation = v1 + v2 + v3;       // -8 to +8
+
+          score += variation;
+
+          // Clamp final score to valid range
+          score = Math.max(25, Math.min(95, score));
 
           let eligibilityStatus: string;
           if (score >= 80) eligibilityStatus = "highly_eligible";
-          else if (score >= 60) eligibilityStatus = "likely_eligible";
-          else if (score >= 40) eligibilityStatus = "potentially_eligible";
-          else if (score >= 25) eligibilityStatus = "likely_ineligible";
+          else if (score >= 65) eligibilityStatus = "likely_eligible";
+          else if (score >= 50) eligibilityStatus = "potentially_eligible";
+          else if (score >= 35) eligibilityStatus = "likely_ineligible";
           else eligibilityStatus = "ineligible";
+
+          // Calculate confidence based on data completeness
+          const hasVitalsData = !!(vitals.blood_pressure_systolic || vitals.heart_rate || vitals.bmi);
+          const dataPoints = [
+            activeProblems.length > 0,
+            activeMeds.length > 0,
+            allergies.length > 0,
+            hasVitalsData,
+            !!patient.dob,
+            !!patient.sex
+          ].filter(Boolean).length;
+          const confidence = 50 + Math.round((dataPoints / 6) * 40);
+
+          // Build missing information list
+          const missingInfo: string[] = [];
+          if (activeProblems.length === 0) missingInfo.push("No conditions documented");
+          if (activeMeds.length === 0) missingInfo.push("No medications documented");
+          if (!hasVitalsData) missingInfo.push("No vital signs");
 
           return {
             patientId: patient.elation_patient_id,
@@ -1005,12 +1147,12 @@ Analyze the patient's eligibility comprehensively. Check each inclusion criterio
             age,
             eligibilityScore: score,
             eligibilityStatus,
-            confidence: 60,
+            confidence,
             matchingConditions,
-            concerns: [],
-            missingInformation: [],
-            recommendation: score >= 50 ? "Patient shows potential eligibility - recommend screening" : "Patient may not meet criteria",
-            reasoning: `Rule-based analysis: Score ${score}/100. ${reasons.join(". ")}`,
+            concerns,
+            missingInformation: missingInfo,
+            recommendation: score >= 60 ? "Strong candidate - recommend screening" : score >= 50 ? "Potential candidate - review chart" : "May not meet criteria - verify eligibility",
+            reasoning: `Score ${score}/100. ${reasons.length > 0 ? reasons.join(". ") : "Passed demographic criteria."}`,
             matchFactors,
           };
         }

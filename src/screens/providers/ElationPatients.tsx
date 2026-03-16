@@ -503,6 +503,142 @@ function BatchAcceptControls({
 }
 
 // ============================================================================
+// Score Range Filter
+// ============================================================================
+
+function ScoreRangeFilter({
+  minScore,
+  maxScore,
+  onMinChange,
+  onMaxChange,
+  totalCount,
+  filteredCount,
+}: {
+  minScore: number;
+  maxScore: number;
+  onMinChange: (val: number) => void;
+  onMaxChange: (val: number) => void;
+  totalCount: number;
+  filteredCount: number;
+}) {
+  return (
+    <div className="bg-white border rounded-xl p-4 mb-4">
+      <div className="flex items-center justify-between mb-3">
+        <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+          <Filter className="h-4 w-4 text-blue-500" />
+          Filter by Match Score
+        </h4>
+        <span className="text-sm text-gray-500">
+          Showing <span className="font-semibold text-blue-600">{filteredCount}</span> of {totalCount} patients
+        </span>
+      </div>
+
+      <div className="flex items-center gap-6">
+        {/* Min Score */}
+        <div className="flex-1">
+          <label className="text-xs text-gray-500 block mb-1">
+            Minimum Score: <span className="font-semibold text-gray-700">{minScore}%</span>
+          </label>
+          <input
+            type="range"
+            min="0"
+            max="100"
+            step="5"
+            value={minScore}
+            onChange={(e) => {
+              const val = Number(e.target.value);
+              if (val <= maxScore) onMinChange(val);
+            }}
+            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+          />
+        </div>
+
+        {/* Range Display */}
+        <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-lg">
+          <span className="text-lg font-bold text-blue-600">{minScore}%</span>
+          <span className="text-gray-400">-</span>
+          <span className="text-lg font-bold text-blue-600">{maxScore}%</span>
+        </div>
+
+        {/* Max Score */}
+        <div className="flex-1">
+          <label className="text-xs text-gray-500 block mb-1">
+            Maximum Score: <span className="font-semibold text-gray-700">{maxScore}%</span>
+          </label>
+          <input
+            type="range"
+            min="0"
+            max="100"
+            step="5"
+            value={maxScore}
+            onChange={(e) => {
+              const val = Number(e.target.value);
+              if (val >= minScore) onMaxChange(val);
+            }}
+            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+          />
+        </div>
+      </div>
+
+      {/* Quick Presets */}
+      <div className="mt-3 flex items-center gap-2">
+        <span className="text-xs text-gray-500">Quick filters:</span>
+        <button
+          onClick={() => { onMinChange(0); onMaxChange(100); }}
+          className={`px-2 py-1 text-xs rounded-md transition-colors ${
+            minScore === 0 && maxScore === 100
+              ? "bg-blue-100 text-blue-700 font-medium"
+              : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+          }`}
+        >
+          All
+        </button>
+        <button
+          onClick={() => { onMinChange(80); onMaxChange(100); }}
+          className={`px-2 py-1 text-xs rounded-md transition-colors ${
+            minScore === 80 && maxScore === 100
+              ? "bg-emerald-100 text-emerald-700 font-medium"
+              : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+          }`}
+        >
+          Highly Eligible (80%+)
+        </button>
+        <button
+          onClick={() => { onMinChange(65); onMaxChange(100); }}
+          className={`px-2 py-1 text-xs rounded-md transition-colors ${
+            minScore === 65 && maxScore === 100
+              ? "bg-green-100 text-green-700 font-medium"
+              : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+          }`}
+        >
+          Likely+ (65%+)
+        </button>
+        <button
+          onClick={() => { onMinChange(50); onMaxChange(100); }}
+          className={`px-2 py-1 text-xs rounded-md transition-colors ${
+            minScore === 50 && maxScore === 100
+              ? "bg-yellow-100 text-yellow-700 font-medium"
+              : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+          }`}
+        >
+          Potential+ (50%+)
+        </button>
+        <button
+          onClick={() => { onMinChange(0); onMaxChange(50); }}
+          className={`px-2 py-1 text-xs rounded-md transition-colors ${
+            minScore === 0 && maxScore === 50
+              ? "bg-red-100 text-red-700 font-medium"
+              : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+          }`}
+        >
+          Low Match (&lt;50%)
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
 // Match Results (Enhanced with visual scoring)
 // ============================================================================
 
@@ -733,6 +869,15 @@ export default function ElationPatients(): JSX.Element {
 
   const [conditionFilter, setConditionFilter] = React.useState("");
   const [activeTab, setActiveTab] = React.useState<"patients" | "matches">("patients");
+
+  // Score range filter for matches
+  const [scoreFilterMin, setScoreFilterMin] = React.useState(0);
+  const [scoreFilterMax, setScoreFilterMax] = React.useState(100);
+
+  // Filtered matches based on score range
+  const filteredMatches = React.useMemo(() => {
+    return matches.filter(m => m.matchScore >= scoreFilterMin && m.matchScore <= scoreFilterMax);
+  }, [matches, scoreFilterMin, scoreFilterMax]);
 
   // Handle OAuth callback
   React.useEffect(() => {
@@ -980,11 +1125,23 @@ export default function ElationPatients(): JSX.Element {
                         />
                       )}
 
+                      {/* Score Range Filter */}
+                      {matches.length > 0 && (
+                        <ScoreRangeFilter
+                          minScore={scoreFilterMin}
+                          maxScore={scoreFilterMax}
+                          onMinChange={setScoreFilterMin}
+                          onMaxChange={setScoreFilterMax}
+                          totalCount={matches.length}
+                          filteredCount={filteredMatches.length}
+                        />
+                      )}
+
                       {/* Batch Accept Controls */}
                       <BatchAcceptControls
                         nctId={selectedTrialForMatches}
                         userId={userId}
-                        totalMatches={matches.length}
+                        totalMatches={filteredMatches.length}
                         onBatchAccept={handleBatchAccept}
                       />
 
@@ -997,7 +1154,11 @@ export default function ElationPatients(): JSX.Element {
                               <div className="font-semibold text-gray-900">{selectedTrialForMatches}</div>
                             </div>
                             <div className="flex items-center gap-2 text-sm">
-                              <span className="text-gray-500">{matches.length} patients</span>
+                              <span className="text-gray-500">
+                                {filteredMatches.length === matches.length
+                                  ? `${matches.length} patients`
+                                  : `${filteredMatches.length} of ${matches.length} patients`}
+                              </span>
                               {matchResult?.useAI && (
                                 <span className="flex items-center gap-1 text-purple-600 bg-purple-50 px-2 py-1 rounded-full text-xs font-medium">
                                   <Sparkles className="h-3 w-3" />
@@ -1009,7 +1170,7 @@ export default function ElationPatients(): JSX.Element {
                         </div>
                         <MatchResults
                           nctId={selectedTrialForMatches}
-                          matches={matches}
+                          matches={filteredMatches}
                           loading={loadingMatches}
                           userId={userId}
                           onUpdateStatus={handleUpdateStatus}
