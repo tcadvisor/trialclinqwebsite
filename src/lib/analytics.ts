@@ -14,6 +14,13 @@ export type AnalyticsSummary = {
   appointmentsThisWeek: number;
   recentActivity: ActivityItem[];
   trialPerformance: TrialPerformance[];
+  // Custom patient database metrics
+  customPatients?: {
+    totalDatabases: number;
+    totalPatients: number;
+    totalMatches: number;
+    matchesByStatus: Record<string, number>;
+  };
 };
 
 export type ActivityItem = {

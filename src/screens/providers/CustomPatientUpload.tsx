@@ -5,18 +5,27 @@ import { useAuth } from "../../lib/auth";
 import { getAddedTrials, type AddedTrial } from "../../lib/providerTrials";
 import {
   getDatabases,
+  getDatabasesAsync,
   saveDatabase,
+  saveDatabaseAsync,
   deleteDatabase,
+  deleteDatabaseAsync,
   getPatients,
+  getPatientsAsync,
   getAllPatients,
+  getAllPatientsAsync,
   savePatients,
+  savePatientsAsync,
   getTotalPatientCount,
   parseCSV,
   parseJSON,
   parseExcel,
   matchPatientsToTrial,
   getMatches,
+  getMatchesAsync,
   saveMatches,
+  saveMatchesAsync,
+  updateMatchStatusAsync,
   type CustomPatient,
   type CustomPatientDatabase,
   type CustomTrialMatch,
@@ -180,14 +189,26 @@ function ParsePreviewModal({
   const [showAllPatients, setShowAllPatients] = React.useState(false);
 
   const previewPatients = result.patients?.slice(0, showAllPatients ? 20 : 5) || [];
+  const previewRawData = result.rawData?.slice(0, showAllPatients ? 20 : 5) || [];
+
+  // Use original columns from the file if available
+  const columns = result.columns || [];
+
+  // Helper to format cell value for display
+  const formatCellValue = (value: unknown): string => {
+    if (value === null || value === undefined || value === "") return "-";
+    if (Array.isArray(value)) return value.join(", ") || "-";
+    return String(value);
+  };
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-white rounded-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         <div className="p-6 border-b">
           <h2 className="text-xl font-semibold">Review Import</h2>
           <p className="text-sm text-gray-600 mt-1">
             {result.validCount} of {result.rowCount} records ready to import
+            {columns.length > 0 && ` • ${columns.length} columns detected`}
           </p>
         </div>
 
@@ -249,46 +270,68 @@ function ParsePreviewModal({
             </div>
           </div>
 
-          {/* Patient Preview */}
+          {/* Patient Preview - DYNAMIC COLUMNS */}
           <div className="border rounded-xl overflow-hidden">
             <div className="px-4 py-3 bg-gray-50 border-b flex items-center justify-between">
               <span className="text-sm font-medium">Patient Preview</span>
               <span className="text-xs text-gray-500">
-                Showing {previewPatients.length} of {result.validCount}
+                Showing {previewRawData.length || previewPatients.length} of {result.validCount}
               </span>
             </div>
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm">
                 <thead>
                   <tr className="text-left text-gray-500 border-b">
-                    <th className="px-4 py-2">Name</th>
-                    <th className="px-4 py-2">Email</th>
-                    <th className="px-4 py-2">Age/DOB</th>
-                    <th className="px-4 py-2">Gender</th>
-                    <th className="px-4 py-2">Conditions</th>
+                    {columns.length > 0 ? (
+                      columns.map((col, idx) => (
+                        <th key={idx} className="px-3 py-2 whitespace-nowrap">{col}</th>
+                      ))
+                    ) : (
+                      // Fallback to showing parsed patient fields
+                      <>
+                        <th className="px-3 py-2">Name</th>
+                        <th className="px-3 py-2">Email</th>
+                        <th className="px-3 py-2">Age</th>
+                        <th className="px-3 py-2">Conditions</th>
+                      </>
+                    )}
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {previewPatients.map((patient, i) => (
-                    <tr key={i}>
-                      <td className="px-4 py-2 font-medium">
-                        {formatPatientName(patient)}
-                      </td>
-                      <td className="px-4 py-2 text-gray-600">
-                        {patient.email || "-"}
-                      </td>
-                      <td className="px-4 py-2 text-gray-600">
-                        {patient.age ? `${patient.age} years` : patient.dob || "-"}
-                      </td>
-                      <td className="px-4 py-2 text-gray-600">
-                        {patient.sex || "-"}
-                      </td>
-                      <td className="px-4 py-2 text-gray-600">
-                        {patient.conditions?.slice(0, 2).join(", ") || "-"}
-                        {(patient.conditions?.length || 0) > 2 && "..."}
-                      </td>
-                    </tr>
-                  ))}
+                  {columns.length > 0 && previewRawData.length > 0 ? (
+                    // Show raw data with all original columns
+                    previewRawData.map((row, i) => (
+                      <tr key={i}>
+                        {columns.map((col, idx) => (
+                          <td
+                            key={idx}
+                            className="px-3 py-2 text-gray-600 text-xs max-w-[200px] truncate"
+                            title={formatCellValue(row[col])}
+                          >
+                            {formatCellValue(row[col])}
+                          </td>
+                        ))}
+                      </tr>
+                    ))
+                  ) : (
+                    // Fallback to showing parsed patients
+                    previewPatients.map((patient, i) => (
+                      <tr key={i}>
+                        <td className="px-3 py-2 font-medium whitespace-nowrap">
+                          {formatPatientName(patient)}
+                        </td>
+                        <td className="px-3 py-2 text-gray-600 text-xs">
+                          {patient.email || "-"}
+                        </td>
+                        <td className="px-3 py-2 text-gray-600 text-center">
+                          {patient.age || "-"}
+                        </td>
+                        <td className="px-3 py-2 text-gray-600 text-xs max-w-[150px] truncate">
+                          {patient.conditions?.join(", ") || "-"}
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -416,22 +459,59 @@ function PatientListView({
   searchQuery: string;
   onSearchChange: (query: string) => void;
 }) {
+  // Detect all unique columns from patients' _raw data
+  const columns = React.useMemo(() => {
+    const columnSet = new Set<string>();
+    patients.forEach((p) => {
+      if (p._raw) {
+        Object.keys(p._raw).forEach((key) => columnSet.add(key));
+      }
+    });
+    return Array.from(columnSet);
+  }, [patients]);
+
+  // Check if we have raw data available
+  const hasRawData = patients.some((p) => p._raw && Object.keys(p._raw).length > 0);
+
   const filteredPatients = React.useMemo(() => {
     if (!searchQuery) return patients;
     const query = searchQuery.toLowerCase();
-    return patients.filter(
-      (p) =>
+    return patients.filter((p) => {
+      // Search in raw data if available
+      if (p._raw) {
+        for (const value of Object.values(p._raw)) {
+          const strValue = String(value ?? "").toLowerCase();
+          if (strValue.includes(query)) return true;
+        }
+      }
+      // Also search in parsed fields
+      return (
         p.firstName?.toLowerCase().includes(query) ||
         p.lastName?.toLowerCase().includes(query) ||
         p.email?.toLowerCase().includes(query) ||
-        p.conditions?.some((c) => c.toLowerCase().includes(query))
-    );
+        p.phone?.toLowerCase().includes(query) ||
+        p.city?.toLowerCase().includes(query) ||
+        p.state?.toLowerCase().includes(query) ||
+        p.zipcode?.toLowerCase().includes(query) ||
+        p.notes?.toLowerCase().includes(query) ||
+        p.conditions?.some((c) => c.toLowerCase().includes(query)) ||
+        p.medications?.some((m) => m.toLowerCase().includes(query)) ||
+        p.allergies?.some((a) => a.toLowerCase().includes(query))
+      );
+    });
   }, [patients, searchQuery]);
 
   const [page, setPage] = React.useState(0);
   const perPage = 15;
   const totalPages = Math.ceil(filteredPatients.length / perPage);
   const paginatedPatients = filteredPatients.slice(page * perPage, (page + 1) * perPage);
+
+  // Helper to format cell value
+  const formatCellValue = (value: unknown): string => {
+    if (value === null || value === undefined || value === "") return "-";
+    if (Array.isArray(value)) return value.join(", ") || "-";
+    return String(value);
+  };
 
   return (
     <div>
@@ -440,7 +520,7 @@ function PatientListView({
         <Search className="h-4 w-4 text-gray-400" />
         <input
           type="text"
-          placeholder="Search by name, email, or condition..."
+          placeholder="Search across all fields..."
           value={searchQuery}
           onChange={(e) => {
             onSearchChange(e.target.value);
@@ -450,61 +530,100 @@ function PatientListView({
         />
         <span className="text-xs text-gray-500">
           {filteredPatients.length} patients
+          {columns.length > 0 && ` • ${columns.length} columns`}
         </span>
       </div>
 
-      {/* Table */}
+      {/* Table - DYNAMIC COLUMNS */}
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm">
           <thead>
             <tr className="text-left text-gray-500 border-b">
-              <th className="px-4 py-3">Name</th>
-              <th className="px-4 py-3">Email</th>
-              <th className="px-4 py-3">Phone</th>
-              <th className="px-4 py-3">Age</th>
-              <th className="px-4 py-3">Gender</th>
-              <th className="px-4 py-3">Location</th>
-              <th className="px-4 py-3">Conditions</th>
+              {hasRawData && columns.length > 0 ? (
+                // Dynamic columns from raw data
+                columns.map((col, idx) => (
+                  <th key={idx} className="px-3 py-3 whitespace-nowrap">{col}</th>
+                ))
+              ) : (
+                // Fallback to standard parsed fields
+                <>
+                  <th className="px-3 py-3">Name</th>
+                  <th className="px-3 py-3">Email</th>
+                  <th className="px-3 py-3">Phone</th>
+                  <th className="px-3 py-3">Age</th>
+                  <th className="px-3 py-3">Sex</th>
+                  <th className="px-3 py-3">Location</th>
+                  <th className="px-3 py-3">Conditions</th>
+                  <th className="px-3 py-3">Medications</th>
+                  <th className="px-3 py-3">Allergies</th>
+                  <th className="px-3 py-3">Notes</th>
+                </>
+              )}
             </tr>
           </thead>
           <tbody className="divide-y">
             {paginatedPatients.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                <td colSpan={hasRawData ? columns.length : 10} className="px-4 py-8 text-center text-gray-500">
                   No patients found
                 </td>
               </tr>
-            ) : (
+            ) : hasRawData && columns.length > 0 ? (
+              // Render with dynamic columns from raw data
               paginatedPatients.map((patient) => (
                 <tr key={patient.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium">
+                  {columns.map((col, idx) => (
+                    <td
+                      key={idx}
+                      className="px-3 py-3 text-gray-600 text-xs max-w-[200px] truncate"
+                      title={formatCellValue(patient._raw?.[col])}
+                    >
+                      {formatCellValue(patient._raw?.[col])}
+                    </td>
+                  ))}
+                </tr>
+              ))
+            ) : (
+              // Fallback to standard parsed fields
+              paginatedPatients.map((patient) => (
+                <tr key={patient.id} className="hover:bg-gray-50">
+                  <td className="px-3 py-3 font-medium whitespace-nowrap">
                     {formatPatientName(patient)}
                   </td>
-                  <td className="px-4 py-3 text-gray-600">
+                  <td className="px-3 py-3 text-gray-600 text-xs">
                     {patient.email || "-"}
                   </td>
-                  <td className="px-4 py-3 text-gray-600">
+                  <td className="px-3 py-3 text-gray-600 text-xs whitespace-nowrap">
                     {patient.phone || "-"}
                   </td>
-                  <td className="px-4 py-3 text-gray-600">
+                  <td className="px-3 py-3 text-gray-600 text-center">
                     {patient.age || "-"}
                   </td>
-                  <td className="px-4 py-3 text-gray-600">
+                  <td className="px-3 py-3 text-gray-600">
                     {patient.sex || "-"}
                   </td>
-                  <td className="px-4 py-3 text-gray-600">
+                  <td className="px-3 py-3 text-gray-600 text-xs whitespace-nowrap">
                     {patient.city && patient.state
                       ? `${patient.city}, ${patient.state}`
                       : patient.location || patient.zipcode || "-"}
                   </td>
-                  <td className="px-4 py-3 text-gray-600">
+                  <td className="px-3 py-3 text-gray-600 text-xs max-w-[140px] truncate" title={patient.conditions?.join(", ")}>
                     {patient.conditions?.slice(0, 2).join(", ") || "-"}
                     {(patient.conditions?.length || 0) > 2 && (
-                      <span className="text-gray-400">
-                        {" "}
-                        +{(patient.conditions?.length || 0) - 2}
-                      </span>
+                      <span className="text-gray-400"> +{(patient.conditions?.length || 0) - 2}</span>
                     )}
+                  </td>
+                  <td className="px-3 py-3 text-gray-600 text-xs max-w-[140px] truncate" title={patient.medications?.join(", ")}>
+                    {patient.medications?.slice(0, 2).join(", ") || "-"}
+                    {(patient.medications?.length || 0) > 2 && (
+                      <span className="text-gray-400"> +{(patient.medications?.length || 0) - 2}</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-3 text-gray-600 text-xs max-w-[100px] truncate" title={patient.allergies?.join(", ")}>
+                    {patient.allergies?.join(", ") || "-"}
+                  </td>
+                  <td className="px-3 py-3 text-gray-600 text-xs max-w-[120px] truncate" title={patient.notes}>
+                    {patient.notes || "-"}
                   </td>
                 </tr>
               ))
@@ -557,7 +676,7 @@ function TrialMatcher({
   const [selectedTrial, setSelectedTrial] = React.useState<string>("");
   const [matching, setMatching] = React.useState(false);
 
-  const handleMatch = () => {
+  const handleMatch = async () => {
     if (!selectedTrial) return;
 
     const trial = trials.find((t) => t.nctId === selectedTrial);
@@ -565,8 +684,8 @@ function TrialMatcher({
 
     setMatching(true);
 
-    // Small delay for UI feedback
-    setTimeout(() => {
+    try {
+      // Run matching algorithm
       const matches = matchPatientsToTrial(patients, trial.conditions || [], {
         // Could extract from trial eligibility criteria
       });
@@ -574,13 +693,25 @@ function TrialMatcher({
       // Assign NCT ID to matches
       const matchesWithTrial = matches.map((m) => ({ ...m, nctId: selectedTrial }));
 
-      // Save matches
-      const existingMatches = getMatches(userId).filter((m) => m.nctId !== selectedTrial);
-      saveMatches(userId, [...existingMatches, ...matchesWithTrial]);
+      // Get existing matches and merge (from API or localStorage)
+      let existingMatches: typeof matchesWithTrial = [];
+      try {
+        existingMatches = (await getMatchesAsync(userId)).filter((m) => m.nctId !== selectedTrial);
+      } catch {
+        existingMatches = getMatches(userId).filter((m) => m.nctId !== selectedTrial);
+      }
+
+      const allMatches = [...existingMatches, ...matchesWithTrial];
+
+      // Save matches to API (with localStorage fallback)
+      await saveMatchesAsync(userId, allMatches);
 
       onMatchComplete(selectedTrial, matchesWithTrial);
+    } catch (error) {
+      console.error("Match error:", error);
+    } finally {
       setMatching(false);
-    }, 500);
+    }
   };
 
   return (
@@ -770,13 +901,28 @@ export default function CustomPatientUpload(): JSX.Element {
   const [searchQuery, setSearchQuery] = React.useState("");
   const [activeTab, setActiveTab] = React.useState<"databases" | "patients" | "matches">("databases");
 
-  // Load initial data
+  // Load initial data from backend API (with localStorage fallback)
   React.useEffect(() => {
     if (!userId) return;
 
-    setDatabases(getDatabases(userId));
-    setTrials(getAddedTrials(userId));
-    setMatches(getMatches(userId));
+    const loadData = async () => {
+      try {
+        // Load from API first, fallback to localStorage
+        const [dbs, matchData] = await Promise.all([
+          getDatabasesAsync(userId),
+          getMatchesAsync(userId),
+        ]);
+        setDatabases(dbs);
+        setMatches(matchData);
+      } catch {
+        // Fallback to localStorage
+        setDatabases(getDatabases(userId));
+        setMatches(getMatches(userId));
+      }
+      setTrials(getAddedTrials(userId));
+    };
+
+    loadData();
   }, [userId]);
 
   // Load patients when database selected
@@ -786,7 +932,16 @@ export default function CustomPatientUpload(): JSX.Element {
       return;
     }
 
-    setPatients(getPatients(userId, selectedDb));
+    const loadPatients = async () => {
+      try {
+        const pts = await getPatientsAsync(userId, selectedDb);
+        setPatients(pts);
+      } catch {
+        setPatients(getPatients(userId, selectedDb));
+      }
+    };
+
+    loadPatients();
     setActiveTab("patients");
   }, [userId, selectedDb]);
 
@@ -823,8 +978,8 @@ export default function CustomPatientUpload(): JSX.Element {
     }
   };
 
-  // Confirm import
-  const handleConfirmImport = (name: string, description: string) => {
+  // Confirm import - save to backend API
+  const handleConfirmImport = async (name: string, description: string) => {
     if (!parseResult?.patients || !userId) return;
 
     const dbId = `db_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -841,36 +996,57 @@ export default function CustomPatientUpload(): JSX.Element {
       fileName: parseFileName,
     };
 
-    // Save database and patients
-    saveDatabase(userId, newDb);
-    savePatients(userId, dbId, parseResult.patients);
+    try {
+      // Save database and patients to backend API
+      await saveDatabaseAsync(userId, newDb);
+      await savePatientsAsync(userId, dbId, parseResult.patients);
 
-    // Update state
-    setDatabases(getDatabases(userId));
+      // Refresh databases from API
+      const dbs = await getDatabasesAsync(userId);
+      setDatabases(dbs);
+    } catch {
+      // Fallback: save to localStorage and update state
+      saveDatabase(userId, newDb);
+      savePatients(userId, dbId, parseResult.patients);
+      setDatabases(getDatabases(userId));
+    }
+
     setSelectedDb(dbId);
     setParseResult(null);
     setParseFileName("");
   };
 
   // Delete database
-  const handleDeleteDb = (dbId: string) => {
-    deleteDatabase(userId, dbId);
-    setDatabases(getDatabases(userId));
+  const handleDeleteDb = async (dbId: string) => {
+    try {
+      await deleteDatabaseAsync(userId, dbId);
+      const dbs = await getDatabasesAsync(userId);
+      setDatabases(dbs);
+    } catch {
+      deleteDatabase(userId, dbId);
+      setDatabases(getDatabases(userId));
+    }
     if (selectedDb === dbId) {
       setSelectedDb(null);
       setPatients([]);
     }
   };
 
-  // Handle match complete
-  const handleMatchComplete = (nctId: string, newMatches: CustomTrialMatch[]) => {
+  // Handle match complete - save to backend
+  const handleMatchComplete = async (nctId: string, newMatches: CustomTrialMatch[]) => {
     setSelectedTrialForMatches(nctId);
-    setMatches(getMatches(userId));
+    try {
+      await saveMatchesAsync(userId, newMatches);
+      const allMatches = await getMatchesAsync(userId);
+      setMatches(allMatches);
+    } catch {
+      setMatches(getMatches(userId));
+    }
     setActiveTab("matches");
   };
 
-  // Update match status
-  const handleUpdateMatchStatus = (patientId: string, status: CustomTrialMatch["eligibilityStatus"]) => {
+  // Update match status - save to backend
+  const handleUpdateMatchStatus = async (patientId: string, status: CustomTrialMatch["eligibilityStatus"]) => {
     if (!selectedTrialForMatches) return;
 
     const updatedMatches = matches.map((m) =>
@@ -879,8 +1055,15 @@ export default function CustomPatientUpload(): JSX.Element {
         : m
     );
 
-    saveMatches(userId, updatedMatches);
+    // Optimistically update UI
     setMatches(updatedMatches);
+
+    try {
+      await updateMatchStatusAsync(userId, patientId, selectedTrialForMatches, status);
+    } catch {
+      // Fallback already handled by updateMatchStatusAsync
+      saveMatches(userId, updatedMatches);
+    }
   };
 
   const totalPatients = getTotalPatientCount(userId);

@@ -3,9 +3,77 @@
  *
  * Handles uploading, storing, and matching custom patient data
  * from CSV, Excel, and JSON files. Separate from Elation EHR integration.
+ *
+ * STORAGE: Uses PostgreSQL backend via /api/custom-patients
+ * with localStorage as fallback for offline mode.
  */
 
 import { getCsrfToken } from "./csrf";
+
+// ============================================================================
+// API Configuration
+// ============================================================================
+
+const API_BASE = "/api/custom-patients";
+
+async function apiRequest<T>(
+  path: string,
+  options: {
+    method?: string;
+    body?: any;
+    params?: Record<string, string>;
+  } = {}
+): Promise<{ ok: boolean; data?: T; error?: string }> {
+  try {
+    const { method = "GET", body, params } = options;
+    let url = `${API_BASE}${path}`;
+
+    if (params) {
+      const searchParams = new URLSearchParams(params);
+      url += `?${searchParams.toString()}`;
+    }
+
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+
+    // Add CSRF token for state-changing operations
+    if (["POST", "PUT", "DELETE"].includes(method)) {
+      const csrfToken = await getCsrfToken();
+      if (csrfToken) {
+        headers["X-CSRF-Token"] = csrfToken;
+      }
+    }
+
+    // Add auth token if available
+    const session = localStorage.getItem("tc_session_v1");
+    if (session) {
+      try {
+        const { token } = JSON.parse(session);
+        if (token) {
+          headers["X-Session-Token"] = token;
+        }
+      } catch {}
+    }
+
+    const response = await fetch(url, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: "Request failed" }));
+      return { ok: false, error: error.error || `HTTP ${response.status}` };
+    }
+
+    const data = await response.json();
+    return { ok: true, data };
+  } catch (error) {
+    console.warn("API request failed, using localStorage fallback:", error);
+    return { ok: false, error: error instanceof Error ? error.message : "Network error" };
+  }
+}
 
 // ============================================================================
 // Types
@@ -33,6 +101,8 @@ export interface CustomPatient {
   notes?: string;
   source: string; // filename or "manual"
   importedAt: string;
+  /** Store all original fields from the file for dynamic display */
+  _raw?: Record<string, unknown>;
 }
 
 export interface CustomPatientDatabase {
@@ -64,6 +134,10 @@ export interface ParseResult {
   warnings?: string[];
   rowCount?: number;
   validCount?: number;
+  /** Original column headers from the file */
+  columns?: string[];
+  /** Raw row data preserving all original columns */
+  rawData?: Record<string, unknown>[];
 }
 
 export interface ColumnMapping {
@@ -98,8 +172,19 @@ const STORAGE_KEYS = {
 };
 
 // ============================================================================
-// Database Management
+// Database Management (API-first with localStorage fallback)
 // ============================================================================
+
+export async function getDatabasesAsync(userId: string): Promise<CustomPatientDatabase[]> {
+  const result = await apiRequest<{ databases: CustomPatientDatabase[] }>("/databases");
+  if (result.ok && result.data?.databases) {
+    // Cache in localStorage for offline access
+    localStorage.setItem(STORAGE_KEYS.databases(userId), JSON.stringify(result.data.databases));
+    return result.data.databases;
+  }
+  // Fallback to localStorage
+  return getDatabases(userId);
+}
 
 export function getDatabases(userId: string): CustomPatientDatabase[] {
   try {
@@ -108,6 +193,18 @@ export function getDatabases(userId: string): CustomPatientDatabase[] {
   } catch {
     return [];
   }
+}
+
+export async function saveDatabaseAsync(userId: string, db: CustomPatientDatabase): Promise<boolean> {
+  const result = await apiRequest("/databases", { method: "POST", body: db });
+  if (result.ok) {
+    // Also update localStorage cache
+    saveDatabase(userId, db);
+    return true;
+  }
+  // Fallback to localStorage only
+  saveDatabase(userId, db);
+  return false;
 }
 
 export function saveDatabase(userId: string, db: CustomPatientDatabase): void {
@@ -121,6 +218,13 @@ export function saveDatabase(userId: string, db: CustomPatientDatabase): void {
   localStorage.setItem(STORAGE_KEYS.databases(userId), JSON.stringify(databases));
 }
 
+export async function deleteDatabaseAsync(userId: string, dbId: string): Promise<boolean> {
+  const result = await apiRequest(`/databases/${dbId}`, { method: "DELETE" });
+  // Always update localStorage
+  deleteDatabase(userId, dbId);
+  return result.ok;
+}
+
 export function deleteDatabase(userId: string, dbId: string): void {
   const databases = getDatabases(userId).filter((d) => d.id !== dbId);
   localStorage.setItem(STORAGE_KEYS.databases(userId), JSON.stringify(databases));
@@ -128,8 +232,21 @@ export function deleteDatabase(userId: string, dbId: string): void {
 }
 
 // ============================================================================
-// Patient Management
+// Patient Management (API-first with localStorage fallback)
 // ============================================================================
+
+export async function getPatientsAsync(userId: string, dbId: string): Promise<CustomPatient[]> {
+  const result = await apiRequest<{ patients: CustomPatient[] }>("/patients", {
+    params: { databaseId: dbId },
+  });
+  if (result.ok && result.data?.patients) {
+    // Cache in localStorage
+    localStorage.setItem(STORAGE_KEYS.patients(userId, dbId), JSON.stringify(result.data.patients));
+    return result.data.patients;
+  }
+  // Fallback to localStorage
+  return getPatients(userId, dbId);
+}
 
 export function getPatients(userId: string, dbId: string): CustomPatient[] {
   try {
@@ -140,9 +257,28 @@ export function getPatients(userId: string, dbId: string): CustomPatient[] {
   }
 }
 
+export async function getAllPatientsAsync(userId: string): Promise<CustomPatient[]> {
+  const result = await apiRequest<{ patients: CustomPatient[] }>("/patients");
+  if (result.ok && result.data?.patients) {
+    return result.data.patients;
+  }
+  // Fallback to localStorage
+  return getAllPatients(userId);
+}
+
 export function getAllPatients(userId: string): CustomPatient[] {
   const databases = getDatabases(userId);
   return databases.flatMap((db) => getPatients(userId, db.id));
+}
+
+export async function savePatientsAsync(userId: string, dbId: string, patients: CustomPatient[]): Promise<boolean> {
+  const result = await apiRequest("/patients", {
+    method: "POST",
+    body: { databaseId: dbId, patients },
+  });
+  // Always save to localStorage as cache
+  savePatients(userId, dbId, patients);
+  return result.ok;
 }
 
 export function savePatients(userId: string, dbId: string, patients: CustomPatient[]): void {
@@ -255,6 +391,12 @@ function parseRow(row: Record<string, unknown>, mapping: ColumnMapping, source: 
     }
   }
 
+  // Convert raw row to string values for storage
+  const rawRow: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(row)) {
+    rawRow[key] = value;
+  }
+
   return {
     id: generateId(),
     firstName: firstName || "",
@@ -277,6 +419,7 @@ function parseRow(row: Record<string, unknown>, mapping: ColumnMapping, source: 
     notes: getValue("notes"),
     source,
     importedAt: new Date().toISOString(),
+    _raw: rawRow,
   };
 }
 
@@ -284,6 +427,7 @@ export function parseCSV(content: string, fileName: string, customMapping?: Colu
   const errors: string[] = [];
   const warnings: string[] = [];
   const patients: CustomPatient[] = [];
+  const rawData: Record<string, unknown>[] = [];
 
   try {
     const lines = content.split(/\r?\n/).filter((line) => line.trim());
@@ -307,6 +451,7 @@ export function parseCSV(content: string, fileName: string, customMapping?: Colu
         headers.forEach((header, idx) => {
           row[header] = values[idx] || "";
         });
+        rawData.push(row);
 
         const patient = parseRow(row, mapping, fileName);
         if (patient) {
@@ -326,6 +471,8 @@ export function parseCSV(content: string, fileName: string, customMapping?: Colu
       warnings: warnings.length > 0 ? warnings : undefined,
       rowCount: lines.length - 1,
       validCount: patients.length,
+      columns: headers,
+      rawData,
     };
   } catch (err) {
     return {
@@ -395,8 +542,10 @@ export function parseJSON(content: string, fileName: string, customMapping?: Col
       return { ok: false, errors: ["No patient records found in JSON"] };
     }
 
-    // Get headers from first row
-    const headers = Object.keys(rows[0]);
+    // Get all unique headers from all rows (JSON may have varying fields)
+    const headerSet = new Set<string>();
+    rows.forEach(row => Object.keys(row).forEach(key => headerSet.add(key)));
+    const headers = Array.from(headerSet);
     const mapping = customMapping || autoMapColumns(headers);
 
     for (let i = 0; i < rows.length; i++) {
@@ -419,6 +568,8 @@ export function parseJSON(content: string, fileName: string, customMapping?: Col
       warnings: warnings.length > 0 ? warnings : undefined,
       rowCount: rows.length,
       validCount: patients.length,
+      columns: headers,
+      rawData: rows,
     };
   } catch (err) {
     return {
@@ -430,7 +581,6 @@ export function parseJSON(content: string, fileName: string, customMapping?: Col
 
 export async function parseExcel(file: File, customMapping?: ColumnMapping): Promise<ParseResult> {
   // We'll use SheetJS (xlsx) library for Excel parsing
-  // For now, return an error until we add the library
   try {
     // Dynamic import of xlsx library
     const XLSX = await import("xlsx");
@@ -451,7 +601,10 @@ export async function parseExcel(file: File, customMapping?: ColumnMapping): Pro
       return { ok: false, errors: ["No data found in Excel sheet"] };
     }
 
-    const headers = Object.keys(rows[0]);
+    // Get all unique headers from all rows
+    const headerSet = new Set<string>();
+    rows.forEach(row => Object.keys(row).forEach(key => headerSet.add(key)));
+    const headers = Array.from(headerSet);
     const mapping = customMapping || autoMapColumns(headers);
 
     const errors: string[] = [];
@@ -478,6 +631,8 @@ export async function parseExcel(file: File, customMapping?: ColumnMapping): Pro
       warnings: warnings.length > 0 ? warnings : undefined,
       rowCount: rows.length,
       validCount: patients.length,
+      columns: headers,
+      rawData: rows,
     };
   } catch (err) {
     return {
@@ -488,43 +643,151 @@ export async function parseExcel(file: File, customMapping?: ColumnMapping): Pro
 }
 
 // ============================================================================
-// Trial Matching
+// Trial Matching - COMPREHENSIVE ALGORITHM
 // ============================================================================
+
+export interface TrialMatchCriteria {
+  minAge?: number;
+  maxAge?: number;
+  gender?: string;
+  // Inclusion criteria - having these is GOOD
+  requiredConditions?: string[];
+  preferredMedications?: string[];
+  preferredLocations?: string[];
+  // Exclusion criteria - having these is BAD
+  excludedMedications?: string[];
+  excludedAllergies?: string[];
+  excludedConditions?: string[];
+  // Keywords to search in notes
+  inclusionKeywords?: string[];
+  exclusionKeywords?: string[];
+}
+
+function tokenize(text: string): string[] {
+  return text.toLowerCase().split(/[\s,;|]+/).filter(Boolean);
+}
+
+function fuzzyMatch(a: string, b: string): boolean {
+  const aLower = a.toLowerCase();
+  const bLower = b.toLowerCase();
+  // Direct contains
+  if (aLower.includes(bLower) || bLower.includes(aLower)) return true;
+  // Token overlap (for multi-word conditions like "Type 2 Diabetes")
+  const aTokens = tokenize(aLower);
+  const bTokens = tokenize(bLower);
+  const overlap = aTokens.filter(t => bTokens.some(bt => bt.includes(t) || t.includes(bt)));
+  return overlap.length >= Math.min(aTokens.length, bTokens.length) * 0.5;
+}
 
 export function matchPatientsToTrial(
   patients: CustomPatient[],
   trialConditions: string[],
-  criteria?: {
-    minAge?: number;
-    maxAge?: number;
-    gender?: string;
-  }
+  criteria?: TrialMatchCriteria
 ): CustomTrialMatch[] {
   const matches: CustomTrialMatch[] = [];
   const conditionsLower = trialConditions.map((c) => c.toLowerCase());
+  const requiredConditionsLower = (criteria?.requiredConditions || trialConditions).map(c => c.toLowerCase());
 
   for (const patient of patients) {
     const matchReasons: string[] = [];
+    const exclusionReasons: string[] = [];
     let score = 0;
+    let excluded = false;
 
-    // Check conditions match
+    // ========================================================================
+    // EXCLUSION CHECKS (run first - if excluded, skip this patient)
+    // ========================================================================
+
+    // Check excluded medications (e.g., contraindicated drugs)
+    if (criteria?.excludedMedications && patient.medications) {
+      const patientMedsLower = patient.medications.map(m => m.toLowerCase());
+      for (const excludedMed of criteria.excludedMedications) {
+        const excludedLower = excludedMed.toLowerCase();
+        for (const patientMed of patientMedsLower) {
+          if (fuzzyMatch(patientMed, excludedLower)) {
+            excluded = true;
+            exclusionReasons.push(`Excluded medication: ${patientMed}`);
+            break;
+          }
+        }
+        if (excluded) break;
+      }
+    }
+
+    // Check excluded allergies (e.g., allergic to trial drug)
+    if (!excluded && criteria?.excludedAllergies && patient.allergies) {
+      const patientAllergiesLower = patient.allergies.map(a => a.toLowerCase());
+      for (const excludedAllergy of criteria.excludedAllergies) {
+        const excludedLower = excludedAllergy.toLowerCase();
+        for (const patientAllergy of patientAllergiesLower) {
+          if (fuzzyMatch(patientAllergy, excludedLower)) {
+            excluded = true;
+            exclusionReasons.push(`Excluded allergy: ${patientAllergy}`);
+            break;
+          }
+        }
+        if (excluded) break;
+      }
+    }
+
+    // Check excluded conditions (e.g., comorbidities that disqualify)
+    if (!excluded && criteria?.excludedConditions && patient.conditions) {
+      const patientConditionsLower = patient.conditions.map(c => c.toLowerCase());
+      for (const excludedCond of criteria.excludedConditions) {
+        const excludedLower = excludedCond.toLowerCase();
+        for (const patientCond of patientConditionsLower) {
+          if (fuzzyMatch(patientCond, excludedLower)) {
+            excluded = true;
+            exclusionReasons.push(`Excluded condition: ${patientCond}`);
+            break;
+          }
+        }
+        if (excluded) break;
+      }
+    }
+
+    // Check exclusion keywords in notes
+    if (!excluded && criteria?.exclusionKeywords && patient.notes) {
+      const notesLower = patient.notes.toLowerCase();
+      for (const keyword of criteria.exclusionKeywords) {
+        if (notesLower.includes(keyword.toLowerCase())) {
+          excluded = true;
+          exclusionReasons.push(`Excluded by notes: contains "${keyword}"`);
+          break;
+        }
+      }
+    }
+
+    // Skip this patient if excluded
+    if (excluded) {
+      continue;
+    }
+
+    // ========================================================================
+    // INCLUSION SCORING (higher = better match)
+    // ========================================================================
+
+    // PRIMARY: Condition match (up to 35 points)
     if (patient.conditions && patient.conditions.length > 0) {
       const patientConditionsLower = patient.conditions.map((c) => c.toLowerCase());
+      let conditionMatches = 0;
       for (const condition of conditionsLower) {
         for (const patientCondition of patientConditionsLower) {
-          if (
-            patientCondition.includes(condition) ||
-            condition.includes(patientCondition)
-          ) {
-            score += 40;
+          if (fuzzyMatch(patientCondition, condition)) {
+            conditionMatches++;
             matchReasons.push(`Condition match: ${patientCondition}`);
             break;
           }
         }
       }
+      // Score based on how many trial conditions match
+      if (conditionMatches > 0) {
+        const conditionScore = Math.min(35, conditionMatches * 15);
+        score += conditionScore;
+      }
     }
 
-    // Check age criteria
+    // SECONDARY: Age criteria (up to 20 points)
     if (patient.age !== undefined) {
       let ageMatch = true;
       if (criteria?.minAge && patient.age < criteria.minAge) {
@@ -535,19 +798,85 @@ export function matchPatientsToTrial(
       }
       if (ageMatch) {
         score += 20;
-        matchReasons.push(`Age (${patient.age}) within range`);
+        matchReasons.push(`Age ${patient.age} within range${criteria?.minAge || criteria?.maxAge ? ` (${criteria?.minAge || '?'}-${criteria?.maxAge || '?'})` : ''}`);
       }
+    } else {
+      // Unknown age - partial credit
+      score += 5;
+      matchReasons.push("Age unknown (partial match)");
     }
 
-    // Check gender criteria
+    // SECONDARY: Gender criteria (up to 10 points)
     if (criteria?.gender && patient.sex) {
       const genderMatch =
         criteria.gender.toLowerCase() === "all" ||
         patient.sex.toLowerCase().startsWith(criteria.gender.toLowerCase()[0]);
       if (genderMatch) {
         score += 10;
-        matchReasons.push(`Gender matches (${patient.sex})`);
+        matchReasons.push(`Gender matches: ${patient.sex}`);
       }
+    } else if (!criteria?.gender) {
+      // No gender requirement
+      score += 10;
+    }
+
+    // TERTIARY: Medications match (up to 15 points)
+    if (criteria?.preferredMedications && patient.medications) {
+      const patientMedsLower = patient.medications.map(m => m.toLowerCase());
+      let medMatches = 0;
+      for (const preferredMed of criteria.preferredMedications) {
+        const preferredLower = preferredMed.toLowerCase();
+        for (const patientMed of patientMedsLower) {
+          if (fuzzyMatch(patientMed, preferredLower)) {
+            medMatches++;
+            matchReasons.push(`Current medication: ${patientMed}`);
+            break;
+          }
+        }
+      }
+      if (medMatches > 0) {
+        score += Math.min(15, medMatches * 5);
+      }
+    }
+
+    // TERTIARY: Location match (up to 10 points)
+    if (criteria?.preferredLocations && (patient.city || patient.state || patient.zipcode)) {
+      const patientLocation = [patient.city, patient.state, patient.zipcode].filter(Boolean).join(" ").toLowerCase();
+      for (const preferredLoc of criteria.preferredLocations) {
+        if (patientLocation.includes(preferredLoc.toLowerCase()) ||
+            preferredLoc.toLowerCase().includes(patientLocation)) {
+          score += 10;
+          matchReasons.push(`Location match: ${patient.city || ''} ${patient.state || ''}`);
+          break;
+        }
+      }
+    }
+
+    // TERTIARY: Inclusion keywords in notes (up to 10 points)
+    if (criteria?.inclusionKeywords && patient.notes) {
+      const notesLower = patient.notes.toLowerCase();
+      let keywordMatches = 0;
+      for (const keyword of criteria.inclusionKeywords) {
+        if (notesLower.includes(keyword.toLowerCase())) {
+          keywordMatches++;
+          matchReasons.push(`Notes mention: "${keyword}"`);
+        }
+      }
+      if (keywordMatches > 0) {
+        score += Math.min(10, keywordMatches * 3);
+      }
+    }
+
+    // BONUS: Allergies documented (shows complete medical history) - 5 points
+    if (patient.allergies && patient.allergies.length > 0) {
+      score += 5;
+      matchReasons.push(`Allergies documented: ${patient.allergies.join(", ")}`);
+    }
+
+    // BONUS: Complete contact info - 5 points
+    if (patient.email && patient.phone) {
+      score += 5;
+      matchReasons.push("Complete contact information");
     }
 
     // Add to matches if score > 0
@@ -569,8 +898,25 @@ export function matchPatientsToTrial(
 }
 
 // ============================================================================
-// Match Management
+// Match Management (API-first with localStorage fallback)
 // ============================================================================
+
+export async function getMatchesAsync(userId: string, nctId?: string): Promise<CustomTrialMatch[]> {
+  const params: Record<string, string> = {};
+  if (nctId) params.nctId = nctId;
+
+  const result = await apiRequest<{ matches: CustomTrialMatch[] }>("/matches", { params });
+  if (result.ok && result.data?.matches) {
+    // Cache in localStorage
+    if (!nctId) {
+      localStorage.setItem(STORAGE_KEYS.matches(userId), JSON.stringify(result.data.matches));
+    }
+    return result.data.matches;
+  }
+  // Fallback to localStorage
+  const matches = getMatches(userId);
+  return nctId ? matches.filter((m) => m.nctId === nctId) : matches;
+}
 
 export function getMatches(userId: string): CustomTrialMatch[] {
   try {
@@ -581,8 +927,34 @@ export function getMatches(userId: string): CustomTrialMatch[] {
   }
 }
 
+export async function saveMatchesAsync(userId: string, matches: CustomTrialMatch[]): Promise<boolean> {
+  const result = await apiRequest("/matches", {
+    method: "POST",
+    body: { matches },
+  });
+  // Always save to localStorage as cache
+  saveMatches(userId, matches);
+  return result.ok;
+}
+
 export function saveMatches(userId: string, matches: CustomTrialMatch[]): void {
   localStorage.setItem(STORAGE_KEYS.matches(userId), JSON.stringify(matches));
+}
+
+export async function updateMatchStatusAsync(
+  userId: string,
+  patientId: string,
+  nctId: string,
+  status: CustomTrialMatch["eligibilityStatus"],
+  notes?: string
+): Promise<boolean> {
+  const result = await apiRequest("/matches", {
+    method: "PUT",
+    body: { patientId, nctId, status, notes },
+  });
+  // Always update localStorage
+  updateMatchStatus(userId, patientId, nctId, status, notes);
+  return result.ok;
 }
 
 export function updateMatchStatus(

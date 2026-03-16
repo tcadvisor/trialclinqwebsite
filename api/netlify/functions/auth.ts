@@ -275,41 +275,83 @@ export const handler: Handler = async (event) => {
         event.headers?.["user-agent"]
       );
 
-      return cors.response(200, {
-        ok: true,
-        message: "Signed in successfully",
-        user: {
-          userId: user.user_id,
-          email: normalizedEmail,
-          firstName: user.first_name,
-          lastName: user.last_name,
-          role: role || user.role,
+      // Set httpOnly cookie for session token (works in incognito!)
+      const isProduction = process.env.NODE_ENV === "production" ||
+                           event.headers?.host?.includes("netlify.app") ||
+                           event.headers?.host?.includes("trialcliniq");
+
+      const cookieOptions = [
+        `session_token=${token}`,
+        "HttpOnly",
+        "Path=/",
+        `Max-Age=${Math.floor(SESSION_EXPIRY_MS / 1000)}`,
+        "SameSite=Lax",
+      ];
+
+      if (isProduction) {
+        cookieOptions.push("Secure");
+      }
+
+      return {
+        statusCode: 200,
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": event.headers?.origin || "*",
+          "Access-Control-Allow-Credentials": "true",
+          "Set-Cookie": cookieOptions.join("; "),
         },
-        session: {
-          token,
-          expiresAt: expiresAt.toISOString(),
-        },
-      });
+        body: JSON.stringify({
+          ok: true,
+          message: "Signed in successfully",
+          user: {
+            userId: user.user_id,
+            email: normalizedEmail,
+            firstName: user.first_name,
+            lastName: user.last_name,
+            role: role || user.role,
+          },
+          session: {
+            token, // Also return token for localStorage fallback
+            expiresAt: expiresAt.toISOString(),
+          },
+        }),
+      };
     }
 
     // ==================== SIGNOUT ====================
     if (action === "signout") {
-      const token = body.token || event.headers["x-session-token"];
+      // Check cookie first, then header, then body
+      const cookieHeader = event.headers?.cookie || "";
+      const cookieMatch = cookieHeader.match(/session_token=([^;]+)/);
+      const token = cookieMatch?.[1] || body.token || event.headers["x-session-token"];
 
       if (token) {
         const tokenHash = hashToken(token);
         await query(`DELETE FROM sessions WHERE token_hash = $1`, [tokenHash]);
       }
 
-      return cors.response(200, {
-        ok: true,
-        message: "Signed out successfully",
-      });
+      // Clear the cookie
+      return {
+        statusCode: 200,
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": event.headers?.origin || "*",
+          "Access-Control-Allow-Credentials": "true",
+          "Set-Cookie": "session_token=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax",
+        },
+        body: JSON.stringify({
+          ok: true,
+          message: "Signed out successfully",
+        }),
+      };
     }
 
     // ==================== VALIDATE SESSION ====================
     if (action === "validate") {
-      const token = body.token || event.headers["x-session-token"];
+      // Check cookie first (httpOnly cookie), then header, then body
+      const cookieHeader = event.headers?.cookie || "";
+      const cookieMatch = cookieHeader.match(/session_token=([^;]+)/);
+      const token = cookieMatch?.[1] || body.token || event.headers["x-session-token"];
 
       if (!token) {
         return cors.response(401, { ok: false, error: "No session token provided" });

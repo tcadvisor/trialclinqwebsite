@@ -18,6 +18,13 @@ export type AnalyticsSummary = {
   appointmentsThisWeek: number;
   recentActivity: any[];
   trialPerformance: any[];
+  // Custom patient database metrics
+  customPatients: {
+    totalDatabases: number;
+    totalPatients: number;
+    totalMatches: number;
+    matchesByStatus: Record<string, number>;
+  };
 };
 
 export const handler: Handler = async (event) => {
@@ -69,7 +76,7 @@ export const handler: Handler = async (event) => {
         totalPatients += parseInt(row.count);
       }
 
-      // Get enrollment funnel
+      // Get enrollment funnel from patient_pipeline
       const funnelResult = await query(
         `SELECT
           COUNT(*) FILTER (WHERE status = 'interested') as interested,
@@ -83,6 +90,59 @@ export const handler: Handler = async (event) => {
       );
 
       const funnel = funnelResult.rows[0];
+
+      // Get custom patient database stats
+      let customPatients = {
+        totalDatabases: 0,
+        totalPatients: 0,
+        totalMatches: 0,
+        matchesByStatus: {} as Record<string, number>,
+      };
+
+      try {
+        // Custom databases count
+        const customDbResult = await query(
+          `SELECT COUNT(*) as count, COALESCE(SUM(patient_count), 0) as total_patients
+           FROM custom_patient_databases
+           WHERE user_id = $1`,
+          [userId]
+        );
+
+        // Custom matches by status
+        const customMatchesResult = await query(
+          `SELECT eligibility_status as status, COUNT(*) as count
+           FROM custom_trial_matches
+           WHERE user_id = $1
+           GROUP BY eligibility_status`,
+          [userId]
+        );
+
+        let totalCustomMatches = 0;
+        const matchesByStatus: Record<string, number> = {};
+        for (const row of customMatchesResult.rows) {
+          matchesByStatus[row.status] = parseInt(row.count);
+          totalCustomMatches += parseInt(row.count);
+        }
+
+        customPatients = {
+          totalDatabases: parseInt(customDbResult.rows[0]?.count || 0),
+          totalPatients: parseInt(customDbResult.rows[0]?.total_patients || 0),
+          totalMatches: totalCustomMatches,
+          matchesByStatus,
+        };
+
+        // Add custom patient counts to total patients
+        totalPatients += customPatients.totalPatients;
+
+        // Merge custom match statuses into enrollment funnel
+        funnel.interested = parseInt(funnel?.interested || 0) + (matchesByStatus["potential"] || 0);
+        funnel.eligible = parseInt(funnel?.eligible || 0) + (matchesByStatus["eligible"] || 0);
+        funnel.contacted = parseInt(funnel?.contacted || 0) + (matchesByStatus["contacted"] || 0);
+        funnel.enrolled = parseInt(funnel?.enrolled || 0) + (matchesByStatus["enrolled"] || 0);
+      } catch (e) {
+        // Custom patient tables might not exist yet - that's okay
+        console.log("Custom patient tables not found, skipping custom analytics");
+      }
 
       // Get appointments
       const appointmentsResult = await query(
@@ -104,22 +164,43 @@ export const handler: Handler = async (event) => {
         [userId]
       );
 
-      // Get trial performance
-      const performanceResult = await query(
-        `SELECT
-          pt.nct_id as "nctId",
-          pt.title,
-          COUNT(pp.id) as total_patients,
-          COUNT(pp.id) FILTER (WHERE pp.status = 'enrolled') as enrolled,
-          COUNT(pp.id) FILTER (WHERE pp.status = 'interested') as interested
-         FROM provider_trials pt
-         LEFT JOIN patient_pipeline pp ON pt.nct_id = pp.nct_id AND pp.provider_id = $1
-         WHERE pt.provider_id = $1
-         GROUP BY pt.nct_id, pt.title
-         ORDER BY total_patients DESC
-         LIMIT 5`,
-        [providerId]
-      );
+      // Get trial performance (including custom matches)
+      let performanceResult;
+      try {
+        performanceResult = await query(
+          `SELECT
+            pt.nct_id as "nctId",
+            pt.title,
+            COALESCE(COUNT(pp.id), 0) + COALESCE(COUNT(DISTINCT ctm.patient_id), 0) as total_patients,
+            COALESCE(COUNT(pp.id) FILTER (WHERE pp.status = 'enrolled'), 0) + COALESCE(COUNT(DISTINCT ctm.patient_id) FILTER (WHERE ctm.eligibility_status = 'enrolled'), 0) as enrolled,
+            COALESCE(COUNT(pp.id) FILTER (WHERE pp.status = 'interested'), 0) + COALESCE(COUNT(DISTINCT ctm.patient_id) FILTER (WHERE ctm.eligibility_status = 'potential'), 0) as interested
+           FROM provider_trials pt
+           LEFT JOIN patient_pipeline pp ON pt.nct_id = pp.nct_id AND pp.provider_id = $1
+           LEFT JOIN custom_trial_matches ctm ON pt.nct_id = ctm.nct_id AND ctm.user_id = $1
+           WHERE pt.provider_id = $1
+           GROUP BY pt.nct_id, pt.title
+           ORDER BY total_patients DESC
+           LIMIT 5`,
+          [providerId]
+        );
+      } catch (e) {
+        // Fallback without custom matches
+        performanceResult = await query(
+          `SELECT
+            pt.nct_id as "nctId",
+            pt.title,
+            COUNT(pp.id) as total_patients,
+            COUNT(pp.id) FILTER (WHERE pp.status = 'enrolled') as enrolled,
+            COUNT(pp.id) FILTER (WHERE pp.status = 'interested') as interested
+           FROM provider_trials pt
+           LEFT JOIN patient_pipeline pp ON pt.nct_id = pp.nct_id AND pp.provider_id = $1
+           WHERE pt.provider_id = $1
+           GROUP BY pt.nct_id, pt.title
+           ORDER BY total_patients DESC
+           LIMIT 5`,
+          [providerId]
+        );
+      }
 
       return cors.response(200, {
         ok: true,
@@ -139,6 +220,7 @@ export const handler: Handler = async (event) => {
           appointmentsThisWeek: parseInt(appointmentsResult.rows[0]?.this_week || 0),
           recentActivity: activityResult.rows,
           trialPerformance: performanceResult.rows,
+          customPatients,
         },
       });
     }
@@ -183,30 +265,64 @@ export const handler: Handler = async (event) => {
 
     // ==================== TRIAL PERFORMANCE ====================
     if (type === "trial-performance") {
-      const result = await query(
-        `SELECT
-          pt.nct_id as "nctId",
-          pt.title,
-          pt.status,
-          pt.phase,
-          COUNT(pp.id) as "totalPatients",
-          COUNT(pp.id) FILTER (WHERE pp.status = 'interested') as "interested",
-          COUNT(pp.id) FILTER (WHERE pp.status = 'contacted') as "contacted",
-          COUNT(pp.id) FILTER (WHERE pp.status IN ('screening', 'screened')) as "screened",
-          COUNT(pp.id) FILTER (WHERE pp.status = 'eligible') as "eligible",
-          COUNT(pp.id) FILTER (WHERE pp.status = 'enrolled') as "enrolled",
-          COUNT(pp.id) FILTER (WHERE pp.status = 'withdrawn') as "withdrawn",
-          CASE WHEN COUNT(pp.id) FILTER (WHERE pp.status = 'interested') > 0
-            THEN ROUND(COUNT(pp.id) FILTER (WHERE pp.status = 'enrolled')::numeric / COUNT(pp.id) FILTER (WHERE pp.status = 'interested') * 100, 1)
-            ELSE 0
-          END as "conversionRate"
-         FROM provider_trials pt
-         LEFT JOIN patient_pipeline pp ON pt.nct_id = pp.nct_id AND pp.provider_id = $1
-         WHERE pt.provider_id = $1
-         GROUP BY pt.nct_id, pt.title, pt.status, pt.phase
-         ORDER BY "totalPatients" DESC`,
-        [providerId]
-      );
+      let result;
+      try {
+        // Try to include custom patient matches
+        result = await query(
+          `SELECT
+            pt.nct_id as "nctId",
+            pt.title,
+            pt.status,
+            pt.phase,
+            COALESCE(COUNT(DISTINCT pp.id), 0) + COALESCE(COUNT(DISTINCT ctm.patient_id), 0) as "totalPatients",
+            COALESCE(COUNT(DISTINCT pp.id) FILTER (WHERE pp.status = 'interested'), 0) + COALESCE(COUNT(DISTINCT ctm.patient_id) FILTER (WHERE ctm.eligibility_status = 'potential'), 0) as "interested",
+            COALESCE(COUNT(DISTINCT pp.id) FILTER (WHERE pp.status = 'contacted'), 0) + COALESCE(COUNT(DISTINCT ctm.patient_id) FILTER (WHERE ctm.eligibility_status = 'contacted'), 0) as "contacted",
+            COALESCE(COUNT(DISTINCT pp.id) FILTER (WHERE pp.status IN ('screening', 'screened')), 0) as "screened",
+            COALESCE(COUNT(DISTINCT pp.id) FILTER (WHERE pp.status = 'eligible'), 0) + COALESCE(COUNT(DISTINCT ctm.patient_id) FILTER (WHERE ctm.eligibility_status = 'eligible'), 0) as "eligible",
+            COALESCE(COUNT(DISTINCT pp.id) FILTER (WHERE pp.status = 'enrolled'), 0) + COALESCE(COUNT(DISTINCT ctm.patient_id) FILTER (WHERE ctm.eligibility_status = 'enrolled'), 0) as "enrolled",
+            COALESCE(COUNT(DISTINCT pp.id) FILTER (WHERE pp.status = 'withdrawn'), 0) as "withdrawn",
+            CASE
+              WHEN (COALESCE(COUNT(DISTINCT pp.id) FILTER (WHERE pp.status = 'interested'), 0) + COALESCE(COUNT(DISTINCT ctm.patient_id) FILTER (WHERE ctm.eligibility_status = 'potential'), 0)) > 0
+              THEN ROUND(
+                (COALESCE(COUNT(DISTINCT pp.id) FILTER (WHERE pp.status = 'enrolled'), 0) + COALESCE(COUNT(DISTINCT ctm.patient_id) FILTER (WHERE ctm.eligibility_status = 'enrolled'), 0))::numeric /
+                (COALESCE(COUNT(DISTINCT pp.id) FILTER (WHERE pp.status = 'interested'), 0) + COALESCE(COUNT(DISTINCT ctm.patient_id) FILTER (WHERE ctm.eligibility_status = 'potential'), 0)) * 100, 1)
+              ELSE 0
+            END as "conversionRate"
+           FROM provider_trials pt
+           LEFT JOIN patient_pipeline pp ON pt.nct_id = pp.nct_id AND pp.provider_id = $1
+           LEFT JOIN custom_trial_matches ctm ON pt.nct_id = ctm.nct_id AND ctm.user_id = $1
+           WHERE pt.provider_id = $1
+           GROUP BY pt.nct_id, pt.title, pt.status, pt.phase
+           ORDER BY "totalPatients" DESC`,
+          [providerId]
+        );
+      } catch (e) {
+        // Fallback without custom matches
+        result = await query(
+          `SELECT
+            pt.nct_id as "nctId",
+            pt.title,
+            pt.status,
+            pt.phase,
+            COUNT(pp.id) as "totalPatients",
+            COUNT(pp.id) FILTER (WHERE pp.status = 'interested') as "interested",
+            COUNT(pp.id) FILTER (WHERE pp.status = 'contacted') as "contacted",
+            COUNT(pp.id) FILTER (WHERE pp.status IN ('screening', 'screened')) as "screened",
+            COUNT(pp.id) FILTER (WHERE pp.status = 'eligible') as "eligible",
+            COUNT(pp.id) FILTER (WHERE pp.status = 'enrolled') as "enrolled",
+            COUNT(pp.id) FILTER (WHERE pp.status = 'withdrawn') as "withdrawn",
+            CASE WHEN COUNT(pp.id) FILTER (WHERE pp.status = 'interested') > 0
+              THEN ROUND(COUNT(pp.id) FILTER (WHERE pp.status = 'enrolled')::numeric / COUNT(pp.id) FILTER (WHERE pp.status = 'interested') * 100, 1)
+              ELSE 0
+            END as "conversionRate"
+           FROM provider_trials pt
+           LEFT JOIN patient_pipeline pp ON pt.nct_id = pp.nct_id AND pp.provider_id = $1
+           WHERE pt.provider_id = $1
+           GROUP BY pt.nct_id, pt.title, pt.status, pt.phase
+           ORDER BY "totalPatients" DESC`,
+          [providerId]
+        );
+      }
 
       return cors.response(200, {
         ok: true,

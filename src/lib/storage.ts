@@ -1,9 +1,269 @@
 // Storage API utilities for Azure backend
+// Uses PostgreSQL for persistent storage with localStorage as fallback
 
 import { setEncryptedItem, getEncryptedItem } from './encryption';
-import { addCsrfHeader } from './csrf';
+import { addCsrfHeader, getCsrfToken } from './csrf';
 
 const API_BASE = import.meta.env.VITE_API_BASE || '/api';
+const USER_DATA_API = '/api/user-data';
+
+// ============================================================================
+// NEW: Server-side storage functions (work in incognito mode!)
+// ============================================================================
+
+/**
+ * Save health profile to server (PostgreSQL)
+ * Falls back to localStorage if server unavailable
+ */
+export async function saveHealthProfileToServer(profile: any): Promise<boolean> {
+  try {
+    const csrfToken = await getCsrfToken();
+    const response = await fetch(`${USER_DATA_API}/health-profile`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfToken || '',
+      },
+      credentials: 'include', // Important: sends httpOnly cookie
+      body: JSON.stringify(profile),
+    });
+
+    if (response.ok) {
+      // Also cache locally for offline access
+      await cacheProfileLocally(profile);
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.warn('Failed to save to server, using localStorage fallback:', error);
+    await cacheProfileLocally(profile);
+    return false;
+  }
+}
+
+/**
+ * Load health profile from server (PostgreSQL)
+ * Falls back to localStorage if server unavailable
+ */
+export async function loadHealthProfileFromServer(): Promise<any | null> {
+  try {
+    const response = await fetch(`${USER_DATA_API}/health-profile`, {
+      method: 'GET',
+      credentials: 'include', // Important: sends httpOnly cookie
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data.profile) {
+        // Cache locally for offline access
+        await cacheProfileLocally(data.profile);
+        return data.profile;
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to load from server, trying localStorage:', error);
+  }
+
+  // Fallback to localStorage
+  try {
+    return await getEncryptedItem('tc_health_profile_v1');
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Save user preferences to server (PostgreSQL)
+ */
+export async function savePreferencesToServer(prefs: {
+  notifyEmail?: boolean;
+  notifyTrials?: boolean;
+  notifyNews?: boolean;
+  consent?: Record<string, boolean>;
+}): Promise<boolean> {
+  try {
+    const csrfToken = await getCsrfToken();
+    const response = await fetch(`${USER_DATA_API}/preferences`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfToken || '',
+      },
+      credentials: 'include',
+      body: JSON.stringify(prefs),
+    });
+
+    if (response.ok) {
+      // Also cache locally
+      if (prefs.notifyEmail !== undefined) localStorage.setItem('tc_notify_email', JSON.stringify(prefs.notifyEmail));
+      if (prefs.notifyTrials !== undefined) localStorage.setItem('tc_notify_trials', JSON.stringify(prefs.notifyTrials));
+      if (prefs.notifyNews !== undefined) localStorage.setItem('tc_notify_news', JSON.stringify(prefs.notifyNews));
+      if (prefs.consent) localStorage.setItem('tc_consent', JSON.stringify(prefs.consent));
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.warn('Failed to save preferences to server:', error);
+    // Save to localStorage as fallback
+    if (prefs.notifyEmail !== undefined) localStorage.setItem('tc_notify_email', JSON.stringify(prefs.notifyEmail));
+    if (prefs.notifyTrials !== undefined) localStorage.setItem('tc_notify_trials', JSON.stringify(prefs.notifyTrials));
+    if (prefs.notifyNews !== undefined) localStorage.setItem('tc_notify_news', JSON.stringify(prefs.notifyNews));
+    if (prefs.consent) localStorage.setItem('tc_consent', JSON.stringify(prefs.consent));
+    return false;
+  }
+}
+
+/**
+ * Load user preferences from server (PostgreSQL)
+ */
+export async function loadPreferencesFromServer(): Promise<{
+  notifyEmail?: boolean;
+  notifyTrials?: boolean;
+  notifyNews?: boolean;
+  consent?: Record<string, boolean>;
+} | null> {
+  try {
+    const response = await fetch(`${USER_DATA_API}/preferences`, {
+      method: 'GET',
+      credentials: 'include',
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data.preferences) {
+        // Cache locally
+        if (data.preferences.notifyEmail !== undefined) localStorage.setItem('tc_notify_email', JSON.stringify(data.preferences.notifyEmail));
+        if (data.preferences.notifyTrials !== undefined) localStorage.setItem('tc_notify_trials', JSON.stringify(data.preferences.notifyTrials));
+        if (data.preferences.notifyNews !== undefined) localStorage.setItem('tc_notify_news', JSON.stringify(data.preferences.notifyNews));
+        if (data.preferences.consent) localStorage.setItem('tc_consent', JSON.stringify(data.preferences.consent));
+        return data.preferences;
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to load preferences from server:', error);
+  }
+
+  // Fallback to localStorage
+  try {
+    return {
+      notifyEmail: JSON.parse(localStorage.getItem('tc_notify_email') || 'true'),
+      notifyTrials: JSON.parse(localStorage.getItem('tc_notify_trials') || 'true'),
+      notifyNews: JSON.parse(localStorage.getItem('tc_notify_news') || 'false'),
+      consent: JSON.parse(localStorage.getItem('tc_consent') || '{}'),
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Save eligibility data to server (PostgreSQL)
+ */
+export async function saveEligibilityToServer(eligibility: {
+  dob?: string;
+  age?: number;
+  weight?: number;
+  gender?: string;
+  race?: string;
+  language?: string;
+  loc?: string;
+  radius?: string;
+}): Promise<boolean> {
+  try {
+    const csrfToken = await getCsrfToken();
+    const response = await fetch(`${USER_DATA_API}/eligibility`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfToken || '',
+      },
+      credentials: 'include',
+      body: JSON.stringify(eligibility),
+    });
+
+    if (response.ok) {
+      // Also cache locally
+      localStorage.setItem('tc_eligibility_profile', JSON.stringify(eligibility));
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.warn('Failed to save eligibility to server:', error);
+    localStorage.setItem('tc_eligibility_profile', JSON.stringify(eligibility));
+    return false;
+  }
+}
+
+/**
+ * Load eligibility data from server (PostgreSQL)
+ */
+export async function loadEligibilityFromServer(): Promise<any | null> {
+  try {
+    const response = await fetch(`${USER_DATA_API}/eligibility`, {
+      method: 'GET',
+      credentials: 'include',
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data.eligibility) {
+        localStorage.setItem('tc_eligibility_profile', JSON.stringify(data.eligibility));
+        return data.eligibility;
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to load eligibility from server:', error);
+  }
+
+  // Fallback to localStorage
+  try {
+    const raw = localStorage.getItem('tc_eligibility_profile');
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Load all user data from server at once (efficient for initial load)
+ */
+export async function loadAllUserDataFromServer(): Promise<{
+  healthProfile?: any;
+  preferences?: any;
+  eligibility?: any;
+} | null> {
+  try {
+    const response = await fetch(`${USER_DATA_API}/all`, {
+      method: 'GET',
+      credentials: 'include',
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      // Cache everything locally
+      if (data.healthProfile) {
+        await cacheProfileLocally(data.healthProfile);
+      }
+      if (data.preferences) {
+        if (data.preferences.notifyEmail !== undefined) localStorage.setItem('tc_notify_email', JSON.stringify(data.preferences.notifyEmail));
+        if (data.preferences.notifyTrials !== undefined) localStorage.setItem('tc_notify_trials', JSON.stringify(data.preferences.notifyTrials));
+        if (data.preferences.notifyNews !== undefined) localStorage.setItem('tc_notify_news', JSON.stringify(data.preferences.notifyNews));
+        if (data.preferences.consent) localStorage.setItem('tc_consent', JSON.stringify(data.preferences.consent));
+      }
+      if (data.eligibility) {
+        localStorage.setItem('tc_eligibility_profile', JSON.stringify(data.eligibility));
+      }
+      return data;
+    }
+  } catch (error) {
+    console.warn('Failed to load all user data from server:', error);
+  }
+  return null;
+}
+
+// ============================================================================
+// Original functions (localStorage-based, kept for backwards compatibility)
+// ============================================================================
 
 interface HealthProfile {
   patientId: string;

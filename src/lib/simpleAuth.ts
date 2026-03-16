@@ -1,15 +1,19 @@
 /**
  * Simple Username/Password Authentication Module
- * Temporary replacement for Azure MSAL authentication
  *
- * NOTE: This is a simplified auth system for development/testing.
- * For production, consider using a proper backend auth service.
+ * Uses backend API at /api/auth with httpOnly cookies for secure sessions.
+ * Falls back to localStorage for offline/development mode.
  */
 
-// Storage keys
+const AUTH_API = "/api/auth";
+
+// Storage keys (localStorage fallback only)
 const USERS_STORAGE_KEY = 'tc_users_v1';
 const SESSION_KEY = 'tc_session_v1';
 const SESSION_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+// Track if we're using API or localStorage fallback
+let useApiAuth = true;
 
 export interface SignUpInput {
   email: string;
@@ -131,7 +135,7 @@ function clearSession(): void {
 // ============================================================================
 
 /**
- * Sign up a new user
+ * Sign up a new user - uses backend API
  */
 export async function signUpUser(input: SignUpInput): Promise<{ userId: string; requiresConfirmation: boolean }> {
   const email = input.email.trim().toLowerCase();
@@ -144,84 +148,196 @@ export async function signUpUser(input: SignUpInput): Promise<{ userId: string; 
     throw new Error('Password must be at least 6 characters');
   }
 
-  const users = getStoredUsers();
+  // Try backend API first
+  try {
+    const response = await fetch(AUTH_API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include", // Important for cookies
+      body: JSON.stringify({
+        action: "signup",
+        email,
+        password: input.password,
+        firstName: input.firstName.trim(),
+        lastName: input.lastName.trim(),
+      }),
+    });
 
-  // Check if user already exists
-  if (users[email]) {
-    throw new Error('An account with this email already exists. Please sign in instead.');
+    const data = await response.json();
+
+    if (!response.ok || !data.ok) {
+      throw new Error(data.error || "Signup failed");
+    }
+
+    useApiAuth = true;
+    return {
+      userId: data.userId,
+      requiresConfirmation: data.requiresVerification || false,
+    };
+  } catch (err) {
+    // If API fails (network error, not deployed), fall back to localStorage
+    console.warn("Backend auth failed, using localStorage fallback:", err);
+    useApiAuth = false;
+
+    const users = getStoredUsers();
+
+    if (users[email]) {
+      throw new Error('An account with this email already exists. Please sign in instead.');
+    }
+
+    const passwordHash = await hashPassword(input.password);
+    const userId = generateUserId();
+
+    const newUser: StoredUser = {
+      email,
+      passwordHash,
+      firstName: input.firstName.trim(),
+      lastName: input.lastName.trim(),
+      userId,
+      createdAt: Date.now(),
+    };
+
+    users[email] = newUser;
+    saveStoredUsers(users);
+
+    return {
+      userId,
+      requiresConfirmation: false,
+    };
   }
-
-  // Create new user
-  const passwordHash = await hashPassword(input.password);
-  const userId = generateUserId();
-
-  const newUser: StoredUser = {
-    email,
-    passwordHash,
-    firstName: input.firstName.trim(),
-    lastName: input.lastName.trim(),
-    userId,
-    createdAt: Date.now(),
-  };
-
-  users[email] = newUser;
-  saveStoredUsers(users);
-
-  return {
-    userId,
-    requiresConfirmation: false,
-  };
 }
 
 /**
- * Sign in user with email and password
+ * Sign in user with email and password - uses backend API with httpOnly cookies
  */
-export async function signInUser(input: SignInInput): Promise<AuthUser | null> {
+export async function signInUser(input: SignInInput & { role?: 'patient' | 'provider' }): Promise<AuthUser | null> {
   const email = input.email.trim().toLowerCase();
 
   if (!email || !input.password) {
     throw new Error('Email and password are required');
   }
 
-  const users = getStoredUsers();
-  const user = users[email];
+  // Try backend API first
+  try {
+    const response = await fetch(AUTH_API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include", // Important: enables httpOnly cookies
+      body: JSON.stringify({
+        action: "signin",
+        email,
+        password: input.password,
+        role: input.role || "patient",
+      }),
+    });
 
-  if (!user) {
-    throw new Error('No account found with this email. Please sign up first.');
+    const data = await response.json();
+
+    if (!response.ok || !data.ok) {
+      throw new Error(data.error || "Sign in failed");
+    }
+
+    useApiAuth = true;
+
+    // Also store session in localStorage as backup (token only, not sensitive data)
+    const session: Session = {
+      userId: data.user.userId,
+      email: data.user.email,
+      firstName: data.user.firstName,
+      lastName: data.user.lastName,
+      role: data.user.role || input.role || 'patient',
+      expiresAt: new Date(data.session.expiresAt).getTime(),
+      token: data.session.token,
+    };
+    saveSession(session);
+
+    return {
+      email: data.user.email,
+      firstName: data.user.firstName,
+      lastName: data.user.lastName,
+      role: data.user.role || input.role || 'patient',
+      userId: data.user.userId,
+    };
+  } catch (err) {
+    // If API fails, fall back to localStorage
+    console.warn("Backend auth failed, using localStorage fallback:", err);
+    useApiAuth = false;
+
+    const users = getStoredUsers();
+    const user = users[email];
+
+    if (!user) {
+      throw new Error('No account found with this email. Please sign up first.');
+    }
+
+    const passwordHash = await hashPassword(input.password);
+    if (passwordHash !== user.passwordHash) {
+      throw new Error('Incorrect password. Please try again.');
+    }
+
+    const session: Session = {
+      userId: user.userId,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: input.role || 'patient',
+      expiresAt: Date.now() + SESSION_EXPIRY_MS,
+      token: generateToken(),
+    };
+
+    saveSession(session);
+
+    return {
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: input.role || 'patient',
+      userId: user.userId,
+    };
   }
-
-  // Verify password
-  const passwordHash = await hashPassword(input.password);
-  if (passwordHash !== user.passwordHash) {
-    throw new Error('Incorrect password. Please try again.');
-  }
-
-  // Create session - role will be set by the calling code
-  const session: Session = {
-    userId: user.userId,
-    email: user.email,
-    firstName: user.firstName,
-    lastName: user.lastName,
-    role: 'patient', // Default, will be updated by auth context
-    expiresAt: Date.now() + SESSION_EXPIRY_MS,
-    token: generateToken(),
-  };
-
-  saveSession(session);
-
-  return {
-    email: user.email,
-    firstName: user.firstName,
-    lastName: user.lastName,
-    role: 'patient',
-    userId: user.userId,
-  };
 }
 
 /**
- * Get current authenticated user from session
+ * Get current authenticated user - validates against backend if available
  */
 export async function getCurrentAuthUser(): Promise<AuthUser | null> {
+  // Try backend validation first (uses httpOnly cookie automatically)
+  try {
+    const response = await fetch(AUTH_API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include", // Important: sends httpOnly cookie
+      body: JSON.stringify({ action: "validate" }),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data.ok && data.user) {
+        useApiAuth = true;
+        // Update localStorage cache
+        const session = getSession();
+        if (session) {
+          session.email = data.user.email;
+          session.firstName = data.user.firstName;
+          session.lastName = data.user.lastName;
+          session.role = data.user.role;
+          session.userId = data.user.userId;
+          saveSession(session);
+        }
+        return {
+          email: data.user.email,
+          firstName: data.user.firstName,
+          lastName: data.user.lastName,
+          role: data.user.role,
+          userId: data.user.userId,
+        };
+      }
+    }
+  } catch {
+    // Backend not available, fall back to localStorage
+  }
+
+  // Fallback to localStorage session
   const session = getSession();
 
   if (!session) {
@@ -249,9 +365,21 @@ export function updateSessionRole(role: 'patient' | 'provider'): void {
 }
 
 /**
- * Sign out user
+ * Sign out user - clears backend session and localStorage
  */
 export async function signOutUser(): Promise<void> {
+  // Try backend signout (clears httpOnly cookie)
+  try {
+    await fetch(AUTH_API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ action: "signout" }),
+    });
+  } catch {
+    // Ignore errors, still clear local session
+  }
+
   clearSession();
 }
 

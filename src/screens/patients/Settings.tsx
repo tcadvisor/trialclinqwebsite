@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import HeaderActions from "../../components/HeaderActions";
 import { Bell, Lock } from "lucide-react";
+import { savePreferencesToServer, loadPreferencesFromServer } from "../../lib/storage";
 
 export default function Settings(): JSX.Element {
   const [tab, setTab] = useState<"consent" | "notifications" | "security">("consent");
@@ -69,17 +70,40 @@ function ConsentTab(): JSX.Element {
     final: false,
   });
 
-  // persist to localStorage
+  // Load from server on mount (with localStorage fallback)
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem("tc_consent");
-      if (raw) setChecks(JSON.parse(raw));
-    } catch {}
+    const loadConsent = async () => {
+      try {
+        const prefs = await loadPreferencesFromServer();
+        if (prefs?.consent) {
+          setChecks({
+            section1: prefs.consent.section1 || false,
+            section2: prefs.consent.section2 || false,
+            section3: prefs.consent.section3 || false,
+            section4: prefs.consent.section4 || false,
+            final: prefs.consent.final || false,
+          });
+        }
+      } catch {
+        // Fallback to localStorage
+        try {
+          const raw = localStorage.getItem("tc_consent");
+          if (raw) setChecks(JSON.parse(raw));
+        } catch {}
+      }
+    };
+    loadConsent();
   }, []);
+
+  // Save to server when consent changes (with localStorage fallback)
   useEffect(() => {
-    try {
-      localStorage.setItem("tc_consent", JSON.stringify(checks));
-    } catch {}
+    const saveConsent = async () => {
+      try {
+        localStorage.setItem("tc_consent", JSON.stringify(checks));
+        await savePreferencesToServer({ consent: checks });
+      } catch {}
+    };
+    saveConsent();
   }, [checks]);
 
   const allSections = checks.section1 && checks.section2 && checks.section3 && checks.section4;
@@ -140,18 +164,51 @@ function ConsentTab(): JSX.Element {
 }
 
 function NotificationsTab(): JSX.Element {
-  const [emailAlerts, setEmailAlerts] = useState<boolean>(() => {
-    try { return JSON.parse(localStorage.getItem("tc_notify_email") || "true"); } catch { return true; }
-  });
-  const [trialUpdates, setTrialUpdates] = useState<boolean>(() => {
-    try { return JSON.parse(localStorage.getItem("tc_notify_trials") || "true"); } catch { return true; }
-  });
-  const [productNews, setProductNews] = useState<boolean>(() => {
-    try { return JSON.parse(localStorage.getItem("tc_notify_news") || "false"); } catch { return false; }
-  });
-  useEffect(() => { localStorage.setItem("tc_notify_email", JSON.stringify(emailAlerts)); }, [emailAlerts]);
-  useEffect(() => { localStorage.setItem("tc_notify_trials", JSON.stringify(trialUpdates)); }, [trialUpdates]);
-  useEffect(() => { localStorage.setItem("tc_notify_news", JSON.stringify(productNews)); }, [productNews]);
+  const [emailAlerts, setEmailAlerts] = useState<boolean>(true);
+  const [trialUpdates, setTrialUpdates] = useState<boolean>(true);
+  const [productNews, setProductNews] = useState<boolean>(false);
+  const [loaded, setLoaded] = useState(false);
+
+  // Load from server on mount
+  useEffect(() => {
+    const loadPrefs = async () => {
+      try {
+        const prefs = await loadPreferencesFromServer();
+        if (prefs) {
+          setEmailAlerts(prefs.notifyEmail ?? true);
+          setTrialUpdates(prefs.notifyTrials ?? true);
+          setProductNews(prefs.notifyNews ?? false);
+        }
+      } catch {
+        // Use localStorage defaults
+        try {
+          setEmailAlerts(JSON.parse(localStorage.getItem("tc_notify_email") || "true"));
+          setTrialUpdates(JSON.parse(localStorage.getItem("tc_notify_trials") || "true"));
+          setProductNews(JSON.parse(localStorage.getItem("tc_notify_news") || "false"));
+        } catch {}
+      }
+      setLoaded(true);
+    };
+    loadPrefs();
+  }, []);
+
+  // Save to server when preferences change (debounced)
+  useEffect(() => {
+    if (!loaded) return;
+    const savePrefs = async () => {
+      try {
+        localStorage.setItem("tc_notify_email", JSON.stringify(emailAlerts));
+        localStorage.setItem("tc_notify_trials", JSON.stringify(trialUpdates));
+        localStorage.setItem("tc_notify_news", JSON.stringify(productNews));
+        await savePreferencesToServer({
+          notifyEmail: emailAlerts,
+          notifyTrials: trialUpdates,
+          notifyNews: productNews,
+        });
+      } catch {}
+    };
+    savePrefs();
+  }, [emailAlerts, trialUpdates, productNews, loaded]);
 
   return (
     <section className="mt-6 grid md:grid-cols-3 gap-4 items-start">
