@@ -154,7 +154,12 @@ export default function ProviderDashboard(): JSX.Element {
                           <div className="text-gray-600 text-xs">{p.primaryCondition || p.gender || "No condition info"}</div>
                           <div className="text-gray-500 text-xs mt-0.5">{nctId}</div>
                         </div>
-                        <button className="rounded-full border px-3 py-1 text-xs hover:bg-gray-50">Contact</button>
+                        <a
+                          href={`mailto:${p.email}`}
+                          className="rounded-full border px-3 py-1 text-xs hover:bg-gray-50"
+                        >
+                          Contact
+                        </a>
                       </li>
                     ))
                   )

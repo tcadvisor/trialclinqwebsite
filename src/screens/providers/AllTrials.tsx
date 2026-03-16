@@ -12,13 +12,7 @@ type Trial = {
   phase?: string;
   status?: string;
   sponsor?: string;
-  sites?: number;
-  matched?: number;
-  prescreening?: number;
-  pass?: number;
 };
-
-const TRIALS: Trial[] = [];
 
 export default function AllTrials(): JSX.Element {
   const { user } = useAuth();
@@ -112,19 +106,31 @@ export default function AllTrials(): JSX.Element {
                 <tr className="text-left text-gray-500">
                   <th className="px-4 py-3 whitespace-nowrap">Trial Title</th>
                   <th className="px-4 py-3 whitespace-nowrap">Trial ID</th>
-                  <th className="px-4 py-3 whitespace-nowrap">Trial Phase</th>
-                  <th className="px-4 py-3 whitespace-nowrap">Trial Status</th>
-                  <th className="px-4 py-3 whitespace-nowrap">Sites</th>
-                  <th className="px-4 py-3 whitespace-nowrap">Matched</th>
-                  <th className="px-4 py-3 whitespace-nowrap">Pre-screening</th>
-                  <th className="px-4 py-3 whitespace-nowrap">Pre-screen Pass</th>
+                  <th className="px-4 py-3 whitespace-nowrap">Phase</th>
+                  <th className="px-4 py-3 whitespace-nowrap">Status</th>
                   <th className="px-4 py-3 whitespace-nowrap" />
                 </tr>
               </thead>
               <tbody className="divide-y">
+                {pageItems.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-12 text-center text-gray-500">
+                      <div className="flex flex-col items-center gap-2">
+                        <svg className="h-12 w-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <p className="font-medium">No trials added yet</p>
+                        <p className="text-sm">Search and add trials from ClinicalTrials.gov to get started.</p>
+                        <Link to="/providers/trials" className="mt-2 inline-flex items-center gap-2 rounded-full bg-blue-600 text-white px-4 py-2 text-sm hover:bg-blue-700">
+                          Add Trials
+                        </Link>
+                      </div>
+                    </td>
+                  </tr>
+                )}
                 {pageItems.map((t) => (
                   <tr key={t.id} className="relative">
-                    <td className="px-4 py-3 max-w-[280px] min-w-[200px] truncate">{t.title}</td>
+                    <td className="px-4 py-3 max-w-[320px] min-w-[200px] truncate">{t.title}</td>
                     <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{t.id}</td>
                     <td className="px-4 py-3 whitespace-nowrap">{t.phase || '-'}</td>
                     <td className="px-4 py-3 whitespace-nowrap">
@@ -134,10 +140,6 @@ export default function AllTrials(): JSX.Element {
                         <span className="text-gray-700">{t.status || '-'}</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap">{t.sites ?? '-'}</td>
-                    <td className="px-4 py-3 whitespace-nowrap">{t.matched ?? '-'}</td>
-                    <td className="px-4 py-3 whitespace-nowrap">{t.prescreening ?? '-'}</td>
-                    <td className="px-4 py-3 whitespace-nowrap">{t.pass ?? '-'}</td>
                     <td className="px-4 py-3 text-right whitespace-nowrap">
                       <div className="inline-block relative">
                         <button
@@ -191,13 +193,12 @@ export default function AllTrials(): JSX.Element {
         <div className="w-full max-w-[1200px] mx-auto px-4 py-6 text-xs text-gray-600 flex items-center justify-between">
           <span>Copyright © 2025 TrialCliniq.</span>
           <div className="flex items-center gap-2">
-            <Link to="#" className="hover:underline">Terms of Conditions</Link>
+            <Link to="/terms" className="hover:underline">Terms</Link>
             <span>•</span>
-            <Link to="#" className="hover:underline">Contact Us</Link>
+            <Link to="/contact" className="hover:underline">Contact</Link>
             <span>•</span>
-            <Link to="#" className="hover:underline">Privacy Policy</Link>
+            <Link to="/privacy" className="hover:underline">Privacy</Link>
           </div>
-          <span>Curated by Apperr</span>
         </div>
       </footer>
     </div>

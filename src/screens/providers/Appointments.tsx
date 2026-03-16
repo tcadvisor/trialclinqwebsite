@@ -1,7 +1,6 @@
 import React from "react";
 import SiteHeader from "../../components/SiteHeader";
-import { Link } from "react-router-dom";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Plus, Search, List } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Search } from "lucide-react";
 import { usePagination } from "../../lib/usePagination";
 import { Pagination } from "../../components/ui/pagination";
 
@@ -35,45 +34,8 @@ function toHM(date: Date) {
   return `${hh}${mm === "00" ? "" : ":"+mm} ${ampm}`;
 }
 
-// Sample data
-const seedEvents: CalendarEvent[] = [
-  {
-    id: "1",
-    title: "Pre-Screening Call with DG-0109",
-    start: new Date(2025, 6, 12, 11, 30),
-    end: new Date(2025, 6, 12, 12, 0),
-    location: "Virtual",
-    trial: "DG-0109",
-    color: "bg-indigo-100"
-  },
-  {
-    id: "2",
-    title: "Consultation Call",
-    start: new Date(2025, 6, 15, 9, 0),
-    end: new Date(2025, 6, 15, 10, 0),
-    location: "Cottage Medicare Hospital",
-    trial: "CM-200",
-    color: "bg-rose-100"
-  },
-  {
-    id: "3",
-    title: "Pre-Screening Call with MN-290",
-    start: new Date(2025, 6, 15, 13, 0),
-    end: new Date(2025, 6, 15, 14, 0),
-    location: "Cottage Medicare Hospital",
-    trial: "MN-290",
-    color: "bg-blue-100"
-  },
-  {
-    id: "4",
-    title: "Pre-Screening Call with AG-002",
-    start: new Date(2025, 6, 15, 13, 0),
-    end: new Date(2025, 6, 15, 14, 0),
-    location: "Cottage Medicare Hospital",
-    trial: "AG-002",
-    color: "bg-emerald-100"
-  }
-];
+// Events will be loaded from provider appointments storage
+// Empty by default - providers will add their own appointments
 
 // Mini month calendar
 function MiniMonth({ value, onSelect }: { value: Date; onSelect: (d: Date) => void }) {
@@ -300,9 +262,9 @@ function ListView({ events, pageItems, currentPage, totalPages, onPageChange }: 
 }
 
 export default function Appointments(): JSX.Element {
-  const [current, setCurrent] = React.useState<Date>(new Date(2025, 6, 12));
+  const [current, setCurrent] = React.useState<Date>(new Date());
   const [view, setView] = React.useState<"day"|"week"|"month"|"list">("week");
-  const [events] = React.useState<CalendarEvent[]>(seedEvents);
+  const [events] = React.useState<CalendarEvent[]>([]);
   const [trialFilter, setTrialFilter] = React.useState<string>("All");
   const [query, setQuery] = React.useState("");
 
@@ -346,7 +308,6 @@ export default function Appointments(): JSX.Element {
             <select value={trialFilter} onChange={(e)=>setTrialFilter(e.target.value)} className="border rounded-full px-3 py-2 text-sm">
               {trials.map((t) => <option key={t} value={t}>{t === "All" ? "All Trials" : t}</option>)}
             </select>
-            <Link to="#" className="inline-flex items-center gap-2 rounded-full bg-blue-600 text-white px-3 py-2 text-sm hover:bg-blue-700"><Plus className="h-4 w-4"/>New</Link>
           </div>
         </div>
 

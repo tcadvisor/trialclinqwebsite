@@ -24,10 +24,15 @@ export type LiteTrial = {
   location: string;
   reason?: string;
   aiRationale?: string;
+  /** Cached study object to avoid refetching */
+  _study?: CtgovStudy;
 };
 
 const PROFILE_KEY = "tc_health_profile_v1";
 const ELIGIBILITY_KEY = "tc_eligibility_profile";
+
+// OPTIMIZED: In-memory cache for geocoded locations (persists within session)
+const geoCache = new Map<string, { lat: number; lng: number } | null>();
 
 function parseAgeFromEligibility(): number | null {
   try {
@@ -583,14 +588,15 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
   const statuses = ['RECRUITING', 'ENROLLING_BY_INVITATION'];
 
   const { loc, radius } = locPref;
-  let geo: any = {};
-  try { geo = (await geocodeLocPref()) || {}; } catch { geo = {}; }
-  const locText = (geo as any)?.label || loc;
+  // OPTIMIZED: Cache geocoded location to avoid redundant API calls
+  let userGeo: { lat?: number; lng?: number; label?: string; radius?: string } = {};
+  try { userGeo = (await geocodeLocPref()) || {}; } catch { userGeo = {}; }
+  const locText = userGeo?.label || loc;
 
   // Parse the user-specified radius; use only when we have geo
   const userRadiusMi = parseRadiusMi(radius);
   const hasUserRadius = typeof userRadiusMi === 'number' && Number.isFinite(userRadiusMi);
-  const hasGeo = typeof geo.lat === 'number' && typeof geo.lng === 'number';
+  const hasGeo = typeof userGeo.lat === 'number' && typeof userGeo.lng === 'number';
   const enforceRadius = hasUserRadius && hasGeo;
   if (hasUserRadius && !hasGeo) {
     const empty: LiteTrial[] = [];
@@ -605,24 +611,24 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
       // If we can enforce a radius, use it as a hard barrier
       if (enforceRadius) {
         const rStr = `${userRadiusMi}mi`;
-        const withGeo = { ...base, lat: geo.lat, lng: geo.lng, radius: rStr } as any;
+        const geoParams = { ...base, lat: userGeo.lat, lng: userGeo.lng, radius: rStr } as any;
         if (opts.withStatuses) {
-          const results = await Promise.all(statuses.map((s) => fetchStudies({ ...withGeo, status: s })));
+          const results = await Promise.all(statuses.map((s) => fetchStudies({ ...geoParams, status: s })));
           const flat = results.flatMap((r) => r.studies || []);
           return flat;
         } else {
-          const r = await fetchStudies(withGeo);
+          const r = await fetchStudies(geoParams);
           return r.studies || [];
         }
       } else {
         // No user radius specified; try fetching with geo but without radius constraint
-        const withGeo = { ...base, lat: geo.lat, lng: geo.lng } as any;
+        const geoParams = { ...base, lat: userGeo.lat, lng: userGeo.lng } as any;
         if (opts.withStatuses) {
-          const results = await Promise.all(statuses.map((s) => fetchStudies({ ...withGeo, status: s })));
+          const results = await Promise.all(statuses.map((s) => fetchStudies({ ...geoParams, status: s })));
           const flat = results.flatMap((r) => r.studies || []);
           return flat;
         } else {
-          const r = await fetchStudies(withGeo);
+          const r = await fetchStudies(geoParams);
           return r.studies || [];
         }
       }
@@ -706,7 +712,8 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
       location,
       reason,
       aiRationale,
-    } as LiteTrial & { locations?: string[] };
+      _study: s, // Cache study object to avoid refetching
+    } as LiteTrial & { locations?: string[]; _study?: CtgovStudy };
     trial.locations = locations;
     list.push(trial);
   }
@@ -717,10 +724,10 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
   let radMiComputed: number | undefined;
   let noResultsWithinRadius = false;
   try {
-    const user = await geocodeLocPref();
-    const uLat = typeof user.lat === 'number' ? user.lat : undefined;
-    const uLng = typeof user.lng === 'number' ? user.lng : undefined;
-    const radMi = parseRadiusMi(user.radius);
+    // OPTIMIZED: Reuse cached userGeo instead of calling geocodeLocPref() again
+    const uLat = typeof userGeo.lat === 'number' ? userGeo.lat : undefined;
+    const uLng = typeof userGeo.lng === 'number' ? userGeo.lng : undefined;
+    const radMi = parseRadiusMi(userGeo.radius);
     radMiComputed = radMi;
     if (uLat != null && uLng != null) {
       const labels = Array.from(new Set(list.flatMap((t) => {
@@ -730,13 +737,32 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
         return [...base, fallback].map((l) => l.trim()).filter(Boolean);
       })));
       const locMap = new Map<string, { lat: number; lng: number }>();
-      const geos = await Promise.all(labels.map(async (lbl) => {
-        try { const g = await geocodeText(lbl); return [lbl, g] as const; } catch { return [lbl, null] as const; }
-      }));
-      for (const [lbl, g] of geos) {
-        const glat = g && typeof g.lat === 'number' ? (g.lat as number) : undefined;
-        const glng = g && typeof g.lng === 'number' ? (g.lng as number) : undefined;
-        if (glat != null && glng != null) locMap.set(lbl, { lat: glat, lng: glng });
+
+      // OPTIMIZED: Check cache first, only geocode uncached locations
+      const uncachedLabels = labels.filter((lbl) => !geoCache.has(lbl));
+      const cachedLabels = labels.filter((lbl) => geoCache.has(lbl));
+
+      // Apply cached results immediately
+      for (const lbl of cachedLabels) {
+        const cached = geoCache.get(lbl);
+        if (cached) locMap.set(lbl, cached);
+      }
+
+      // Only geocode uncached locations (major API call reduction)
+      if (uncachedLabels.length > 0) {
+        const geos = await Promise.all(uncachedLabels.map(async (lbl) => {
+          try { const g = await geocodeText(lbl); return [lbl, g] as const; } catch { return [lbl, null] as const; }
+        }));
+        for (const [lbl, g] of geos) {
+          const glat = g && typeof g.lat === 'number' ? (g.lat as number) : undefined;
+          const glng = g && typeof g.lng === 'number' ? (g.lng as number) : undefined;
+          if (glat != null && glng != null) {
+            locMap.set(lbl, { lat: glat, lng: glng });
+            geoCache.set(lbl, { lat: glat, lng: glng }); // Cache for future use
+          } else {
+            geoCache.set(lbl, null); // Cache negative results too
+          }
+        }
       }
       for (const t of list) {
         const locs = ((t as any).locations as string[] | undefined) || [];
@@ -810,26 +836,55 @@ export async function getRealMatchedTrialsForCurrentUser(limit = 50): Promise<Li
   if (fallbackSimilar?.length) (list as any).__fallbackSimilar = fallbackSimilar;
 
   // Strict eligibility enforcement for top results using detailed criteria (age + gender + key clinical rules)
+  // OPTIMIZED: Uses cached _study objects when available to avoid N+1 refetching
   async function applyEligibilityGate(items: typeof list, topN: number): Promise<typeof list> {
     const top = items.slice(0, Math.min(topN, items.length));
-    const chunks: typeof top[] = [];
-    for (let i = 0; i < top.length; i += 10) chunks.push(top.slice(i, i + 10));
     const toRemove = new Set<string>();
-    for (const chunk of chunks) {
-      const details = await Promise.all(chunk.map(async (t) => {
-        try { return await fetchStudyByNctId(t.nctId); } catch { return { studies: [] as CtgovStudy[] }; }
-      }));
-      for (let i = 0; i < chunk.length; i++) {
-        const t = chunk[i];
-        const d = details[i];
-        const s = (d.studies && d.studies[0]) as CtgovStudy | undefined;
-        const elig = (s as any)?.protocolSection?.eligibilityModule?.eligibilityCriteria as string | undefined;
-        const okAge = isAgeCompatible(profile.age, s || ({} as CtgovStudy), elig);
-        const okGender = isGenderCompatible(profile.gender, s || ({} as CtgovStudy), elig);
-        const adv = evaluateAdvancedEligibility(profile, s || ({} as CtgovStudy), elig);
-        if (!okAge || !okGender || !adv.ok) toRemove.add(t.nctId);
+
+    // Separate items with cached studies from those needing fetch
+    const needsFetch: typeof top = [];
+    const hasCached: typeof top = [];
+    for (const t of top) {
+      if ((t as any)._study) {
+        hasCached.push(t);
+      } else {
+        needsFetch.push(t);
       }
     }
+
+    // Process cached studies immediately (no API calls needed)
+    for (const t of hasCached) {
+      const s = (t as any)._study as CtgovStudy;
+      const elig = (s as any)?.protocolSection?.eligibilityModule?.eligibilityCriteria as string | undefined;
+      const okAge = isAgeCompatible(profile.age, s, elig);
+      const okGender = isGenderCompatible(profile.gender, s, elig);
+      const adv = evaluateAdvancedEligibility(profile, s, elig);
+      if (!okAge || !okGender || !adv.ok) toRemove.add(t.nctId);
+    }
+
+    // Only fetch studies that weren't cached (batch in chunks of 10)
+    if (needsFetch.length > 0) {
+      const chunks: typeof needsFetch[] = [];
+      for (let i = 0; i < needsFetch.length; i += 10) chunks.push(needsFetch.slice(i, i + 10));
+      for (const chunk of chunks) {
+        const details = await Promise.all(chunk.map(async (t) => {
+          try { return await fetchStudyByNctId(t.nctId); } catch { return { studies: [] as CtgovStudy[] }; }
+        }));
+        for (let i = 0; i < chunk.length; i++) {
+          const t = chunk[i];
+          const d = details[i];
+          const s = (d.studies && d.studies[0]) as CtgovStudy | undefined;
+          // Cache the fetched study for future use
+          if (s) (t as any)._study = s;
+          const elig = (s as any)?.protocolSection?.eligibilityModule?.eligibilityCriteria as string | undefined;
+          const okAge = isAgeCompatible(profile.age, s || ({} as CtgovStudy), elig);
+          const okGender = isGenderCompatible(profile.gender, s || ({} as CtgovStudy), elig);
+          const adv = evaluateAdvancedEligibility(profile, s || ({} as CtgovStudy), elig);
+          if (!okAge || !okGender || !adv.ok) toRemove.add(t.nctId);
+        }
+      }
+    }
+
     return items.filter((t) => !toRemove.has(t.nctId));
   }
 

@@ -1,6 +1,5 @@
 import React from "react";
-import { Link } from "react-router-dom";
-import { Search, Loader2, Plus, Pencil, Trash2 } from "lucide-react";
+import { Search, Loader2, Plus, Trash2 } from "lucide-react";
 import SiteHeader from "../../components/SiteHeader";
 import { CtgovStudy, fetchStudies, ctgovStudyDetailUrl, formatNearestSitePreview, fetchStudyByNctId } from "../../lib/ctgov";
 import { addTrial, getAddedTrials, isTrialAdded } from "../../lib/providerTrials";
@@ -60,24 +59,6 @@ export default function ProviderTrials(): JSX.Element {
         </p>
 
         <section className="mt-8 space-y-5">
-          <div className="rounded-2xl border bg-white p-5">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div>
-                <div className="font-medium">Register a Clinical Trial</div>
-                <p className="text-sm text-gray-600 mt-1">
-                  If your trial isn’t available via search, you can manually register it here to connect with eligible participants.
-                </p>
-              </div>
-              <Link
-                to="#"
-                className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm hover:bg-gray-50"
-                aria-label="Add Trial Manually"
-              >
-                Add Trial Manually <span aria-hidden>→</span>
-              </Link>
-            </div>
-          </div>
-
           <div className="rounded-2xl border bg-white p-5">
             <div className="text-sm text-gray-700">Search from ClinicalTrials.gov</div>
             <form onSubmit={onSubmit} className="mt-3">
@@ -173,14 +154,6 @@ export default function ProviderTrials(): JSX.Element {
                           <td className="px-4 py-3 text-gray-600">{t.nctId}</td>
                           <td className="px-4 py-3">{t.status || '-'}</td>
                           <td className="px-4 py-3 text-right">
-                            <button
-                              type="button"
-                              className="inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs hover:bg-gray-50 mr-2"
-                              disabled
-                              title="Edit (coming soon)"
-                            >
-                              <Pencil className="w-3.5 h-3.5" /> Edit
-                            </button>
                             <button
                               type="button"
                               className="inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs hover:bg-gray-50"

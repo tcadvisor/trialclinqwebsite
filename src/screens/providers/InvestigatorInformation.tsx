@@ -1,14 +1,9 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import SiteHeader from "../../components/SiteHeader";
 import { formatPhoneNumber, getPhoneValidationError } from "../../lib/phoneValidation";
 import { signUpUser } from "../../lib/entraId";
-import { useAuth } from "../../lib/auth";
-import { generateProviderId } from "../../lib/providerIdUtils";
 
 export default function InvestigatorInformation(): JSX.Element {
-  const navigate = useNavigate();
-  const { signIn } = useAuth();
   const [investigatorName, setInvestigatorName] = useState("");
   const [investigatorPhone, setInvestigatorPhone] = useState("");
   const [phoneError, setPhoneError] = useState<string | null>(null);
@@ -119,40 +114,6 @@ export default function InvestigatorInformation(): JSX.Element {
     }
   }
 
-  // Bypass sign-in for testing (dev only)
-  function handleBypassSignIn() {
-    try {
-      const pendingRaw = localStorage.getItem("pending_signup_v1");
-      const pending = pendingRaw ? JSON.parse(pendingRaw) : {};
-
-      // Create mock user and sign in
-      const mockUserId = `dev-provider-${Date.now()}`;
-      signIn({
-        email: pending.email || "test@example.com",
-        firstName: pending.firstName || "Test",
-        lastName: pending.lastName || "Provider",
-        role: "provider",
-        userId: mockUserId,
-      });
-
-      // Save provider profile with mock user
-      const raw = localStorage.getItem("tc_provider_profile_v1");
-      const profile = raw ? JSON.parse(raw) : {};
-      const providerId = mockUserId;
-      localStorage.setItem("tc_provider_profile_v1", JSON.stringify({
-        ...profile,
-        providerId,
-        email: pending.email || "test@example.com",
-      }));
-
-      // Navigate to dashboard
-      navigate("/providers/dashboard", { replace: true });
-    } catch (err) {
-      console.error("Bypass failed:", err);
-      setError("Bypass failed. Please try again.");
-    }
-  }
-
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
       <SiteHeader active={undefined} />
@@ -247,17 +208,6 @@ export default function InvestigatorInformation(): JSX.Element {
           </form>
         </div>
       </main>
-
-      {/* Dev/Testing: Bypass sign-in button */}
-      <div className="fixed bottom-4 left-4">
-        <button
-          onClick={handleBypassSignIn}
-          className="text-xs px-3 py-1.5 rounded-full border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-          title="Skip authentication for testing (dev only)"
-        >
-          Skip Sign-In
-        </button>
-      </div>
     </div>
   );
 }

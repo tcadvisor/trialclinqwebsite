@@ -205,7 +205,13 @@ async function callOpenAI(prompt: string, signal?: AbortSignal): Promise<AiScore
   }
 }
 
-export async function scoreStudyWithAI(nctId: string, profile: MinimalProfile, signal?: AbortSignal): Promise<AiScoreResult | null> {
+// OPTIMIZED: Accept optional pre-fetched study to avoid redundant API calls
+export async function scoreStudyWithAI(
+  nctId: string,
+  profile: MinimalProfile,
+  signal?: AbortSignal,
+  prefetchedStudy?: CtgovStudy
+): Promise<AiScoreResult | null> {
   try {
     const fp = profileFingerprint(profile);
     const cacheKey = `${fp}|${nctId}`;
@@ -217,8 +223,12 @@ export async function scoreStudyWithAI(nctId: string, profile: MinimalProfile, s
 
     if (!isAiConfigured()) return null;
 
-    const detail = await fetchStudyByNctId(nctId, signal);
-    const study = (detail && detail.studies && detail.studies[0]) as CtgovStudy | undefined;
+    // OPTIMIZED: Use pre-fetched study if available, otherwise fetch
+    let study = prefetchedStudy;
+    if (!study) {
+      const detail = await fetchStudyByNctId(nctId, signal);
+      study = (detail && detail.studies && detail.studies[0]) as CtgovStudy | undefined;
+    }
     if (!study) return null;
 
     const pText = profileToText(profile);
@@ -256,7 +266,8 @@ export async function scoreStudyWithAI(nctId: string, profile: MinimalProfile, s
   }
 }
 
-export async function scoreTopKWithAI<T extends { nctId: string; aiScore: number; distanceMi?: number }>(
+// OPTIMIZED: Accept items with optional _study property to avoid refetching
+export async function scoreTopKWithAI<T extends { nctId: string; aiScore: number; distanceMi?: number; _study?: CtgovStudy }>(
   items: T[],
   k: number,
   profile: MinimalProfile,
@@ -278,11 +289,13 @@ export async function scoreTopKWithAI<T extends { nctId: string; aiScore: number
       const queue = [...top];
       const results: Array<{ idx: number; score?: number; rationale?: string }> = new Array(queue.length);
 
+      // OPTIMIZED: Increased parallelism from 3 to 5 workers
       async function worker(startIdx: number) {
-        for (let i = startIdx; i < queue.length; i += 3) {
+        for (let i = startIdx; i < queue.length; i += 5) {
           const t = queue[i];
           try {
-            const r = await scoreStudyWithAI(t.nctId, profile);
+            // OPTIMIZED: Pass pre-fetched study object if available
+            const r = await scoreStudyWithAI(t.nctId, profile, undefined, t._study);
             if (r) results[i] = { idx: i, score: r.score, rationale: r.rationale };
           } catch (e) {
             // swallow per-item errors
@@ -290,7 +303,7 @@ export async function scoreTopKWithAI<T extends { nctId: string; aiScore: number
         }
       }
 
-      await Promise.all([worker(0), worker(1), worker(2)]);
+      await Promise.all([worker(0), worker(1), worker(2), worker(3), worker(4)]);
 
       // If we got results, write to cache and notify UI
       let updated = false;
