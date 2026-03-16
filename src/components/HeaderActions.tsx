@@ -41,7 +41,7 @@ export default function HeaderActions() {
     const dashPath = user.role === "provider" ? "/providers/dashboard" : "/patients/health-profile";
     return (
       <div className="relative flex items-center gap-3" ref={menuRef}>
-        <Link to={dashPath} className="px-4 py-2 text-sm rounded-full bg-blue-600 text-white hover:bg-blue-700">
+        <Link to={dashPath} className="px-5 py-2.5 text-sm font-medium rounded-full bg-blue-600 text-white hover:bg-blue-700">
           {user.role === "provider" ? "Dashboard" : "Health Profile"}
         </Link>
         <button
@@ -82,14 +82,14 @@ export default function HeaderActions() {
         {/* Back to Landing Page Button */}
         <Link
           to="/"
-          className="px-4 py-2 text-sm rounded-full border border-gray-300 text-gray-700 hover:bg-gray-50"
+          className="px-5 py-2.5 text-sm font-medium rounded-full border border-gray-300 text-gray-700 hover:bg-gray-50"
         >
           Back to Landing Page
         </Link>
 
         {/* Get Started Button */}
         <button
-          className="px-4 py-2 text-sm rounded-full bg-blue-600 text-white hover:bg-blue-700"
+          className="px-5 py-2.5 text-sm font-medium rounded-full bg-blue-600 text-white hover:bg-blue-700"
           onClick={() => setGetStartedMenuOpen(!getStartedMenuOpen)}
           type="button"
         >

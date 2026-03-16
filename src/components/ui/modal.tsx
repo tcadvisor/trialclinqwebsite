@@ -135,25 +135,27 @@ export const Modal: React.FC<ModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 overflow-y-auto">
       {/* Backdrop - aria-hidden because it's decorative */}
       <div
-        className="absolute inset-0 bg-black/50"
+        className="fixed inset-0 bg-black/50"
         onClick={handleBackdropClick}
         aria-hidden="true"
       />
 
-      {/* Modal Dialog */}
-      <div
-        ref={modalRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId.current}
-        aria-describedby={description ? descId.current : undefined}
-        tabIndex={-1}
-        className={`relative z-10 w-full ${sizeClasses[size]} rounded-xl border bg-white shadow-lg`}
-        onClick={(e) => e.stopPropagation()}
-      >
+      {/* Modal Container - ensures proper centering */}
+      <div className="flex min-h-full items-center justify-center p-4">
+        {/* Modal Dialog */}
+        <div
+          ref={modalRef}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={titleId.current}
+          aria-describedby={description ? descId.current : undefined}
+          tabIndex={-1}
+          className={`relative z-10 w-full ${sizeClasses[size]} rounded-xl border bg-white shadow-lg my-8`}
+          onClick={(e) => e.stopPropagation()}
+        >
         {/* Header */}
         <div className="flex items-start justify-between p-6 border-b border-gray-200">
           <div className="flex-1">
@@ -177,8 +179,9 @@ export const Modal: React.FC<ModalProps> = ({
         </div>
 
         {/* Content */}
-        <div className="p-6 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 280px)' }}>
+        <div className="p-6 pb-8">
           {children}
+        </div>
         </div>
       </div>
     </div>

@@ -586,49 +586,91 @@ export const SearchResults = (): JSX.Element => {
             )}
 
             {!loading && !error && studies.length === 0 && (
-              <div className="p-6 border rounded-md">
-                <div className="text-gray-700 font-medium mb-4">No studies found. Try changing your filters.</div>
-
-                {spellSuggestions.length > 0 && (
-                  <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
-                    <p className="text-sm text-gray-700 mb-3">Did you mean:</p>
-                    <div className="flex flex-wrap gap-2">
-                      {spellSuggestions.map((sugg) => (
+              <div className="p-8 border rounded-lg bg-gray-50">
+                {!q.trim() && !loc.trim() ? (
+                  // Initial state - no search performed yet
+                  <div className="text-center">
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
+                      <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Find Your Clinical Trial</h3>
+                    <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                      Enter a condition or disease in the search box to discover clinical trials that may be right for you.
+                    </p>
+                    <div className="flex flex-wrap justify-center gap-2">
+                      <span className="text-sm text-gray-500">Popular searches:</span>
+                      {['Diabetes', 'Breast Cancer', 'Alzheimer\'s', 'Asthma'].map((term) => (
                         <button
-                          key={sugg.suggestion}
-                          onClick={() => applySuggestion(sugg.suggestion)}
-                          className="px-3 py-2 rounded-md bg-white border border-blue-300 text-blue-700 text-sm hover:bg-blue-100 transition-colors"
-                          title={`Confidence: ${sugg.confidence}`}
+                          key={term}
+                          onClick={() => {
+                            setTempQ(term);
+                            setQ(term);
+                            setPage(1);
+                          }}
+                          className="px-3 py-1 text-sm rounded-full bg-white border border-gray-300 text-gray-700 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 transition-colors"
                         >
-                          {sugg.suggestion}
+                          {term}
                         </button>
                       ))}
                     </div>
                   </div>
-                )}
+                ) : (
+                  // Search performed but no results
+                  <>
+                    <div className="text-center mb-4">
+                      <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-gray-200 flex items-center justify-center">
+                        <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M12 20a8 8 0 100-16 8 8 0 000 16z" />
+                        </svg>
+                      </div>
+                      <div className="text-gray-700 font-medium">No studies found for "{q || loc}"</div>
+                      <p className="text-sm text-gray-500 mt-1">Try adjusting your search terms or filters</p>
+                    </div>
 
-                {!aiSuggestion && spellSuggestions.length === 0 && (
-                  <div className="mt-4">
-                    <button
-                      onClick={handleAiCorrection}
-                      disabled={aiLoading}
-                      className="px-4 py-2 rounded-md bg-purple-600 text-white text-sm hover:bg-purple-700 transition-colors disabled:opacity-50"
-                    >
-                      {aiLoading ? 'Checking with AI...' : 'Try AI Spell Check'}
-                    </button>
-                  </div>
-                )}
+                    {spellSuggestions.length > 0 && (
+                      <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
+                        <p className="text-sm text-gray-700 mb-3">Did you mean:</p>
+                        <div className="flex flex-wrap gap-2">
+                          {spellSuggestions.map((sugg) => (
+                            <button
+                              key={sugg.suggestion}
+                              onClick={() => applySuggestion(sugg.suggestion)}
+                              className="px-3 py-2 rounded-md bg-white border border-blue-300 text-blue-700 text-sm hover:bg-blue-100 transition-colors"
+                              title={`Confidence: ${sugg.confidence}`}
+                            >
+                              {sugg.suggestion}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
-                {aiSuggestion && (
-                  <div className="mt-4 p-4 bg-purple-50 border border-purple-200 rounded-md">
-                    <p className="text-sm text-gray-700 mb-2">AI suggests:</p>
-                    <button
-                      onClick={() => applySuggestion(aiSuggestion)}
-                      className="px-3 py-2 rounded-md bg-white border border-purple-300 text-purple-700 text-sm hover:bg-purple-100 transition-colors"
-                    >
-                      {aiSuggestion}
-                    </button>
-                  </div>
+                    {!aiSuggestion && spellSuggestions.length === 0 && q && (
+                      <div className="mt-4 text-center">
+                        <button
+                          onClick={handleAiCorrection}
+                          disabled={aiLoading}
+                          className="px-4 py-2 rounded-md bg-purple-600 text-white text-sm hover:bg-purple-700 transition-colors disabled:opacity-50"
+                        >
+                          {aiLoading ? 'Checking with AI...' : 'Try AI Spell Check'}
+                        </button>
+                      </div>
+                    )}
+
+                    {aiSuggestion && (
+                      <div className="mt-4 p-4 bg-purple-50 border border-purple-200 rounded-md">
+                        <p className="text-sm text-gray-700 mb-2">AI suggests:</p>
+                        <button
+                          onClick={() => applySuggestion(aiSuggestion)}
+                          className="px-3 py-2 rounded-md bg-white border border-purple-300 text-purple-700 text-sm hover:bg-purple-100 transition-colors"
+                        >
+                          {aiSuggestion}
+                        </button>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )}

@@ -532,7 +532,7 @@ function summarizeDevPlugin() {
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), epicTokenExchangePlugin(), summarizeDevPlugin()],
-  publicDir: "./static",
+  publicDir: "./public",
   base: "./",
   css: {
     postcss: {

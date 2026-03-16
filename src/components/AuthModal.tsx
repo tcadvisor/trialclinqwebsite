@@ -59,7 +59,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultTa
       closeOnEsc={true}
       returnFocusRef={triggerButtonRef}
     >
-      <div className="space-y-4">
+      <div className="space-y-4 pb-2">
         {/* Error Message */}
         {error && (
           <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex gap-2 text-red-700 text-sm" role="alert">
