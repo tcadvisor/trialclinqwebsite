@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 
 interface ModalProps {
   isOpen: boolean;
@@ -134,7 +135,8 @@ export const Modal: React.FC<ModalProps> = ({
     }
   };
 
-  return (
+  // Use portal to render modal at document.body level to escape stacking contexts
+  return createPortal(
     <div className="fixed inset-0 z-50 overflow-y-auto">
       {/* Backdrop - aria-hidden because it's decorative */}
       <div
@@ -184,6 +186,7 @@ export const Modal: React.FC<ModalProps> = ({
         </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
