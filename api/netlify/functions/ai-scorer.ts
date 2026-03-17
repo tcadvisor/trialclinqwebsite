@@ -38,7 +38,7 @@ export const handler: Handler = async (event) => {
         model: "gpt-4o",
         temperature: 0.2,
         messages: [
-          { role: "system", content: "You score clinical trial eligibility and fit. Output ONLY JSON with integer score (0-100) and rationale (<=160 chars)." },
+          { role: "system", content: "You score clinical trial eligibility and fit. The score MUST be calculated as the SUM of these components: Condition match (0-40), Demographics (0-15), Exclusions (0-20), Medications (0-10), Location (0-10), Status (0-5). Review ALL patient conditions, medications, and allergies listed. Output ONLY JSON with integer score (0-100 = sum of components) and rationale (<=160 chars showing calculation)." },
           { role: "user", content: prompt },
         ],
         response_format: { type: "json_object" },

@@ -280,10 +280,18 @@ export async function matchPatientToTrial(
   // Build comprehensive patient profile for AI analysis
   const patientSummary = buildPatientSummary(patient);
 
+  // Count patient data entries for explicit instruction to GPT
+  const activeProblems = patient.problems.filter((p) => p.status === "Active" || p.status === "active");
+  const activeMeds = patient.medications.filter((m) => m.status === "Active" || m.status === "active");
+  const allergyCount = patient.allergies.length;
+
   const prompt = `You are a clinical trial matching specialist. Evaluate if this patient is eligible for the clinical trial.
 
 PATIENT PROFILE:
 ${patientSummary}
+
+IMPORTANT: This patient has ${activeProblems.length} active conditions, ${activeMeds.length} active medications, and ${allergyCount} documented allergies.
+You MUST review and consider EVERY SINGLE ENTRY listed above when calculating the eligibility score.
 
 CLINICAL TRIAL: ${criteria.title || criteria.nctId}
 NCT ID: ${criteria.nctId}
@@ -303,15 +311,15 @@ DEMOGRAPHIC REQUIREMENTS:
 
 Evaluate the patient against ALL criteria and return a JSON object with:
 {
-  "overallScore": <0-100 based on how well patient matches>,
+  "overallScore": <0-100 based on how well patient matches - MUST BE SUM OF ALL FACTORS BELOW>,
   "eligibilityStatus": <"highly_eligible"|"likely_eligible"|"potentially_eligible"|"likely_ineligible"|"ineligible">,
   "confidence": <0-100 confidence in assessment>,
   "matchFactors": [
     {
       "category": <"demographics"|"conditions"|"medications"|"allergies"|"labs"|"vitals"|"other">,
       "name": <factor name>,
-      "score": <points earned>,
-      "maxScore": <max possible points>,
+      "score": <points earned for this factor>,
+      "maxScore": <max possible points for this factor>,
       "matched": <true/false>,
       "reason": <explanation>
     }
@@ -327,13 +335,45 @@ Evaluate the patient against ALL criteria and return a JSON object with:
   "aiReasoning": <detailed paragraph explaining the matching logic>
 }
 
-SCORING WEIGHTS:
-- Target condition match: 40 points
-- Age/demographic match: 15 points
-- No exclusion criteria triggered: 20 points
-- Medication compatibility: 10 points
-- Lab values in range: 10 points
-- Other factors: 5 points
+CRITICAL SCORING INSTRUCTIONS - THE overallScore MUST BE THE SUM OF ALL THESE FACTORS:
+1. Target condition match (0-40 points): Award points based on how well patient's conditions match trial targets
+   - Exact match to primary condition: 35-40 points
+   - Related/similar condition: 20-34 points
+   - Partial match: 10-19 points
+   - No match: 0-9 points
+
+2. Age/demographic match (0-15 points):
+   - Age within range: 15 points
+   - Near boundary (within 2 years): 10 points
+   - Outside range: 0 points
+
+3. Exclusion criteria check (0-20 points):
+   - No exclusions triggered: 20 points
+   - Minor concerns: 10-15 points
+   - Major exclusion triggered: 0 points
+
+4. Medication compatibility (0-10 points):
+   - No contraindications: 10 points
+   - Minor interactions: 5 points
+   - Contraindicated meds: 0 points
+
+5. Lab values/vitals (0-10 points):
+   - All in range: 10 points
+   - Some abnormal: 5 points
+   - Critical values: 0 points
+
+6. Profile completeness bonus (0-5 points):
+   - Complete data: 5 points
+   - Partial data: 2-3 points
+
+IMPORTANT: The overallScore MUST be calculated as: condition + demographics + exclusions + meds + labs + bonus
+For example: If condition=35, demographics=15, exclusions=20, meds=10, labs=10, bonus=5 → overallScore=95
+
+ANALYZE EVERY ENTRY in the patient's medical record:
+- Review ALL conditions in the problems list, not just the first one
+- Check ALL medications for interactions and contraindications
+- Evaluate ALL allergies against trial requirements
+- Consider the COMPLETE clinical picture
 
 Be conservative - only mark as "highly_eligible" or "likely_eligible" if strong evidence supports it.
 Mark "ineligible" ONLY if clear exclusion criteria are met.
@@ -363,20 +403,28 @@ List ALL missing information that would help refine the assessment.`;
   if (!response.ok) {
     const error = await response.text();
     console.error("OpenAI matching error:", error);
-    // Fall back to rule-based matching
-    return ruleBasedMatching(patient, criteria);
+    // Fall back to rule-based matching - CLEARLY FLAG THIS
+    const fallback = ruleBasedMatching(patient, criteria);
+    (fallback as any)._aiActuallyUsed = false;
+    (fallback as any)._scoringMethod = 'rule-based-fallback';
+    (fallback as any)._devWarning = `AI_FAILED: OpenAI returned ${response.status} - ${error.slice(0, 100)}`;
+    return fallback;
   }
 
   const data = await response.json();
   const content = data?.choices?.[0]?.message?.content;
 
   if (!content) {
-    return ruleBasedMatching(patient, criteria);
+    const fallback = ruleBasedMatching(patient, criteria);
+    (fallback as any)._aiActuallyUsed = false;
+    (fallback as any)._scoringMethod = 'rule-based-fallback';
+    (fallback as any)._devWarning = 'AI_FAILED: No content in OpenAI response';
+    return fallback;
   }
 
   try {
     const aiResult = JSON.parse(content);
-    return {
+    const result: MatchResult & { _aiActuallyUsed?: boolean; _scoringMethod?: string } = {
       patientId: patient.id,
       patientName: `${patient.firstName} ${patient.lastName}`,
       overallScore: Math.min(100, Math.max(0, aiResult.overallScore || 0)),
@@ -389,9 +437,17 @@ List ALL missing information that would help refine the assessment.`;
       recommendation: aiResult.recommendation || "Manual review recommended",
       aiReasoning: aiResult.aiReasoning || "AI analysis completed",
     };
+    // CRITICAL: Flag that AI was actually used successfully
+    result._aiActuallyUsed = true;
+    result._scoringMethod = 'gpt-4o';
+    return result;
   } catch {
     console.error("Failed to parse AI matching result:", content);
-    return ruleBasedMatching(patient, criteria);
+    const fallback = ruleBasedMatching(patient, criteria);
+    (fallback as any)._aiActuallyUsed = false;
+    (fallback as any)._scoringMethod = 'rule-based-fallback';
+    (fallback as any)._devWarning = `AI_FAILED: Could not parse JSON response - ${content?.slice(0, 100)}`;
+    return fallback;
   }
 }
 
@@ -636,7 +692,7 @@ function ruleBasedMatching(patient: PatientProfile, criteria: TrialCriteria): Ma
   else if (totalScore >= 20) eligibilityStatus = "likely_ineligible";
   else eligibilityStatus = "ineligible";
 
-  return {
+  const result: MatchResult & { _aiActuallyUsed?: boolean; _scoringMethod?: string; _devWarning?: string } = {
     patientId: patient.id,
     patientName: `${patient.firstName} ${patient.lastName}`,
     overallScore: totalScore,
@@ -664,8 +720,15 @@ function ruleBasedMatching(patient: PatientProfile, criteria: TrialCriteria): Ma
       totalScore >= 50
         ? "Patient shows potential eligibility. Recommend detailed screening."
         : "Patient may not meet criteria. Review exclusions before proceeding.",
-    aiReasoning: `Rule-based matching completed. Total score: ${totalScore}/100. ${matchFactors.filter((f) => f.matched).length} of ${matchFactors.length} criteria matched.`,
+    aiReasoning: `⚠️ RULE-BASED FALLBACK (NOT AI): Score: ${totalScore}/100. ${matchFactors.filter((f) => f.matched).length} of ${matchFactors.length} criteria matched.`,
   };
+
+  // CRITICAL FLAGS: This is NOT an AI result
+  result._aiActuallyUsed = false;
+  result._scoringMethod = 'rule-based';
+  result._devWarning = 'NOT_AI: This score was computed by rule-based fallback, NOT by GPT';
+
+  return result;
 }
 
 function checkAgeMatch(patient: PatientProfile, criteria: TrialCriteria): MatchFactor {

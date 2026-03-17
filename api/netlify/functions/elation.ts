@@ -831,11 +831,23 @@ IMPORTANT RULES:
 5. Consider disease severity and progression
 6. Account for comorbidities that might affect eligibility
 7. If critical information is missing, note it but don't assume the worst
+8. CRITICAL: Analyze EVERY condition, medication, and allergy in the patient record - not just the first one
+
+SCORING CALCULATION - The eligibilityScore MUST be the SUM of these components:
+1. Condition Match (0-40 points): How well patient's conditions match trial targets
+   - Exact match: 35-40 pts | Related condition: 20-34 pts | Partial: 10-19 pts | None: 0-9 pts
+2. Demographics (0-15 points): Age within range = 15 pts, near boundary = 10 pts, outside = 0 pts
+3. Exclusion Check (0-20 points): No exclusions = 20 pts, minor concerns = 10-15 pts, major = 0 pts
+4. Medication Compatibility (0-10 points): No issues = 10 pts, minor = 5 pts, contraindicated = 0 pts
+5. Labs/Vitals (0-10 points): Normal = 10 pts, some abnormal = 5 pts, critical = 0 pts
+6. Data Completeness (0-5 points): Complete = 5 pts, partial = 2-3 pts
+
+Example: condition=35 + demographics=15 + exclusions=20 + meds=10 + labs=10 + completeness=5 = 95
 
 OUTPUT REQUIREMENTS:
 Return ONLY valid JSON with this exact structure:
 {
-  "eligibilityScore": <0-100>,
+  "eligibilityScore": <0-100 - MUST BE SUM OF ALL SCORING COMPONENTS ABOVE>,
   "eligibilityStatus": "<highly_eligible|likely_eligible|potentially_eligible|likely_ineligible|ineligible>",
   "confidence": <0-100>,
   "inclusionCriteriaMet": [{"criterion": "<text>", "met": true/false, "evidence": "<from patient data>"}],
@@ -844,7 +856,7 @@ Return ONLY valid JSON with this exact structure:
   "concerns": ["<concern1>", "<concern2>"],
   "missingInformation": ["<info1>", "<info2>"],
   "recommendation": "<1-2 sentence clinical recommendation>",
-  "reasoning": "<detailed explanation of eligibility assessment>"
+  "reasoning": "<detailed explanation showing score calculation for each component>"
 }`;
 
           const userPrompt = `Evaluate this patient for the clinical trial:
@@ -855,7 +867,14 @@ ${patientProfile}
 
 ${trialCriteriaText}
 
-Analyze the patient's eligibility comprehensively. Check each inclusion criterion and exclusion criterion. Consider medical history, current medications, allergies, and vital signs. Return your assessment as JSON.`;
+CRITICAL INSTRUCTIONS:
+1. Review EVERY condition listed above (there are ${problems.filter((p: any) => p.status === 'Active').length} active conditions) - not just the first one
+2. Check EVERY medication (there are ${medications.filter((m: any) => m.status === 'Active').length} active medications) for interactions
+3. Evaluate EVERY allergy (there are ${allergies.length} documented allergies) against trial requirements
+4. Calculate your eligibilityScore as the SUM of all scoring components (condition + demographics + exclusions + meds + labs + completeness)
+5. Provide a score that reflects THIS SPECIFIC patient's unique clinical profile
+
+Analyze the patient's eligibility comprehensively. Check each inclusion criterion and exclusion criterion. Consider the COMPLETE medical history, ALL current medications, ALL allergies, and vital signs. Return your assessment as JSON with eligibilityScore being the calculated SUM.`;
 
           try {
             const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -1180,11 +1199,26 @@ Analyze the patient's eligibility comprehensively. Check each inclusion criterio
             // Use AI if available
             if (aiAnalysisUsed) {
               const aiResult = await analyzePatientWithAI(patient, trialContext);
-              if (aiResult) return aiResult;
+              if (aiResult) {
+                // Mark as actual AI result
+                aiResult._aiActuallyUsed = true;
+                aiResult._scoringMethod = 'gpt-4o';
+                return aiResult;
+              }
+              // AI was supposed to be used but failed - flag this clearly
+              console.warn(`[AI_FALLBACK] Patient ${patient.elation_patient_id}: GPT call failed, using rule-based fallback`);
             }
 
-            // Fallback to rule-based
-            return ruleBasedScoring(patient, trialContext);
+            // Fallback to rule-based - CLEARLY FLAG THIS
+            const fallbackResult = ruleBasedScoring(patient, trialContext);
+            if (fallbackResult) {
+              fallbackResult._aiActuallyUsed = false;
+              fallbackResult._scoringMethod = 'rule-based-fallback';
+              fallbackResult._warning = aiAnalysisUsed
+                ? 'AI_FAILED: GPT call failed, score is rule-based fallback - DO NOT TRUST AS AI RESULT'
+                : 'NO_AI: AI not configured, using rule-based scoring';
+            }
+            return fallbackResult;
           });
 
           const batchResults = await Promise.all(batchPromises);
@@ -1200,7 +1234,7 @@ Analyze the patient's eligibility comprehensively. Check each inclusion criterio
               });
             }
 
-            // Store in database
+            // Store in database with clear AI usage flags
             await query(
               `INSERT INTO elation_trial_matches (
                 provider_id, elation_patient_id, nct_id, match_score, match_reasons, eligibility_status
@@ -1219,11 +1253,21 @@ Analyze the patient's eligibility comprehensively. Check each inclusion criterio
                   recommendation: result.recommendation,
                   reasoning: result.reasoning,
                   confidence: result.confidence,
-                  aiPowered: aiAnalysisUsed,
+                  // CRITICAL FLAGS FOR DEBUGGING
+                  aiPowered: actuallyUsedAI,
+                  scoringMethod: scoringMethod,
+                  _devWarning: warning,
+                  _aiIntended: aiAnalysisUsed,
+                  _aiSucceeded: actuallyUsedAI,
                 }),
                 result.eligibilityStatus === "highly_eligible" || result.eligibilityStatus === "likely_eligible" ? "potential" : "pending"
               ]
             );
+
+            // CRITICAL: Track actual AI usage, not just intent
+            const actuallyUsedAI = result._aiActuallyUsed === true;
+            const scoringMethod = result._scoringMethod || (actuallyUsedAI ? 'gpt-4o' : 'rule-based-fallback');
+            const warning = result._warning || null;
 
             matchResults.push({
               patientId: result.patientId,
@@ -1235,7 +1279,12 @@ Analyze the patient's eligibility comprehensively. Check each inclusion criterio
               concerns: result.concerns,
               recommendation: result.recommendation,
               reasoning: result.reasoning,
-              aiPowered: aiAnalysisUsed,
+              // DEVELOPMENT FLAGS - clearly show what actually happened
+              aiPowered: actuallyUsedAI, // TRUE = GPT actually returned a result, FALSE = fallback used
+              scoringMethod, // 'gpt-4o' | 'rule-based-fallback'
+              _devWarning: warning, // null if AI worked, error message if fallback
+              _aiIntended: aiAnalysisUsed, // Was AI supposed to be used?
+              _aiSucceeded: actuallyUsedAI, // Did AI actually succeed?
             });
             matchCount++;
           }
@@ -1247,13 +1296,18 @@ Analyze the patient's eligibility comprehensively. Check each inclusion criterio
           .slice(0, 10)
           .map(([criterion, count]) => ({ criterion, count, percentage: matchCount > 0 ? Math.round((count / matchCount) * 100) : 0 }));
 
+        // CRITICAL: Calculate AI success/failure stats for development debugging
+        const aiSuccessCount = matchResults.filter(m => m._aiSucceeded === true).length;
+        const aiFallbackCount = matchResults.filter(m => m._aiSucceeded === false).length;
+        const aiSuccessRate = matchCount > 0 ? Math.round((aiSuccessCount / matchCount) * 100) : 0;
+
         await logAuditEvent(
           userId,
           "TRIAL_MATCHING_COMPLETED",
           "elation_trial_matches",
           nctId,
           undefined,
-          { matchCount, aiPowered: aiAnalysisUsed, patientsAnalyzed: patients.length },
+          { matchCount, aiPowered: aiAnalysisUsed, patientsAnalyzed: patients.length, aiSuccessCount, aiFallbackCount },
           event.headers?.["x-forwarded-for"],
           event.headers?.["user-agent"]
         );
@@ -1264,6 +1318,21 @@ Analyze the patient's eligibility comprehensively. Check each inclusion criterio
           nctId,
           useAI: aiAnalysisUsed,
           aiModel: aiAnalysisUsed ? "gpt-4o" : "rule-based",
+          // ============================================================
+          // DEVELOPMENT FLAGS - CHECK THESE TO VERIFY AI IS WORKING
+          // ============================================================
+          _dev: {
+            aiIntended: aiAnalysisUsed,
+            aiSuccessCount,
+            aiFallbackCount,
+            aiSuccessRate: `${aiSuccessRate}%`,
+            openAIKeyConfigured: !!OPENAI_API_KEY,
+            WARNING: aiFallbackCount > 0
+              ? `⚠️ ${aiFallbackCount} patients used FALLBACK scoring - AI failed or not configured!`
+              : aiAnalysisUsed
+                ? '✅ All patients scored by GPT-4o'
+                : '⚠️ AI not enabled - all scores are rule-based',
+          },
           commonCriteria: sortedCriteria,
           matchSummary: {
             highlyEligible: matchResults.filter(m => m.eligibilityStatus === "highly_eligible").length,

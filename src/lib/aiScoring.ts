@@ -10,7 +10,14 @@ type MinimalProfile = {
   additionalInfo?: string | null;
 };
 
-export type AiScoreResult = { score: number; rationale?: string };
+export type AiScoreResult = {
+  score: number;
+  rationale?: string;
+  // DEVELOPMENT FLAGS - check these to verify AI is actually working
+  _aiActuallyUsed?: boolean;
+  _scoringMethod?: 'gpt-4o' | 'webhook' | 'cached' | 'fallback';
+  _devWarning?: string;
+};
 
 const CACHE_KEY = 'tc_ai_scores_v4';
 
@@ -157,7 +164,13 @@ async function callWebhook(url: string, payload: any, signal?: AbortSignal): Pro
       try { localStorage.setItem(key, JSON.stringify({ ok: true, ts: Date.now() })); } catch {}
       const score = typeof data.score === 'number' ? clamp(Math.round(data.score)) : Number(data.score);
       if (!Number.isFinite(score)) return null;
-      return { score: clamp(Math.round(score)), rationale: String(data.rationale || data.reason || '') };
+      return {
+        score: clamp(Math.round(score)),
+        rationale: String(data.rationale || data.reason || ''),
+        // Flag that AI was actually used via webhook
+        _aiActuallyUsed: true,
+        _scoringMethod: 'webhook',
+      };
     } catch {
       try { localStorage.setItem(key, JSON.stringify({ ok: false, ts: Date.now() })); } catch {}
       return null;
@@ -199,7 +212,13 @@ async function callOpenAI(prompt: string, signal?: AbortSignal): Promise<AiScore
     if (!content) return null;
     const parsed = safeJson<{ score: number; rationale?: string }>(content);
     if (!parsed || !Number.isFinite(parsed.score)) return null;
-    return { score: clamp(Math.round(parsed.score)), rationale: parsed.rationale };
+    return {
+      score: clamp(Math.round(parsed.score)),
+      rationale: parsed.rationale,
+      // Flag that AI was actually used directly
+      _aiActuallyUsed: true,
+      _scoringMethod: 'gpt-4o',
+    };
   } catch {
     return null;
   }
@@ -218,7 +237,12 @@ export async function scoreStudyWithAI(
     const cache = readCache();
     const hit = cache[cacheKey];
     if (hit && Date.now() - hit.ts < 1000 * 60 * 60 * 24 * 7) {
-      return { score: hit.score, rationale: hit.rationale };
+      return {
+        score: hit.score,
+        rationale: hit.rationale,
+        _aiActuallyUsed: true, // Was AI at some point
+        _scoringMethod: 'cached',
+      };
     }
 
     if (!isAiConfigured()) return null;
@@ -234,7 +258,24 @@ export async function scoreStudyWithAI(
     const pText = profileToText(profile);
     const sText = studyToText(study);
 
-    const prompt = `Patient Profile\n${pText}\n\nTrial\n${sText}\n\nScoring guidance:\n- Base score from inclusion/exclusion likelihood and condition match\n- If patient's AGE is outside the trial's eligibility range (as stated in title/criteria), score 0-5 and mention age mismatch\n- If gender is restricted and does not match, score 0-10\n- If criteria require a planned elective procedure (e.g., hepato-pancreato-biliary or colorectal surgery) and profile lacks that signal, score 0-15 with rationale mentioning missing planned surgery\n- Penalize exclusions like daily PDE5 inhibitors or baseline tamsulosin if present in profile meds\n- Strongly penalize if outside Travel radius; strongly reward if inside\n- Reward status Recruiting; weigh phase modestly\n- Return an integer 0-100 with meaningful variance across trials\n\nStrictly output JSON: {"score": 0-100 integer, "rationale": "<=160 chars"}.`;
+    const prompt = `Patient Profile\n${pText}\n\nTrial\n${sText}\n\nSCORING CALCULATION - Score MUST be SUM of these components:
+1. Condition Match (0-40 pts): Exact match=35-40, Related=20-34, Partial=10-19, None=0-9
+2. Demographics (0-15 pts): Age in range=15, Near boundary=10, Outside=0
+3. Exclusions (0-20 pts): None triggered=20, Minor concerns=10-15, Major exclusion=0
+4. Medications (0-10 pts): Compatible=10, Minor issues=5, Contraindicated=0
+5. Location (0-10 pts): Within radius=10, Moderate distance=5, Far=0
+6. Trial Status (0-5 pts): Recruiting=5, Other=2
+
+IMPORTANT: Calculate each component separately, then SUM them for final score.
+Example: 35+15+20+10+8+5=93
+
+Penalties:
+- Age outside eligibility range: Cap total score at 5-10
+- Gender mismatch: Cap total score at 10
+- Missing planned surgery requirement: Cap total score at 15
+- Contraindicated medications (PDE5 inhibitors, tamsulosin): Subtract 20-30 pts
+
+Strictly output JSON: {"score": 0-100 integer (SUM of components), "rationale": "<=160 chars showing calculation"}.`;
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 20000);
