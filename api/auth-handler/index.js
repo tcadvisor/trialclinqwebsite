@@ -3,31 +3,43 @@ const path = require('path');
 // Load the Netlify-style auth function
 const authModule = require('../netlify/functions/auth.js');
 
-function buildNetlifyEvent(req) {
+function buildNetlifyEvent(context, req) {
+  // Extract headers - Azure Functions req.headers can be an object or Headers instance
   const headers = {};
   if (req.headers) {
-    for (const [key, value] of req.headers) {
-      headers[key.toLowerCase()] = value;
+    if (typeof req.headers.forEach === 'function') {
+      req.headers.forEach((value, key) => {
+        headers[key.toLowerCase()] = value;
+      });
+    } else {
+      // Plain object
+      for (const [key, value] of Object.entries(req.headers)) {
+        headers[key.toLowerCase()] = value;
+      }
     }
   }
 
   const queryStringParameters = {};
-  try {
-    const url = new URL(req.url);
-    url.searchParams.forEach((value, key) => {
+  if (req.query) {
+    for (const [key, value] of Object.entries(req.query)) {
       queryStringParameters[key] = value;
-    });
-  } catch (e) {
-    // Ignore URL parsing errors
+    }
   }
 
+  // Get body - Azure Functions passes body as parsed object or string
   let body = '';
   if (req.body) {
     body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+  } else if (req.rawBody) {
+    body = req.rawBody;
   }
 
+  // Log for debugging
+  const method = (req.method || context.req?.method || 'GET').toUpperCase();
+  console.log('[auth-handler] Method:', method, 'Body:', body?.substring(0, 100));
+
   return {
-    httpMethod: (req.method || 'GET').toUpperCase(),
+    httpMethod: method,
     headers,
     queryStringParameters,
     body,
@@ -38,8 +50,11 @@ function buildNetlifyEvent(req) {
 
 module.exports = async function (context, req) {
   try {
+    const method = (req.method || 'GET').toUpperCase();
+    console.log('[auth-handler] Received request:', method);
+
     // Handle CORS preflight
-    if (req.method === 'OPTIONS') {
+    if (method === 'OPTIONS') {
       return {
         status: 204,
         headers: {
@@ -52,10 +67,12 @@ module.exports = async function (context, req) {
     }
 
     // Convert Azure request to Netlify event format
-    const event = buildNetlifyEvent(req);
+    const event = buildNetlifyEvent(context, req);
 
     // Call the Netlify handler
     const result = await authModule.handler(event, {});
+
+    console.log('[auth-handler] Handler returned:', result.statusCode);
 
     // Convert response
     return {
