@@ -2,3 +2,31 @@ node_modules/
 
 # Local Netlify folder
 .netlify
+
+# Environment variables - NEVER COMMIT
+.env
+.env.local
+.env.*.local
+.env.production
+.env.development
+
+# Secrets
+*.pem
+*.key
+credentials.json
+secrets.json
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+dist/
+build/
+*.log
