@@ -1,4 +1,4 @@
-import type { Handler } from "@netlify/functions";
+import type { Handler, HandlerEvent, HandlerResponse } from "@netlify/functions";
 import Busboy from "busboy";
 import { uploadFileToBlob } from "./azure-storage";
 import { query, getOrCreateUser, logAuditEvent } from "./db";
@@ -11,7 +11,7 @@ const MAX_FILES_PER_REQUEST = 5;
 const ALLOWED_MIMES = new Set(["application/pdf", "image/png", "image/jpeg"]);
 const PATIENT_ID_REGEX = /^[A-Za-z0-9._-]+$/;
 
-export const handler: Handler = async (event) => {
+export const handler: Handler = async (event: HandlerEvent): Promise<HandlerResponse> => {
   const cors = createCorsHandler(event);
 
   if (event.httpMethod === "OPTIONS") {

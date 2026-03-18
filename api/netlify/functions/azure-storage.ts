@@ -56,14 +56,16 @@ export async function uploadFileToBlob(
     const blockBlobClient = containerClient.getBlockBlobClient(blobName);
     
     await blockBlobClient.upload(fileBuffer, fileBuffer.length, {
-      blobHTTPHeaders: { blobContentType: mimeType },
+      blobHTTPHeaders: {
+        blobContentType: mimeType,
+        blobContentDisposition: `inline; filename="${encodeURIComponent(safeFileName)}"`,
+      },
       metadata: {
         patientId: safePatientId,
         originalFileName: fileName,
         safeFileName,
         uploadedAt: new Date().toISOString(),
       },
-      contentDisposition: `inline; filename="${encodeURIComponent(safeFileName)}"`,
     });
 
     const blobUrl = blockBlobClient.url;

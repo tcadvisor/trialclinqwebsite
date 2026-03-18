@@ -9,7 +9,7 @@
  * - If not set, defaults to localhost origins for development
  */
 
-interface CorsHeaders {
+export interface CorsHeaders {
   "access-control-allow-origin": string;
   "access-control-allow-methods": string;
   "access-control-allow-headers": string;
@@ -18,7 +18,7 @@ interface CorsHeaders {
   [key: string]: string | undefined;
 }
 
-interface CorsResponse {
+export interface CorsResponse {
   statusCode: number;
   headers: CorsHeaders;
   body: string;
@@ -212,4 +212,19 @@ export function createCorsHandler(event: any) {
       return getCorsHeaders(origin, methods);
     },
   };
+}
+
+/**
+ * Simplified response function for backward compatibility with `cors.response(status, body)`
+ * Uses default/first allowed origin when origin is not provided
+ */
+export function response(
+  statusCode: number,
+  body: any,
+  origin?: string,
+  methods?: string,
+  headers?: string,
+  additionalHeaders?: Record<string, string>
+): CorsResponse {
+  return corsResponse(statusCode, body, origin, methods, headers, additionalHeaders);
 }

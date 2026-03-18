@@ -1234,6 +1234,11 @@ Analyze the patient's eligibility comprehensively. Check each inclusion criterio
               });
             }
 
+            // CRITICAL: Track actual AI usage, not just intent
+            const actuallyUsedAI = result._aiActuallyUsed === true;
+            const scoringMethod = result._scoringMethod || (actuallyUsedAI ? 'gpt-4o' : 'rule-based-fallback');
+            const warning = result._warning || null;
+
             // Store in database with clear AI usage flags
             await query(
               `INSERT INTO elation_trial_matches (
@@ -1263,11 +1268,6 @@ Analyze the patient's eligibility comprehensively. Check each inclusion criterio
                 result.eligibilityStatus === "highly_eligible" || result.eligibilityStatus === "likely_eligible" ? "potential" : "pending"
               ]
             );
-
-            // CRITICAL: Track actual AI usage, not just intent
-            const actuallyUsedAI = result._aiActuallyUsed === true;
-            const scoringMethod = result._scoringMethod || (actuallyUsedAI ? 'gpt-4o' : 'rule-based-fallback');
-            const warning = result._warning || null;
 
             matchResults.push({
               patientId: result.patientId,

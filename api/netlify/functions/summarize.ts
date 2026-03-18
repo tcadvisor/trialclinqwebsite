@@ -57,7 +57,7 @@ function getExtension(filename: string) {
   return idx >= 0 ? filename.slice(idx).toLowerCase() : "";
 }
 
-function detectKind(mimeType: string, filename: string) {
+function detectKind(mimeType: string, filename: string): "pdf" | null {
   const mime = mimeType || "";
   if (SUPPORTED_MIME.has(mime)) {
     return "pdf";

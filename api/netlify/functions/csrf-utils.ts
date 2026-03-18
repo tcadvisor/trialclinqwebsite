@@ -168,3 +168,8 @@ export function corsWithCsrf(statusCode: number, body: any, additionalHeaders: R
     body: typeof body === "string" ? body : JSON.stringify(body),
   };
 }
+
+/**
+ * Alias for validateCsrfToken - backward compatibility
+ */
+export const verifyCsrfToken = validateCsrfToken;

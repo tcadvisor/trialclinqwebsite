@@ -1,0 +1,63 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.handler = void 0;
+const cors_utils_1 = require("./cors-utils");
+const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
+function clamp(n, min = 0, max = 100) {
+    return Math.max(min, Math.min(max, n));
+}
+const handler = async (event) => {
+    const cors = (0, cors_utils_1.createCorsHandler)(event);
+    if (event.httpMethod === "OPTIONS") {
+        return cors.handleOptions("POST,OPTIONS");
+    }
+    if (event.httpMethod !== "POST") {
+        return cors.response(405, { error: "Method not allowed" });
+    }
+    const key = process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY || "";
+    if (!key) {
+        return cors.response(500, { error: "OPENAI_API_KEY not set" });
+    }
+    try {
+        const payload = event.body ? JSON.parse(event.body) : {};
+        const prompt = payload.prompt || "";
+        if (!prompt)
+            return cors.response(400, { error: "Missing prompt" });
+        const res = await fetch(OPENAI_URL, {
+            method: "POST",
+            headers: {
+                "content-type": "application/json",
+                authorization: `Bearer ${key}`,
+            },
+            body: JSON.stringify({
+                model: "gpt-4o",
+                temperature: 0.2,
+                messages: [
+                    { role: "system", content: "You score clinical trial eligibility and fit. The score MUST be calculated as the SUM of these components: Condition match (0-40), Demographics (0-15), Exclusions (0-20), Medications (0-10), Location (0-10), Status (0-5). Review ALL patient conditions, medications, and allergies listed. Output ONLY JSON with integer score (0-100 = sum of components) and rationale (<=160 chars showing calculation)." },
+                    { role: "user", content: prompt },
+                ],
+                response_format: { type: "json_object" },
+            }),
+        });
+        if (!res.ok) {
+            const text = await res.text().catch(() => "");
+            return cors.response(res.status, { error: text || `HTTP ${res.status}` });
+        }
+        const data = await res.json();
+        const content = data?.choices?.[0]?.message?.content;
+        let out = {};
+        try {
+            out = content ? JSON.parse(content) : {};
+        }
+        catch {
+            out = {};
+        }
+        const scoreNum = clamp(Math.round(Number(out.score)), 0, 100);
+        const rationale = String(out.rationale || "");
+        return cors.response(200, { score: scoreNum, rationale });
+    }
+    catch (e) {
+        return cors.response(500, { error: String(e?.message || e || "Unknown error") });
+    }
+};
+exports.handler = handler;

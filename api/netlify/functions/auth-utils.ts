@@ -213,3 +213,24 @@ export function isResearcherOwner(
 export function generateInternalUserId(azureOid: string): string {
   return `azure-${azureOid}`;
 }
+
+/**
+ * Verify token and get user from event or auth header string
+ * Accepts either a HandlerEvent object or an auth header string for backward compatibility
+ */
+export async function verifyTokenAndGetUser(eventOrAuthHeader: any): Promise<AuthenticatedUser> {
+  // If it's a string, treat it as an auth header
+  if (typeof eventOrAuthHeader === 'string') {
+    return verifyAndDecodeToken(eventOrAuthHeader);
+  }
+
+  // If it's an event object, extract the auth header
+  const authHeader = eventOrAuthHeader?.headers?.authorization ||
+                     eventOrAuthHeader?.headers?.Authorization || '';
+
+  if (!authHeader) {
+    throw new Error('Missing Authorization header');
+  }
+
+  return verifyAndDecodeToken(authHeader);
+}
