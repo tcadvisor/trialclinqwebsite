@@ -5,8 +5,14 @@ const TOKEN_BYTE_LENGTH = 32; // 256 bits
 const TOKEN_EXPIRY_MS = 3600000; // 1 hour
 const HMAC_ALGORITHM = "sha256";
 
-// Secret key for HMAC signing - should be set in environment variables
-const CSRF_SECRET = process.env.CSRF_SECRET || "default-csrf-secret-change-in-production";
+// Secret key for HMAC signing -- must be set in environment variables
+function getCsrfSecret(): string {
+  const secret = process.env.CSRF_SECRET;
+  if (!secret) {
+    throw new Error("CSRF_SECRET environment variable is required");
+  }
+  return secret;
+}
 
 interface CsrfToken {
   token: string;
@@ -23,7 +29,7 @@ export function generateCsrfToken(): string {
   const payload = `${randomToken}.${timestamp}`;
 
   // Sign the payload with HMAC
-  const signature = createHmac(HMAC_ALGORITHM, CSRF_SECRET)
+  const signature = createHmac(HMAC_ALGORITHM, getCsrfSecret())
     .update(payload)
     .digest("base64url");
 
@@ -61,7 +67,7 @@ function parseCsrfToken(token: string): CsrfToken | null {
  */
 function verifySignature(token: string, signature: string): boolean {
   try {
-    const expectedSignature = createHmac(HMAC_ALGORITHM, CSRF_SECRET)
+    const expectedSignature = createHmac(HMAC_ALGORITHM, getCsrfSecret())
       .update(token)
       .digest("base64url");
 
@@ -153,12 +159,14 @@ export function getCsrfTokenFromHeaders(headers: Record<string, string | string[
  * @deprecated Use createCorsHandler from cors-utils.ts instead for proper origin validation
  * This function is kept for backward compatibility but should not be used in new code
  */
-export function corsWithCsrf(statusCode: number, body: any, additionalHeaders: Record<string, string> = {}) {
+export function corsWithCsrf(statusCode: number, body: any, additionalHeaders: Record<string, string> = {}, requestOrigin?: string) {
   console.warn('[DEPRECATED] corsWithCsrf is deprecated. Use createCorsHandler from cors-utils.ts instead.');
+  const allowedOrigins = (process.env.ALLOWED_ORIGINS || "http://localhost:5173").split(",");
+  const origin = requestOrigin && allowedOrigins.includes(requestOrigin) ? requestOrigin : allowedOrigins[0];
   return {
     statusCode,
     headers: {
-      "access-control-allow-origin": "*",
+      "access-control-allow-origin": origin,
       "access-control-allow-methods": "POST,PUT,DELETE,OPTIONS",
       "access-control-allow-headers": "content-type,authorization,x-csrf-token,x-user-id,x-patient-id",
       "access-control-expose-headers": "x-csrf-token",

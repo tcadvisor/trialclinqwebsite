@@ -143,8 +143,11 @@ export interface BatchAcceptResult {
 // API Functions
 // ============================================================================
 
-function getHeaders(userId: string): Record<string, string> {
-  const csrfToken = getCsrfToken();
+async function getHeaders(userId: string): Promise<Record<string, string>> {
+  let csrfToken: string | null = null;
+  try {
+    csrfToken = await getCsrfToken();
+  } catch {}
   return {
     "Content-Type": "application/json",
     "x-user-id": userId,
@@ -159,7 +162,7 @@ function getHeaders(userId: string): Record<string, string> {
 export async function getConnectionStatus(userId: string): Promise<ConnectionStatus> {
   try {
     const response = await fetch(`${API_BASE}?action=status&providerId=${encodeURIComponent(userId)}`, {
-      headers: getHeaders(userId),
+      headers: await getHeaders(userId),
     });
 
     if (!response.ok) {
@@ -181,7 +184,7 @@ export async function initiateConnection(userId: string): Promise<{ ok: boolean;
 
     const response = await fetch(API_BASE, {
       method: "POST",
-      headers: getHeaders(userId),
+      headers: await getHeaders(userId),
       body: JSON.stringify({
         action: "initiate_oauth",
         providerId: userId,
@@ -212,7 +215,7 @@ export async function completeConnection(
 
     const response = await fetch(API_BASE, {
       method: "POST",
-      headers: getHeaders(userId),
+      headers: await getHeaders(userId),
       body: JSON.stringify({
         action: "complete_oauth",
         providerId: userId,
@@ -246,7 +249,7 @@ export async function syncPatients(
   try {
     const response = await fetch(API_BASE, {
       method: "POST",
-      headers: getHeaders(userId),
+      headers: await getHeaders(userId),
       body: JSON.stringify({
         action: "sync_patients",
         providerId: userId,
@@ -285,7 +288,7 @@ export async function getPatients(
     if (options?.condition) params.set("condition", options.condition);
 
     const response = await fetch(`${API_BASE}?${params.toString()}`, {
-      headers: getHeaders(userId),
+      headers: await getHeaders(userId),
     });
 
     if (!response.ok) {
@@ -319,7 +322,7 @@ export async function matchTrialToPatients(
   try {
     const response = await fetch(API_BASE, {
       method: "POST",
-      headers: getHeaders(userId),
+      headers: await getHeaders(userId),
       body: JSON.stringify({
         action: "match_trial",
         providerId: userId,
@@ -361,7 +364,7 @@ export async function batchAcceptMatches(
   try {
     const response = await fetch(API_BASE, {
       method: "POST",
-      headers: getHeaders(userId),
+      headers: await getHeaders(userId),
       body: JSON.stringify({
         action: "batch_accept_matches",
         providerId: userId,
@@ -394,7 +397,7 @@ export async function addPatientToPipeline(
   try {
     const response = await fetch(API_BASE, {
       method: "POST",
-      headers: getHeaders(userId),
+      headers: await getHeaders(userId),
       body: JSON.stringify({
         action: "add_to_pipeline",
         providerId: userId,
@@ -425,7 +428,7 @@ export async function getTrialMatches(
     const response = await fetch(
       `${API_BASE}?action=matches&providerId=${encodeURIComponent(userId)}&nctId=${encodeURIComponent(nctId)}`,
       {
-        headers: getHeaders(userId),
+        headers: await getHeaders(userId),
       }
     );
 
@@ -451,7 +454,7 @@ export async function updateMatchStatus(
   try {
     const response = await fetch(API_BASE, {
       method: "POST",
-      headers: getHeaders(userId),
+      headers: await getHeaders(userId),
       body: JSON.stringify({
         action: "update_match",
         providerId: userId,
@@ -478,7 +481,7 @@ export async function disconnectElation(userId: string): Promise<{ ok: boolean; 
   try {
     const response = await fetch(API_BASE, {
       method: "POST",
-      headers: getHeaders(userId),
+      headers: await getHeaders(userId),
       body: JSON.stringify({
         action: "disconnect",
         providerId: userId,

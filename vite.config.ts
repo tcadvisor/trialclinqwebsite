@@ -249,9 +249,13 @@ function summarizeDevPlugin() {
     return hits >= 2;
   }
 
+  function escapeHtml(str: string): string {
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
   function json(res: any, status: number, body: any) {
     res.statusCode = status;
-    res.setHeader("access-control-allow-origin", "*");
+    res.setHeader("access-control-allow-origin", "http://localhost:5173");
     res.setHeader("access-control-allow-methods", "POST,OPTIONS");
     res.setHeader("access-control-allow-headers", "content-type,authorization");
     res.setHeader("content-type", "application/json");
@@ -265,14 +269,24 @@ function summarizeDevPlugin() {
         reject(new Error("Missing content-type"));
         return;
       }
+      const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB limit
       const bb = Busboy({ headers: { "content-type": contentType } });
       const fields: Record<string, string> = {};
       let fileData: Buffer[] = [];
+      let totalBytes = 0;
       let fileMeta: { filename: string; mimeType: string } | null = null;
 
       bb.on("file", (_name, file, info) => {
         fileMeta = { filename: info.filename || "upload", mimeType: info.mimeType || "application/octet-stream" };
-        file.on("data", (d) => fileData.push(d));
+        file.on("data", (d) => {
+          totalBytes += d.length;
+          if (totalBytes > MAX_FILE_SIZE) {
+            file.destroy();
+            reject(new Error(`File exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit`));
+            return;
+          }
+          fileData.push(d);
+        });
       });
 
       bb.on("field", (name, val) => {
@@ -457,25 +471,25 @@ function summarizeDevPlugin() {
           subject = "New Demo Request - TrialClinIQ";
           html = `
             <h2>New Demo Request</h2>
-            <p><strong>Name:</strong> ${formData.name}</p>
-            <p><strong>Email:</strong> ${formData.email}</p>
-            <p><strong>Organization:</strong> ${formData.organization}</p>
+            <p><strong>Name:</strong> ${escapeHtml(formData.name || '')}</p>
+            <p><strong>Email:</strong> ${escapeHtml(formData.email || '')}</p>
+            <p><strong>Organization:</strong> ${escapeHtml(formData.organization || '')}</p>
             <p>Please reach out to schedule a demo call.</p>
           `;
         } else if (formData.type === "patient_waitlist") {
           subject = "New Patient Waitlist Signup - TrialClinIQ";
           html = `
             <h2>New Patient Waitlist Signup</h2>
-            <p><strong>Name:</strong> ${formData.name}</p>
-            <p><strong>Email:</strong> ${formData.email}</p>
-            <p><strong>CNS Research Area:</strong> ${formData.condition}</p>
+            <p><strong>Name:</strong> ${escapeHtml(formData.name || '')}</p>
+            <p><strong>Email:</strong> ${escapeHtml(formData.email || '')}</p>
+            <p><strong>CNS Research Area:</strong> ${escapeHtml(formData.condition || '')}</p>
             <p>A new patient has signed up for the waitlist.</p>
           `;
         } else if (formData.type === "newsletter_signup") {
           subject = "New Newsletter Subscriber - TrialClinIQ";
           html = `
             <h2>New Newsletter Subscriber</h2>
-            <p><strong>Email:</strong> ${formData.email}</p>
+            <p><strong>Email:</strong> ${escapeHtml(formData.email || '')}</p>
             <p>A new subscriber has joined the newsletter.</p>
           `;
         }

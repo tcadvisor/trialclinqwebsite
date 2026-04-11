@@ -54,7 +54,12 @@ export const handler: Handler = async (event) => {
     return cors.response(405, { error: "Method not allowed" });
   }
 
-  const body = event.body ? JSON.parse(event.body) : {};
+  let body: any = {};
+  try {
+    body = event.body ? JSON.parse(event.body) : {};
+  } catch {
+    return cors.response(400, { ok: false, error: "Malformed JSON in request body" });
+  }
   const { action } = body;
 
   try {
@@ -97,12 +102,13 @@ export const handler: Handler = async (event) => {
       const verificationToken = generateToken();
       const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
-      // Create auth credentials
+      // Hash the verification token before storing (same pattern as session tokens)
+      const verificationTokenHash = hashToken(verificationToken);
       await query(
         `INSERT INTO auth_credentials (
           user_id, email, password_hash, email_verification_token, email_verification_expires
         ) VALUES ($1, $2, $3, $4, $5)`,
-        [userId, normalizedEmail, passwordHash, verificationToken, verificationExpires]
+        [userId, normalizedEmail, passwordHash, verificationTokenHash, verificationExpires]
       );
 
       // Create user record
@@ -259,10 +265,7 @@ export const handler: Handler = async (event) => {
         ]
       );
 
-      // Update user role if specified
-      if (role && role !== user.role) {
-        await query(`UPDATE users SET role = $1 WHERE user_id = $2`, [role, user.user_id]);
-      }
+      // Use the role from the database, not from the client request (prevents privilege escalation)
 
       await logAuditEvent(
         user.user_id,
@@ -308,10 +311,10 @@ export const handler: Handler = async (event) => {
             email: normalizedEmail,
             firstName: user.first_name,
             lastName: user.last_name,
-            role: role || user.role,
+            role: user.role,
           },
           session: {
-            token, // Also return token for localStorage fallback
+            // Token is only in the httpOnly cookie -- never expose it in the response body
             expiresAt: expiresAt.toISOString(),
           },
         }),
@@ -410,11 +413,13 @@ export const handler: Handler = async (event) => {
       const resetToken = generateToken();
       const resetExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
+      // Hash the reset token before storing
+      const resetTokenHash = hashToken(resetToken);
       await query(
         `UPDATE auth_credentials
          SET password_reset_token = $1, password_reset_expires = $2
          WHERE email = $3`,
-        [resetToken, resetExpires, normalizedEmail]
+        [resetTokenHash, resetExpires, normalizedEmail]
       );
 
       // TODO: Send password reset email
@@ -444,10 +449,12 @@ export const handler: Handler = async (event) => {
         });
       }
 
+      // Hash the incoming token to compare against the stored hash
+      const incomingTokenHash = hashToken(token);
       const result = await query(
         `SELECT user_id FROM auth_credentials
          WHERE password_reset_token = $1 AND password_reset_expires > NOW()`,
-        [token]
+        [incomingTokenHash]
       );
 
       if (result.rows.length === 0) {
@@ -496,12 +503,14 @@ export const handler: Handler = async (event) => {
         return cors.response(400, { ok: false, error: "Verification token is required" });
       }
 
+      // Hash incoming token for comparison
+      const emailTokenHash = hashToken(token);
       const result = await query(
         `UPDATE auth_credentials
          SET email_verified = true, email_verification_token = NULL, email_verification_expires = NULL
          WHERE email_verification_token = $1 AND email_verification_expires > NOW()
          RETURNING user_id`,
-        [token]
+        [emailTokenHash]
       );
 
       if (result.rows.length === 0) {

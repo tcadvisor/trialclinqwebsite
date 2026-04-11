@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertCircle } from 'lucide-react';
-import { setPostLoginRedirect, useAuth } from '../lib/auth';
+import { useAuth } from '../lib/auth';
 import { signInUser } from '../lib/simpleAuth';
 import { Modal } from './ui/modal';
 
@@ -12,7 +12,7 @@ interface AuthModalProps {
   role?: 'patient' | 'provider';
 }
 
-export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultTab = 'login', role = 'patient' }) => {
+export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, role = 'patient' }) => {
   const navigate = useNavigate();
   const { signIn } = useAuth();
   const [isLoading, setIsLoading] = useState(false);

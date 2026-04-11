@@ -30,7 +30,7 @@ export default function TeamPage() {
       role: "Legal Counsel",
       description:
         "Corporate attorney with expertise in privacy and data security, cloud, IP, product development, and global commercial transactions.",
-      linkedin: "https://linkedin.com",
+      linkedin: "",
     },
   ];
 
@@ -111,14 +111,16 @@ export default function TeamPage() {
                     {member.description}
                   </p>
                 </div>
-                <a
-                  href={member.linkedin}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="ml-6 text-blue-600 hover:text-blue-700 flex-shrink-0"
-                >
-                  <Linkedin className="w-5 h-5" />
-                </a>
+                {member.linkedin && (
+                  <a
+                    href={member.linkedin}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="ml-6 text-blue-600 hover:text-blue-700 flex-shrink-0"
+                  >
+                    <Linkedin className="w-5 h-5" />
+                  </a>
+                )}
               </div>
             ))}
           </div>

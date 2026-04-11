@@ -4,7 +4,7 @@ import HomeHeader from "../components/HomeHeader";
 import { Card, CardContent } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
 import { Separator } from "../components/ui/separator";
-import { Loader2, MapPinIcon, ArrowLeft } from "lucide-react";
+import { MapPinIcon, ArrowLeft } from "lucide-react";
 import { fetchStudyByNctId, CtgovStudy, formatNearestSitePreview } from "../lib/ctgov";
 import { Button } from "../components/ui/button";
 import { readCurrentHealthProfile, computeStudyScore } from "../lib/matching";

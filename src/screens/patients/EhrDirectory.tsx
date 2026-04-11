@@ -69,9 +69,9 @@ function Card({ item, onConnect }: { item: EhrItem; onConnect: (item: EhrItem) =
         <div className="flex-1">
           <div className="text-sm text-gray-500">{item.vendor}</div>
           <div className="font-medium leading-5">{item.organization}</div>
-          <button className="mt-2 inline-flex items-center text-xs rounded-full bg-blue-50 text-blue-700 px-2 py-1">
+          <span className="mt-2 inline-flex items-center text-xs rounded-full bg-blue-50 text-blue-700 px-2 py-1">
             {item.portals} portal{item.portals > 1 ? "s" : ""}
-          </button>
+          </span>
         </div>
         <button
           onClick={() => onConnect(item)}
@@ -104,6 +104,10 @@ export default function EhrDirectory(): JSX.Element {
   const canLoadMore = visible < filtered.length;
 
   const handleConnect = async (item: EhrItem) => {
+    if (!item.isEpic) {
+      alert(`${item.vendor} integration is not yet available. Currently only EPIC EHR connections are supported.`);
+      return;
+    }
     if (item.isEpic) {
       try {
         setConnecting(true);

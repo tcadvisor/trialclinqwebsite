@@ -25,7 +25,7 @@ function Gauge({ value }: { value: number }): JSX.Element {
         <div className="text-xs text-gray-600">Criteria passed</div>
       </div>
       <div className="mt-2 text-center">
-        <button className="mx-auto rounded-full bg-gray-100 px-3 py-1 text-xs">COMPATIBILITY SCORE</button>
+        <span className="mx-auto inline-block rounded-full bg-gray-100 px-3 py-1 text-xs">COMPATIBILITY SCORE</span>
       </div>
     </div>
   );

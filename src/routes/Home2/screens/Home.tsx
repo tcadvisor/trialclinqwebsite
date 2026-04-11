@@ -47,10 +47,12 @@ export default function Home() {
 
       <HomeHeader />
 
-      {/* Testing Mode Indicator */}
-      <div className="w-full bg-yellow-400 text-black text-sm px-4 py-1 text-center font-medium">
-        TESTING MODE
-      </div>
+      {/* Testing Mode Indicator -- only in dev */}
+      {import.meta.env.DEV && (
+        <div className="w-full bg-yellow-400 text-black text-sm px-4 py-1 text-center font-medium">
+          TESTING MODE
+        </div>
+      )}
 
       {/* Hero */}
       <section className="relative overflow-hidden">
@@ -302,15 +304,15 @@ export default function Home() {
               <div className="pt-4 border-t">
                 <div className="grid grid-cols-3 gap-2 text-sm">
                   <div className="text-center">
-                    <div className="font-semibold text-blue-600">10%</div>
+                    <div className="font-semibold text-blue-600">--</div>
                     <div className="text-gray-500 text-xs">Matched</div>
                   </div>
                   <div className="text-center">
-                    <div className="font-semibold text-blue-600">10%</div>
+                    <div className="font-semibold text-blue-600">--</div>
                     <div className="text-gray-500 text-xs">Pass Screen</div>
                   </div>
                   <div className="text-center">
-                    <div className="font-semibold text-blue-600">10%</div>
+                    <div className="font-semibold text-blue-600">--</div>
                     <div className="text-gray-500 text-xs">Enrolled</div>
                   </div>
                 </div>
@@ -396,41 +398,37 @@ export default function Home() {
               decoding="async"
             />
             <p className="mt-4 text-sm text-gray-600 max-w-sm">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam et lacinia mi.
+              Connecting patients with the right clinical trials through intelligent matching and secure health data management.
             </p>
             <div className="mt-4 flex gap-4 text-gray-500">
-              <span>IG</span><span>TW</span><span>IN</span>
+              <span className="cursor-default" title="Instagram">IG</span>
+              <span className="cursor-default" title="Twitter">TW</span>
+              <span className="cursor-default" title="LinkedIn">IN</span>
             </div>
           </div>
           <div>
             <div className="text-gray-400 font-medium mb-4">Solutions</div>
             <ul className="space-y-3 text-gray-700">
-              {[
-                "Find a study",
-                "More about trials",
-                "How TrialCliniq help",
-                "Blog",
-              ].map((t) => (
-                <li key={t}><a href="#" className="hover:text-gray-900">{t}</a></li>
+              {([
+                ["Find a study", "/search-results"],
+                ["More about trials", "/patients/faq"],
+                ["How TrialCliniq help", "/about"],
+                ["Blog", "/sites/blog"],
+              ] as const).map(([t, path]) => (
+                <li key={t}><Link to={path} className="hover:text-gray-900">{t}</Link></li>
               ))}
             </ul>
           </div>
           <div>
             <div className="text-gray-400 font-medium mb-4">Company</div>
             <ul className="space-y-3 text-gray-700">
-              {[
-                "Terms of Conditions",
-                "Contact Us",
-                "About Us",
-                "Privacy Policy",
-              ].map((t) => (
-                <li key={t}>
-                  {t === "Contact Us" ? (
-                    <Link to="/contact" className="hover:text-gray-900">Contact Us</Link>
-                  ) : (
-                    <a href="#" className="hover:text-gray-900">{t}</a>
-                  )}
-                </li>
+              {([
+                ["Terms of Conditions", "/patients/privacy"],
+                ["Contact Us", "/contact"],
+                ["About Us", "/about"],
+                ["Privacy Policy", "/patients/privacy"],
+              ] as const).map(([t, path]) => (
+                <li key={t}><Link to={path} className="hover:text-gray-900">{t}</Link></li>
               ))}
             </ul>
           </div>

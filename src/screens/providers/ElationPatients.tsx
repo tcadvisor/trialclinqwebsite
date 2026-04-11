@@ -1008,9 +1008,9 @@ export default function ElationPatients(): JSX.Element {
     }
   };
 
+  const [selectedPatient, setSelectedPatient] = useState<ElationPatientSummary | null>(null);
   const handleSelectPatient = (patient: ElationPatientSummary) => {
-    // Could open a detail modal or navigate to patient detail
-    console.log("Selected patient:", patient);
+    setSelectedPatient(prev => prev?.id === patient.id ? null : patient);
   };
 
   if (loading) {

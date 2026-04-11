@@ -18,6 +18,10 @@ export default function InvestigatorInformation(): JSX.Element {
   const [useMyName, setUseMyName] = useState(false);
   const [useMyPhone, setUseMyPhone] = useState(false);
   const [useMyEmail, setUseMyEmail] = useState(false);
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [consentData, setConsentData] = useState(false);
+  const [consentComms, setConsentComms] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -33,24 +37,28 @@ export default function InvestigatorInformation(): JSX.Element {
         if (profile.affiliatedOrganization) setAffiliatedOrg(profile.affiliatedOrganization);
         if (profile.regulatoryAuthority) setRegulatoryAuthority(profile.regulatoryAuthority);
       }
-      // Auto-populate from pending signup if available
-      const pending = localStorage.getItem("pending_signup_v1");
-      if (pending) {
-        const pendingData = JSON.parse(pending);
-        if (useMyName && pendingData.firstName && pendingData.lastName) {
-          setInvestigatorName(`${pendingData.firstName} ${pendingData.lastName}`);
-        }
-        if (useMyPhone && pendingData.phone) {
-          setInvestigatorPhone(pendingData.phone);
-        }
-        if (useMyEmail && pendingData.email) {
-          setInvestigatorEmail(pendingData.email);
-        }
-      }
     } catch (e) {
       console.error("Error loading provider profile from localStorage:", e);
     }
   }, []);
+
+  // Auto-populate fields when "use my" checkboxes are toggled
+  useEffect(() => {
+    try {
+      const pending = localStorage.getItem("pending_signup_v1");
+      if (!pending) return;
+      const pendingData = JSON.parse(pending);
+      if (useMyName && pendingData.firstName && pendingData.lastName) {
+        setInvestigatorName(`${pendingData.firstName} ${pendingData.lastName}`);
+      }
+      if (useMyPhone && pendingData.phone) {
+        setInvestigatorPhone(pendingData.phone);
+      }
+      if (useMyEmail && pendingData.email) {
+        setInvestigatorEmail(pendingData.email);
+      }
+    } catch {}
+  }, [useMyName, useMyPhone, useMyEmail]);
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -72,6 +80,19 @@ export default function InvestigatorInformation(): JSX.Element {
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
+
+    if (!password || password.length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+    if (!consentData) {
+      setError("You must consent to the use of your professional and site data to continue.");
+      return;
+    }
 
     // Validate phone before submission
     if (investigatorPhone.trim()) {
@@ -107,7 +128,7 @@ export default function InvestigatorInformation(): JSX.Element {
       // Create account with simple auth
       const result = await signUpUser({
         email: pending.email || "",
-        password: pending.password || "",
+        password,
         firstName: pending.firstName || "",
         lastName: pending.lastName || "",
       });
@@ -201,16 +222,27 @@ export default function InvestigatorInformation(): JSX.Element {
               <input value={regulatoryAddress} onChange={(e) => setRegulatoryAddress(e.target.value)} placeholder="Enter the full mailing address of the regulatory authority" className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" required />
             </div>
 
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Password<span className="text-red-500">*</span></label>
+                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 8 characters" className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" required minLength={8} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Confirm Password<span className="text-red-500">*</span></label>
+                <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Re-enter your password" className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" required minLength={8} />
+              </div>
+            </div>
+
             <div className="space-y-3 text-sm text-gray-700">
               <p>
                 By registering, you consent to receive trial match leads and communication updates from TrialCliniq. Your site, investigator and admin data will be securely stored in compliance with HIPAA standards and will be used solely for trial matching and engagement services within this platform.
               </p>
               <label className="flex items-center gap-2">
-                <input type="checkbox" className="h-4 w-4 rounded border" />
+                <input type="checkbox" className="h-4 w-4 rounded border" checked={consentData} onChange={(e) => setConsentData(e.target.checked)} />
                 I consent to the use of my professional and site data as described.
               </label>
               <label className="flex items-center gap-2">
-                <input type="checkbox" className="h-4 w-4 rounded border" />
+                <input type="checkbox" className="h-4 w-4 rounded border" checked={consentComms} onChange={(e) => setConsentComms(e.target.checked)} />
                 I agree to receive email and SMS notifications for trial match leads and platform updates.
               </label>
               <p className="flex items-center gap-2 text-xs text-gray-500">

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { Mail, MapPin, Phone } from "lucide-react";
+import { Mail } from "lucide-react";
 import { addCsrfHeader } from "../lib/csrf";
 
 export default function ContactPage() {

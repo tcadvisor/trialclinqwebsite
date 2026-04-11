@@ -125,20 +125,33 @@ export async function csrfFetch(url: string, options: RequestInit = {}): Promise
   return fetch(url, options);
 }
 
+let _refreshIntervalId: ReturnType<typeof setInterval> | null = null;
+
 /**
- * Setup automatic CSRF token refresh
- * This will refresh the token periodically to ensure it's always valid
+ * Setup automatic CSRF token refresh.
+ * Clears any existing interval before starting a new one to prevent stacking.
+ * Returns a cleanup function for use in React effect teardowns.
  */
-export function setupCsrfTokenRefresh(): void {
+export function setupCsrfTokenRefresh(): () => void {
+  if (_refreshIntervalId) {
+    clearInterval(_refreshIntervalId);
+  }
+
   // Refresh token every 50 minutes (token expires in 1 hour)
   const refreshIntervalMs = 50 * 60 * 1000;
 
-  setInterval(async () => {
+  _refreshIntervalId = setInterval(async () => {
     try {
       await fetchCsrfToken();
-      console.log('🔄 CSRF token refreshed automatically');
     } catch (error) {
       console.error('Failed to refresh CSRF token:', error);
     }
   }, refreshIntervalMs);
+
+  return () => {
+    if (_refreshIntervalId) {
+      clearInterval(_refreshIntervalId);
+      _refreshIntervalId = null;
+    }
+  };
 }

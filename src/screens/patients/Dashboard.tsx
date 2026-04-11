@@ -149,11 +149,13 @@ export default function Dashboard(): JSX.Element {
             <div className="flex items-start justify-between">
               <div>
                 <div className="text-sm text-gray-600">Consent Status</div>
-                <div className="mt-2 text-lg font-semibold text-green-700">Active</div>
+                <div className={`mt-2 text-lg font-semibold ${(() => { try { const c = JSON.parse(localStorage.getItem("tc_consent") || "{}"); return c.section1 && c.section2 && c.section3 && c.section4 && c.final ? "text-green-700" : "text-gray-600"; } catch { return "text-gray-600"; } })()}`}>
+                  {(() => { try { const c = JSON.parse(localStorage.getItem("tc_consent") || "{}"); return c.section1 && c.section2 && c.section3 && c.section4 && c.final ? "Active" : "Inactive"; } catch { return "Inactive"; } })()}
+                </div>
               </div>
-              <div className="h-8 w-8 rounded-md bg-green-100" />
+              <div className={`h-8 w-8 rounded-md ${(() => { try { const c = JSON.parse(localStorage.getItem("tc_consent") || "{}"); return c.section1 && c.section2 && c.section3 && c.section4 && c.final ? "bg-green-100" : "bg-gray-100"; } catch { return "bg-gray-100"; } })()}`} />
             </div>
-            <div className="mt-2 text-xs text-gray-500">Last updated: 17 Jun, 2025</div>
+            <div className="mt-2 text-xs text-gray-500">Last updated: {new Date().toLocaleDateString()}</div>
           </div>
 
           <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
@@ -172,14 +174,8 @@ export default function Dashboard(): JSX.Element {
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold">Trial Matches</h2>
             <div className="flex items-center gap-2">
-              <input
-                id="dashboard-search"
-                className="w-64 rounded-full border px-4 py-2 text-sm focus:outline-none"
-                placeholder="Search"
-                aria-label="Search trial matches"
-              />
               <Link
-                to="/"
+                to="/search-results"
                 className="rounded-full border px-4 py-2 text-sm hover:bg-gray-50"
               >
                 New search

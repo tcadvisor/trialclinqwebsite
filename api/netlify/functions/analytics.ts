@@ -227,7 +227,8 @@ export const handler: Handler = async (event) => {
 
     // ==================== ENROLLMENT TRENDS ====================
     if (type === "enrollment-trends") {
-      const days = parseInt(event.queryStringParameters?.days || "30");
+      const rawDays = parseInt(event.queryStringParameters?.days || "30");
+      const days = Number.isFinite(rawDays) && rawDays > 0 ? rawDays : 30;
 
       const result = await query(
         `SELECT
@@ -236,10 +237,10 @@ export const handler: Handler = async (event) => {
           COUNT(*) as count
          FROM patient_pipeline
          WHERE provider_id = $1
-           AND created_at >= CURRENT_DATE - INTERVAL '${days} days'
+           AND created_at >= CURRENT_DATE - make_interval(days => $2)
          GROUP BY DATE(created_at), status
          ORDER BY date`,
-        [providerId]
+        [providerId, days]
       );
 
       // Transform into series data

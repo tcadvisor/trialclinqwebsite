@@ -95,23 +95,23 @@ export default function Consent(): JSX.Element {
               loading="lazy"
               decoding="async"
             />
-            <p className="mt-4 text-gray-600 max-w-sm">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam et lacinia mi.</p>
+            <p className="mt-4 text-gray-600 max-w-sm">Connecting patients with the right clinical trials through intelligent matching and secure health data management.</p>
           </div>
           <div>
             <div className="text-gray-400 font-medium mb-3">Solutions</div>
             <ul className="space-y-2 text-gray-700">
               <li><Link to="/patients/find-trial" className="hover:text-gray-900">Find a study</Link></li>
               <li><Link to="/patients/faq" className="hover:text-gray-900">More about trials</Link></li>
-              <li><Link to="/" className="hover:text-gray-900">How TrialCliniq help</Link></li>
+              <li><Link to="/about" className="hover:text-gray-900">How TrialCliniq help</Link></li>
               <li><Link to="/sites/blog" className="hover:text-gray-900">Blog</Link></li>
             </ul>
           </div>
           <div>
             <div className="text-gray-400 font-medium mb-3">Company</div>
             <ul className="space-y-2 text-gray-700">
-              <li><Link to="/" className="hover:text-gray-900">Terms of Conditions</Link></li>
+              <li><Link to="/patients/privacy" className="hover:text-gray-900">Terms of Conditions</Link></li>
               <li><Link to="/contact" className="hover:text-gray-900">Contact Us</Link></li>
-              <li><a href="#about" className="hover:text-gray-900">About Us</a></li>
+              <li><Link to="/about" className="hover:text-gray-900">About Us</Link></li>
               <li><Link to="/patients/privacy" className="hover:text-gray-900">Privacy Policy</Link></li>
             </ul>
           </div>
@@ -120,7 +120,7 @@ export default function Consent(): JSX.Element {
           <div className="max-w-6xl mx-auto px-4 py-4 text-xs text-gray-500 flex items-center justify-between">
             <span>Copyright © 2025 TrialCliniq.</span>
             <span>Website by Apperr</span>
-            <a href="#top" className="hover:text-gray-700">Back to top</a>
+            <a href="#" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="hover:text-gray-700 cursor-pointer">Back to top</a>
           </div>
         </div>
       </footer>

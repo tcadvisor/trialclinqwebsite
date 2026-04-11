@@ -36,6 +36,12 @@ export default function VisibilityOptions(): JSX.Element {
             </li>
           ))}
         </ul>
+        <div className="mt-10 text-center">
+          <p className="text-gray-600 mb-4">Interested in these visibility options for your trial?</p>
+          <Link to="/book-demo" className="inline-flex items-center rounded-full bg-blue-600 text-white px-6 py-3 text-sm font-medium hover:bg-blue-700">
+            Book a Demo
+          </Link>
+        </div>
       </main>
     </div>
   );

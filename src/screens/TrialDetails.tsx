@@ -81,7 +81,7 @@ export default function TrialDetails(): JSX.Element {
           <MapPinIcon className="w-4 h-4 text-gray-500" />
           <span className="text-gray-700">{trial.center}</span>
           {trial.otherCentersCount > 0 && (
-            <span className="text-sm text-[#1033e5] cursor-default">See other centers</span>
+            <button onClick={() => setTab("centers")} className="text-sm text-[#1033e5] hover:underline">See other centers</button>
           )}
         </div>
 
@@ -229,8 +229,8 @@ export default function TrialDetails(): JSX.Element {
           {/* Sidebar */}
           <aside className="w-full md:w-72 md:flex-shrink-0">
             <div className="sticky top-4 space-y-3">
-              <Button className="w-full bg-gray-900 text-white rounded-full">Contact a study centre</Button>
-              <Button variant="outline" className="w-full rounded-full flex items-center justify-center gap-2">
+              <Button className="w-full bg-gray-900 text-white rounded-full" onClick={() => { window.location.href = `mailto:?subject=Clinical Trial Inquiry: ${trial.nctId}&body=I am interested in learning more about this clinical trial (${trial.nctId}).`; }}>Contact a study centre</Button>
+              <Button variant="outline" className="w-full rounded-full flex items-center justify-center gap-2" onClick={() => { navigator.clipboard.writeText(window.location.href).then(() => alert("Link copied to clipboard!")); }}>
                 <Share2Icon className="w-4 h-4" /> Share
               </Button>
               <Card>
@@ -248,7 +248,7 @@ export default function TrialDetails(): JSX.Element {
       <footer className="w-full border-t mt-16">
         <div className="w-full max-w-[1200px] mx-auto px-4 py-6 text-sm text-gray-600 flex items-center justify-between">
           <span>Copyright © 2025 TrialCliniq.</span>
-          <span>Terms · Privacy</span>
+          <span><Link to="/patients/privacy" className="hover:text-gray-900">Terms</Link> · <Link to="/patients/privacy" className="hover:text-gray-900">Privacy</Link></span>
         </div>
       </footer>
     </div>

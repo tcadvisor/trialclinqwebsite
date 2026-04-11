@@ -10,9 +10,12 @@ const envRedirect = import.meta.env.VITE_AZURE_REDIRECT_URI;
 const isOldNgrokUrl = envRedirect && envRedirect.includes('vapourizable-uninterestingly-minerva.ngrok-free.dev');
 const redirectUri = (envRedirect && !isOldNgrokUrl) ? envRedirect : defaultRedirect;
 
-// Use environment variables with fallback to hardcoded values for production
-const clientId = import.meta.env.VITE_AZURE_CLIENT_ID || '759d5137-c764-42fb-82c7-40681766c175';
-const tenantId = import.meta.env.VITE_AZURE_TENANT_ID || 'e7863f3f-5855-4343-8f1d-6f1aa7ba12f3';
+// Azure credentials must be set via environment variables -- no hardcoded fallbacks
+const clientId = import.meta.env.VITE_AZURE_CLIENT_ID || '';
+const tenantId = import.meta.env.VITE_AZURE_TENANT_ID || '';
+if (!clientId || !tenantId) {
+  console.error('VITE_AZURE_CLIENT_ID and VITE_AZURE_TENANT_ID must be set. Azure AD auth will not work.');
+}
 
 export const msalConfig: Configuration = {
   auth: {

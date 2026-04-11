@@ -1455,14 +1455,12 @@ function HealthProfileContent(): JSX.Element {
             return (
               <div className="mt-6 rounded-xl border bg-white p-4 text-sm text-gray-600">
                 <p>No EHR/EMR connected yet.</p>
-                <button
-                  type="button"
-                  disabled
+                <span
                   className="mt-4 inline-flex items-center gap-2 rounded-lg bg-gray-200 text-gray-500 px-4 py-2 text-sm cursor-not-allowed"
                   aria-disabled="true"
                 >
                   Feature coming soon
-                </button>
+                </span>
               </div>
             );
           }

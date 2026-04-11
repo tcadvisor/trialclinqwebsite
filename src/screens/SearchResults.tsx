@@ -6,13 +6,13 @@ import { Card, CardContent } from "../components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { Badge } from "../components/ui/badge";
 import { Separator } from "../components/ui/separator";
-import { ChevronDownIcon, MapPinIcon, Loader2 } from "lucide-react";
+import { ChevronDownIcon, MapPinIcon } from "lucide-react";
 import HomeHeader from "../components/HomeHeader";
 import { buildSmartCondQuery, buildLooseCondQuery, normalizeLocation } from "../lib/searchQuery";
 import { getSpellCheckSuggestions, correctWithAI, type SpellCheckSuggestion } from "../lib/spellCheck";
-import { expandSearchQuery, getAutocompleteSuggestions, parseNaturalLanguageQuery } from "../lib/searchEngine";
+import { expandSearchQuery } from "../lib/searchEngine";
 import { SearchAutocomplete } from "../components/SearchAutocomplete";
-import { cachedFetchStudies, getCacheStats } from "../lib/searchCache";
+// searchCache available if needed for performance optimization
 import { rankStudies, reRankStudies, SORT_OPTIONS, type SortOption, type RankedStudy } from "../lib/searchRanking";
 import { formatStudyStatus, formatStudyType, formatPhase } from "../lib/formatters";
 import { geocodeText } from "../lib/geocode";
@@ -26,8 +26,18 @@ import {
 } from "../lib/ctgov";
 import { TrialCardSkeleton } from "../components/skeletons";
 
-const solutionsLinks = ["Find a study", "More about trials", "How TrialCliniq help", "Blog"];
-const companyLinks = ["Terms of Conditions", "Contact Us", "About Us", "Privacy Policy"];
+const solutionsLinks: { label: string; to: string }[] = [
+  { label: "Find a study", to: "/search-results" },
+  { label: "More about trials", to: "/patients/faq" },
+  { label: "How TrialCliniq help", to: "/about" },
+  { label: "Blog", to: "/sites/blog" },
+];
+const companyLinks: { label: string; to: string }[] = [
+  { label: "Terms of Conditions", to: "/patients/privacy" },
+  { label: "Contact Us", to: "/contact" },
+  { label: "About Us", to: "/about" },
+  { label: "Privacy Policy", to: "/patients/privacy" },
+];
 
 const US_STATES = new Set<string>([
   "alabama","alaska","arizona","arkansas","california","colorado","connecticut","delaware","florida","georgia",
@@ -915,7 +925,7 @@ export const SearchResults = (): JSX.Element => {
                 decoding="async"
               />
               <p className="relative self-stretch text-gray-500 text-sm">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam et lacinia mi.
+                Connecting patients with the right clinical trials through intelligent matching and secure health data management.
               </p>
               <img
                 className="relative flex-[0_0_auto]"
@@ -932,10 +942,10 @@ export const SearchResults = (): JSX.Element => {
                 <h4 className="text-gray-300">Solutions</h4>
                 <div className="flex flex-col items-start gap-4 self-stretch w-full relative flex-[0_0_auto]">
                   {solutionsLinks.map((link) => (
-                    <div key={link} className="relative w-full sm:w-[180px] min-h-[28px]">
-                      <div className="text-[#414651]">
-                        {link}
-                      </div>
+                    <div key={link.label} className="relative w-full sm:w-[180px] min-h-[28px]">
+                      <Link to={link.to} className="text-[#414651] hover:text-gray-900">
+                        {link.label}
+                      </Link>
                     </div>
                   ))}
                 </div>
@@ -944,10 +954,10 @@ export const SearchResults = (): JSX.Element => {
                 <h4 className="text-gray-300">Company</h4>
                 <div className="flex flex-col items-start gap-4 self-stretch w-full relative flex-[0_0_auto]">
                   {companyLinks.map((link) => (
-                    <div key={link} className="relative w-full sm:w-[180px] min-h-[28px]">
-                      <div className="text-[#414651]">
-                        {link}
-                      </div>
+                    <div key={link.label} className="relative w-full sm:w-[180px] min-h-[28px]">
+                      <Link to={link.to} className="text-[#414651] hover:text-gray-900">
+                        {link.label}
+                      </Link>
                     </div>
                   ))}
                 </div>
@@ -962,7 +972,7 @@ export const SearchResults = (): JSX.Element => {
             <div className="text-[#717680] text-xs">Website by Apperr</div>
           </div>
           <div className="inline-flex items-center justify-center gap-6 relative flex-[0_0_auto]">
-            <div className="text-[#717680] text-xs">Back to top</div>
+            <a href="#" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="text-[#717680] text-xs hover:text-gray-900 cursor-pointer">Back to top</a>
           </div>
         </div>
       </footer>

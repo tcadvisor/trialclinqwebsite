@@ -63,7 +63,7 @@ export default function Connect(): JSX.Element {
         <h1 className="text-center text-3xl font-semibold">Check Your Eligibility for This Trial</h1>
         <p className="mt-2 text-center text-gray-600">Answer a few quick questions to see if you might qualify. No signup required.</p>
         <div className="mt-4 flex items-center justify-center gap-2 text-xs text-gray-600">
-          <button className="inline-flex items-center gap-1 rounded-full border px-3 py-1 hover:bg-gray-50" type="button">Why are we asking this? <span className="text-gray-400">ⓘ</span></button>
+          <button className="inline-flex items-center gap-1 rounded-full border px-3 py-1 hover:bg-gray-50" type="button" onClick={() => alert("We collect this information to match you with clinical trials that fit your health profile, location, and eligibility criteria. Your data is encrypted and never sold.")}>Why are we asking this? <span className="text-gray-400">ⓘ</span></button>
         </div>
 
         <div className="mt-6 rounded-2xl border bg-white p-4 shadow-sm">
@@ -144,7 +144,18 @@ export default function Connect(): JSX.Element {
             </div>
             <div>
               <label className="block text-sm font-medium mb-2">Upload medical documents*</label>
-              <UploadBox onFiles={(files)=> setDocCount((prev)=> prev + (files ? files.length : 0))} />
+              <UploadBox onFiles={(files)=> {
+                if (!files || files.length === 0) return;
+                setDocCount((prev)=> prev + files.length);
+                // Store file names so the next step knows documents were provided
+                try {
+                  const existing = JSON.parse(localStorage.getItem("tc_pending_docs") || "[]");
+                  for (let i = 0; i < files.length; i++) {
+                    existing.push({ name: files[i].name, size: files[i].size, type: files[i].type });
+                  }
+                  localStorage.setItem("tc_pending_docs", JSON.stringify(existing));
+                } catch {}
+              }} />
               {docCount > 0 && (<div className="mt-1 text-xs text-gray-600">{docCount} document(s) added</div>)}
             </div>
           </div>

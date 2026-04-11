@@ -69,6 +69,7 @@ function ConsentTab(): JSX.Element {
     section4: false,
     final: false,
   });
+  const [loaded, setLoaded] = useState(false);
 
   // Load from server on mount (with localStorage fallback)
   useEffect(() => {
@@ -91,12 +92,14 @@ function ConsentTab(): JSX.Element {
           if (raw) setChecks(JSON.parse(raw));
         } catch {}
       }
+      setLoaded(true);
     };
     loadConsent();
   }, []);
 
-  // Save to server when consent changes (with localStorage fallback)
+  // Only save after initial load completes to avoid overwriting server data with defaults
   useEffect(() => {
+    if (!loaded) return;
     const saveConsent = async () => {
       try {
         localStorage.setItem("tc_consent", JSON.stringify(checks));
@@ -104,7 +107,7 @@ function ConsentTab(): JSX.Element {
       } catch {}
     };
     saveConsent();
-  }, [checks]);
+  }, [checks, loaded]);
 
   const allSections = checks.section1 && checks.section2 && checks.section3 && checks.section4;
   const canConfirm = allSections && checks.final;
@@ -151,7 +154,7 @@ function ConsentTab(): JSX.Element {
             <span className="text-sm text-gray-700">I have read and understand this consent form. I agree for TrialCliniq to collect, process, and securely store my personal and medical data to match me with current and future clinical trials until I choose to withdraw my consent.</span>
           </label>
           <div className="mt-4 flex items-center gap-3">
-            <button disabled={!canConfirm} className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm ${canConfirm ? "bg-[#1033e5] text-white hover:bg-blue-700" : "bg-gray-200 text-gray-500 cursor-not-allowed"}`}>Confirm consent</button>
+            <button onClick={() => { if (canConfirm) alert("Consent confirmed. Your preferences have been saved."); }} disabled={!canConfirm} className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm ${canConfirm ? "bg-[#1033e5] text-white hover:bg-blue-700" : "bg-gray-200 text-gray-500 cursor-not-allowed"}`}>Confirm consent</button>
             <span className="text-xs text-gray-500">Status: <span className={`font-medium ${canConfirm ? "text-emerald-700" : "text-gray-600"}`}>{canConfirm ? "Active" : "Inactive"}</span></span>
           </div>
         </Card>
@@ -240,7 +243,18 @@ function SecurityTab(): JSX.Element {
             <label className="text-sm text-gray-700">Confirm new password<input value={confirm} onChange={(e)=>setConfirm(e.target.value)} type="password" className="mt-1 w-full rounded-md border px-3 py-2" /></label>
           </div>
           <div className="mt-4 flex items-center gap-3">
-            <button disabled={!valid} className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm ${valid ? "bg-gray-900 text-white hover:bg-black" : "bg-gray-200 text-gray-500 cursor-not-allowed"}`}>Update password</button>
+            <button onClick={async () => {
+              if (!valid) return;
+              try {
+                const { updatePassword } = await import("../../lib/simpleAuth");
+                const session = JSON.parse(localStorage.getItem("tc_session_v1") || "{}");
+                await updatePassword(session.email, current, next);
+                setCurrent(""); setNext(""); setConfirm("");
+                alert("Password updated successfully.");
+              } catch (err) {
+                alert(err instanceof Error ? err.message : "Failed to update password.");
+              }
+            }} disabled={!valid} className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm ${valid ? "bg-gray-900 text-white hover:bg-black" : "bg-gray-200 text-gray-500 cursor-not-allowed"}`}>Update password</button>
             <span className="text-xs text-gray-500">Use at least 8 characters</span>
           </div>
         </Card>

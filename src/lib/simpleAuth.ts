@@ -73,15 +73,45 @@ interface Session {
 // ============================================================================
 
 /**
- * Simple hash function for passwords
- * NOTE: In production, use bcrypt or similar on the backend
+ * PBKDF2-based password hashing with per-user random salt.
+ * Only used for local dev fallback -- production uses the server-side auth endpoint.
  */
 async function hashPassword(password: string): Promise<string> {
   const encoder = new TextEncoder();
-  const data = encoder.encode(password + 'tc_salt_2024');
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  // Generate a random salt per-hash (16 bytes)
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw', encoder.encode(password), 'PBKDF2', false, ['deriveBits']
+  );
+  const derived = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
+    keyMaterial,
+    256
+  );
+  const hashHex = Array.from(new Uint8Array(derived)).map(b => b.toString(16).padStart(2, '0')).join('');
+  const saltHex = Array.from(salt).map(b => b.toString(16).padStart(2, '0')).join('');
+  // Store salt:hash so we can verify later
+  return `${saltHex}:${hashHex}`;
+}
+
+/**
+ * Verify a password against a stored salt:hash string
+ */
+async function verifyLocalPassword(password: string, stored: string): Promise<boolean> {
+  const [saltHex, expectedHash] = stored.split(':');
+  if (!saltHex || !expectedHash) return false;
+  const encoder = new TextEncoder();
+  const salt = new Uint8Array(saltHex.match(/.{2}/g)!.map(b => parseInt(b, 16)));
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw', encoder.encode(password), 'PBKDF2', false, ['deriveBits']
+  );
+  const derived = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
+    keyMaterial,
+    256
+  );
+  const hashHex = Array.from(new Uint8Array(derived)).map(b => b.toString(16).padStart(2, '0')).join('');
+  return hashHex === expectedHash;
 }
 
 /**
@@ -262,7 +292,7 @@ export async function signInUser(input: SignInInput & { role?: 'patient' | 'prov
 
     useApiAuth = true;
 
-    // Also store session in localStorage as backup (token only, not sensitive data)
+    // Store non-sensitive session metadata locally (actual auth is via httpOnly cookie)
     const session: Session = {
       userId: data.user.userId,
       email: data.user.email,
@@ -270,7 +300,7 @@ export async function signInUser(input: SignInInput & { role?: 'patient' | 'prov
       lastName: data.user.lastName,
       role: data.user.role || input.role || 'patient',
       expiresAt: new Date(data.session.expiresAt).getTime(),
-      token: data.session.token,
+      token: '', // token is in httpOnly cookie, not exposed to JS
     };
     saveSession(session);
 
@@ -302,8 +332,8 @@ export async function signInUser(input: SignInInput & { role?: 'patient' | 'prov
       throw new Error('No account found with this email. Please sign up first.');
     }
 
-    const passwordHash = await hashPassword(input.password);
-    if (passwordHash !== user.passwordHash) {
+    const passwordValid = await verifyLocalPassword(input.password, user.passwordHash);
+    if (!passwordValid) {
       throw new Error('Incorrect password. Please try again.');
     }
 
@@ -484,8 +514,8 @@ export async function updatePassword(email: string, currentPassword: string, new
   }
 
   // Verify current password
-  const currentHash = await hashPassword(currentPassword);
-  if (currentHash !== user.passwordHash) {
+  const currentValid = await verifyLocalPassword(currentPassword, user.passwordHash);
+  if (!currentValid) {
     throw new Error('Current password is incorrect');
   }
 

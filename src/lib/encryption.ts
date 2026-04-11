@@ -7,12 +7,12 @@ const ENCRYPTION_KEY_STORAGE = 'tc_encryption_key';
 const IV_LENGTH = 12; // 12 bytes for AES-GCM
 
 /**
- * Generate or retrieve encryption key
- * The key is stored in sessionStorage (cleared when tab closes) for better security
+ * Generate or retrieve encryption key.
+ * Stored in localStorage so encrypted data remains recoverable across sessions.
+ * The key protects data at rest from external access, not from same-origin scripts.
  */
 async function getOrCreateEncryptionKey(): Promise<CryptoKey> {
-  // Try to get existing key from sessionStorage
-  const storedKey = sessionStorage.getItem(ENCRYPTION_KEY_STORAGE);
+  const storedKey = localStorage.getItem(ENCRYPTION_KEY_STORAGE);
 
   if (storedKey) {
     try {
@@ -36,9 +36,9 @@ async function getOrCreateEncryptionKey(): Promise<CryptoKey> {
     ['encrypt', 'decrypt']
   );
 
-  // Store key in sessionStorage (cleared when browser/tab closes)
+  // Store key in localStorage so it persists across sessions
   const exportedKey = await crypto.subtle.exportKey('jwk', key);
-  sessionStorage.setItem(ENCRYPTION_KEY_STORAGE, JSON.stringify(exportedKey));
+  localStorage.setItem(ENCRYPTION_KEY_STORAGE, JSON.stringify(exportedKey));
 
   return key;
 }
@@ -137,7 +137,7 @@ export async function getEncryptedItem<T>(key: string): Promise<T | null> {
  * Clear encryption key (call on logout)
  */
 export function clearEncryptionKey(): void {
-  sessionStorage.removeItem(ENCRYPTION_KEY_STORAGE);
+  localStorage.removeItem(ENCRYPTION_KEY_STORAGE);
 }
 
 /**

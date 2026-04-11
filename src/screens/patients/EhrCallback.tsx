@@ -34,7 +34,15 @@ export default function EhrCallback(): JSX.Element {
 
         // Get code_verifier from localStorage (set during authorization request)
         const codeVerifier = localStorage.getItem("epic_code_verifier");
-        const state = localStorage.getItem("epic_state");
+        const savedState = localStorage.getItem("epic_state");
+        const returnedState = searchParams.get("state");
+
+        // Validate OAuth state parameter to prevent CSRF attacks
+        if (savedState && returnedState && savedState !== returnedState) {
+          setError("OAuth state mismatch -- possible CSRF attack. Please try connecting again.");
+          setStage("error");
+          return;
+        }
 
         if (!codeVerifier) {
           const msg = "Missing code verifier in local storage. Local storage may have been cleared, or the initial EPIC connection did not complete properly. Please try the connection again.";

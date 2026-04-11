@@ -564,9 +564,9 @@ export default function SiteInformation(): JSX.Element {
                 <option>Private</option>
                 <option>Mixed</option>
               </select>
-              <label className="mt-2 flex items-center gap-2 text-sm">
-                <input type="checkbox" className="h-4 w-4 rounded border" />
-                Same as sponsoring organization
+              <label className="mt-2 flex items-center gap-2 text-sm text-gray-500">
+                <input type="checkbox" className="h-4 w-4 rounded border" disabled />
+                Same as sponsoring organization (auto-filled from site profile)
               </label>
             </div>
 

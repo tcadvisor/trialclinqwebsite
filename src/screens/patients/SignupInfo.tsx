@@ -26,6 +26,8 @@ export default function SignupInfo(): JSX.Element {
   const [healthy, setHealthy] = React.useState(false);
   const [medications, setMedications] = React.useState<string[]>([]);
   const [medInput, setMedInput] = React.useState("");
+  const [password, setPassword] = React.useState("");
+  const [confirmPassword, setConfirmPassword] = React.useState("");
   const [agree1, setAgree1] = React.useState(false);
   const [agree2, setAgree2] = React.useState(false);
   const [zipError, setZipError] = React.useState("");
@@ -60,7 +62,7 @@ export default function SignupInfo(): JSX.Element {
     return validateLocation(zip).valid;
   }, [zip]);
 
-  const canSubmit = agree1 && agree2 && dob && weight && gender && race && language && zip && distance && isZipValid;
+  const canSubmit = agree1 && agree2 && dob && weight && gender && race && language && zip && distance && isZipValid && password.length >= 8 && password === confirmPassword;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -74,6 +76,15 @@ export default function SignupInfo(): JSX.Element {
 
     if (!pending?.email) {
       setError("Please start sign up from the patient registration form.");
+      return;
+    }
+
+    if (!password || password.length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
       return;
     }
 
@@ -133,7 +144,7 @@ export default function SignupInfo(): JSX.Element {
       localStorage.setItem("pending_role_v1", "patient");
       const result = await signUpUser({
         email: pending.email,
-        password: pending.password || "",
+        password,
         firstName: pending.firstName || "",
         lastName: pending.lastName || "",
       });
@@ -166,7 +177,7 @@ export default function SignupInfo(): JSX.Element {
         <h1 className="text-center text-3xl font-semibold">Complete Your Signup Information</h1>
         <p className="mt-2 text-center text-gray-600">Answer a few quick questions to finish creating your account.</p>
         <div className="mt-4 flex items-center justify-center gap-2 text-xs text-gray-600">
-          <button className="inline-flex items-center gap-1 rounded-full border px-3 py-1 hover:bg-gray-50" type="button">Why are we asking this? <span className="text-gray-400">ⓘ</span></button>
+          <button className="inline-flex items-center gap-1 rounded-full border px-3 py-1 hover:bg-gray-50" type="button" onClick={() => alert("We collect this information to match you with clinical trials that fit your health profile, location, and eligibility criteria. Your data is encrypted and never sold.")}>Why are we asking this? <span className="text-gray-400">ⓘ</span></button>
         </div>
 
         <form onSubmit={onSubmit} className="mt-6 space-y-5">
@@ -374,6 +385,19 @@ export default function SignupInfo(): JSX.Element {
                 </div>
               </>
             )}
+          </div>
+
+          <div className="rounded-2xl border bg-white p-5 shadow-sm space-y-4">
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium">Password<span className="text-red-500">*</span></label>
+                <input type="password" value={password} onChange={(e)=>setPassword(e.target.value)} placeholder="At least 8 characters" className="mt-2 w-full rounded-full border px-4 py-2" required minLength={8} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium">Confirm Password<span className="text-red-500">*</span></label>
+                <input type="password" value={confirmPassword} onChange={(e)=>setConfirmPassword(e.target.value)} placeholder="Re-enter your password" className="mt-2 w-full rounded-full border px-4 py-2" required minLength={8} />
+              </div>
+            </div>
           </div>
 
           <div className="space-y-3">

@@ -13,10 +13,6 @@ import AuthCallback from "./routes/AuthCallback";
 const SearchResults = lazy(() =>
   import("./screens/SearchResults")
     .then(m => ({ default: m.SearchResults }))
-    .catch((err) => {
-      console.error('Failed to load SearchResults:', err);
-      return import("./routes/Home2/screens/Home");
-    })
 );
 const Home = lazy(() => import("./routes/Home2/screens/Home"));
 const Faq = lazy(() => import("./screens/patients/Faq"));
@@ -126,14 +122,13 @@ function AppContent() {
           <Route path="/providers/elation-callback" element={<RequireRole role="provider" redirectTo="/providers/login"><ElationPatients /></RequireRole>} />
           <Route path="/providers/custom-database" element={<RequireRole role="provider" redirectTo="/providers/login"><CustomPatientUpload /></RequireRole>} />
           <Route path="/patients/dashboard" element={<RequireRole role="patient" redirectTo="/patients/login"><Dashboard /></RequireRole>} />
-          <Route path="/patients/eligible" element={<EligibleTrials />} />
+          <Route path="/patients/eligible" element={<RequireRole role="patient" redirectTo="/patients/login"><EligibleTrials /></RequireRole>} />
           <Route path="/patients/health-profile" element={<RequireRole role="patient" redirectTo="/patients/login"><HealthProfile /></RequireRole>} />
           <Route path="/patients/settings" element={<RequireRole role="patient" redirectTo="/patients/login"><Settings /></RequireRole>} />
           <Route path="/patients/processing" element={<SignupProcessing />} />
           <Route path="/about" element={<About />} />
           <Route path="/trials/:slug" element={<TrialDetails />} />
           <Route path="/study/:nctId" element={<CtgovStudyDetails />} />
-          <Route path="/contact" element={<ContactUs />} />
           <Route path="/book-demo" element={<BookDemo />} />
         </Routes>
       </Suspense>

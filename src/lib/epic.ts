@@ -90,22 +90,32 @@ async function generatePKCE(): Promise<{ codeVerifier: string; codeChallenge: st
   return { codeVerifier, codeChallenge };
 }
 
-export function getEpicAuthUrl(state?: string): string {
+export async function getEpicAuthUrl(state?: string): Promise<string> {
   const config = getEpicConfig();
-  const { codeChallenge } = generatePKCE();
+  const { codeVerifier, codeChallenge } = await generatePKCE();
+
+  // Persist verifier for the token exchange step
+  // Use localStorage since full-page OAuth redirects clear sessionStorage
+  localStorage.setItem("epic_code_verifier", codeVerifier);
+
+  const oauthState = state || crypto.randomUUID();
+  localStorage.setItem("epic_state", oauthState);
+
+  // Discover the authorization endpoint from SMART config
+  const authEndpoint = await getEpicAuthorizationEndpoint();
 
   const params = new URLSearchParams({
     response_type: "code",
     client_id: config.clientId,
     redirect_uri: config.redirectUri,
     scope: "openid fhirUser patient/*.read",
-    state: state || Math.random().toString(36).substring(7),
+    state: oauthState,
     aud: config.fhirUrl,
     code_challenge: codeChallenge,
     code_challenge_method: "S256",
   });
 
-  return `${config.fhirUrl}.well-known/smart-configuration`;
+  return `${authEndpoint}?${params.toString()}`;
 }
 
 export async function getEpicAuthorizationEndpoint(): Promise<string> {
@@ -133,11 +143,14 @@ export async function exchangeCodeForToken(code: string, state?: string): Promis
     const tokenEndpoint = smartConfig.token_endpoint;
     if (!tokenEndpoint) throw new Error("No token_endpoint in SMART configuration");
 
+    // Include code_verifier for PKCE validation
+    const codeVerifier = localStorage.getItem("epic_code_verifier") || "";
     const body = new URLSearchParams({
       grant_type: "authorization_code",
       code,
       redirect_uri: config.redirectUri,
       client_id: config.clientId,
+      code_verifier: codeVerifier,
     });
 
     const response = await fetch(tokenEndpoint, {
