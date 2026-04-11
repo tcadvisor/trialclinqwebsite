@@ -47,13 +47,6 @@ export default function Home() {
 
       <HomeHeader />
 
-      {/* Testing Mode Indicator -- only in dev */}
-      {import.meta.env.DEV && (
-        <div className="w-full bg-yellow-400 text-black text-sm px-4 py-1 text-center font-medium">
-          TESTING MODE
-        </div>
-      )}
-
       {/* Hero */}
       <section className="relative overflow-hidden">
         <div
