@@ -502,7 +502,7 @@ function summarizeDevPlugin() {
             Authorization: `Bearer ${apiKey}`,
           },
           body: JSON.stringify({
-            from: "onboarding@resend.dev",
+            from: process.env.EMAIL_FROM || "noreply@trialcliniq.com",
             to: "chandler@trialcliniq.com",
             subject,
             html,

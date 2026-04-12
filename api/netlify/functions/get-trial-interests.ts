@@ -54,7 +54,7 @@ const handler: Handler = async (event, context) => {
     const nctIdUpper = nctId.toUpperCase();
 
     // Fetch interested patients
-    console.log("Fetching interested patients for trial:", nctIdUpper);
+    // fetch interested patients for trial
 
     try {
       const result = await query(
@@ -76,7 +76,6 @@ const handler: Handler = async (event, context) => {
         [nctIdUpper]
       );
 
-      console.log("Found interested patients:", result?.rows?.length || 0);
 
       return cors.response(200, {
         ok: true,

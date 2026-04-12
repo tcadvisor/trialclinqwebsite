@@ -39,6 +39,7 @@ function getAllowedOrigins(): string[] {
   // Default allowed origins for development
   // In production, ALLOWED_ORIGINS MUST be set
   return [
+    'https://app.trialcliniq.com',
     'http://localhost:5173',
     'http://localhost:5174',
     'http://localhost:3000',

@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@azure/functions": "^4.4.0",
+    "@sentry/node": "^8.0.0",
     "@azure/storage-blob": "^12.29.1",
     "axios": "^1.13.2",
     "busboy": "^1.6.0",

@@ -6,7 +6,7 @@ import { createCorsHandler } from "./cors-utils";
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
 const RECIPIENT_EMAIL = "chandler@trialcliniq.com";
-const SENDER_EMAIL = "onboarding@resend.dev";
+const SENDER_EMAIL = process.env.EMAIL_FROM || "noreply@trialcliniq.com";
 
 interface BookDemoData {
   type?: string;
@@ -24,6 +24,11 @@ interface BookDemoData {
   message?: string;
 }
 
+function esc(str: string | undefined): string {
+  if (!str) return '';
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 function generateEmailContent(data: BookDemoData): { subject: string; html: string } {
   // Handle demo booking requests
   if (!data.type || data.type === "demo_booking" || data.date) {
@@ -31,14 +36,14 @@ function generateEmailContent(data: BookDemoData): { subject: string; html: stri
       subject: "New Demo Booking Request - TrialClinIQ",
       html: `
         <h2>New Demo Booking Request</h2>
-        <p><strong>Name:</strong> ${data.name || 'N/A'}</p>
-        <p><strong>Email:</strong> ${data.email || 'N/A'}</p>
-        <p><strong>Phone:</strong> ${data.phone || 'Not provided'}</p>
-        <p><strong>Affiliation:</strong> ${data.affiliation || 'Not provided'}</p>
-        <p><strong>Requested Date & Time:</strong> ${data.date ? `${data.date} at ${data.time} ${data.timezone}` : 'Not specified'}</p>
-        ${data.comments ? `<p><strong>Comments:</strong></p><p>${data.comments.replace(/\n/g, '<br>')}</p>` : ''}
+        <p><strong>Name:</strong> ${esc(data.name) || 'N/A'}</p>
+        <p><strong>Email:</strong> ${esc(data.email) || 'N/A'}</p>
+        <p><strong>Phone:</strong> ${esc(data.phone) || 'Not provided'}</p>
+        <p><strong>Affiliation:</strong> ${esc(data.affiliation) || 'Not provided'}</p>
+        <p><strong>Requested Date & Time:</strong> ${data.date ? `${esc(data.date)} at ${esc(data.time)} ${esc(data.timezone)}` : 'Not specified'}</p>
+        ${data.comments ? `<p><strong>Comments:</strong></p><p>${esc(data.comments).replace(/\n/g, '<br>')}</p>` : ''}
         <p style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd;">
-          <strong>Next Steps:</strong> Please review this booking request and contact the applicant at ${data.email} to confirm the appointment.
+          <strong>Next Steps:</strong> Please review this booking request and contact the applicant at ${esc(data.email)} to confirm the appointment.
         </p>
       `,
     };
@@ -50,9 +55,9 @@ function generateEmailContent(data: BookDemoData): { subject: string; html: stri
         subject: "New Demo Request - TrialClinIQ",
         html: `
           <h2>New Demo Request</h2>
-          <p><strong>Name:</strong> ${data.name}</p>
-          <p><strong>Email:</strong> ${data.email}</p>
-          <p><strong>Organization:</strong> ${data.organization}</p>
+          <p><strong>Name:</strong> ${esc(data.name)}</p>
+          <p><strong>Email:</strong> ${esc(data.email)}</p>
+          <p><strong>Organization:</strong> ${esc(data.organization)}</p>
           <p>Please reach out to schedule a demo call.</p>
         `,
       };
@@ -61,9 +66,9 @@ function generateEmailContent(data: BookDemoData): { subject: string; html: stri
         subject: "New Patient Waitlist Signup - TrialClinIQ",
         html: `
           <h2>New Patient Waitlist Signup</h2>
-          <p><strong>Name:</strong> ${data.name}</p>
-          <p><strong>Email:</strong> ${data.email}</p>
-          <p><strong>CNS Research Area:</strong> ${data.condition}</p>
+          <p><strong>Name:</strong> ${esc(data.name)}</p>
+          <p><strong>Email:</strong> ${esc(data.email)}</p>
+          <p><strong>CNS Research Area:</strong> ${esc(data.condition)}</p>
           <p>A new patient has signed up for the waitlist.</p>
         `,
       };
@@ -72,29 +77,29 @@ function generateEmailContent(data: BookDemoData): { subject: string; html: stri
         subject: "New Newsletter Subscriber - TrialClinIQ",
         html: `
           <h2>New Newsletter Subscriber</h2>
-          <p><strong>Email:</strong> ${data.email}</p>
+          <p><strong>Email:</strong> ${esc(data.email)}</p>
           <p>A new subscriber has joined the newsletter.</p>
         `,
       };
     case "contact_form":
       return {
-        subject: `New Contact Form Message - ${data.subject || 'TrialClinIQ'}`,
+        subject: `New Contact Form Message - ${esc(data.subject) || 'TrialClinIQ'}`,
         html: `
           <h2>New Contact Form Submission</h2>
-          <p><strong>Name:</strong> ${data.name}</p>
-          <p><strong>Email:</strong> ${data.email}</p>
-          <p><strong>Subject:</strong> ${data.subject}</p>
+          <p><strong>Name:</strong> ${esc(data.name)}</p>
+          <p><strong>Email:</strong> ${esc(data.email)}</p>
+          <p><strong>Subject:</strong> ${esc(data.subject)}</p>
           <p><strong>Message:</strong></p>
-          <p>${data.message ? data.message.replace(/\n/g, '<br>') : 'No message provided'}</p>
+          <p>${data.message ? esc(data.message).replace(/\n/g, '<br>') : 'No message provided'}</p>
           <p style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd;">
-            <strong>Reply To:</strong> ${data.email}
+            <strong>Reply To:</strong> ${esc(data.email)}
           </p>
         `,
       };
     default:
       return {
         subject: "New Form Submission - TrialClinIQ",
-        html: `<pre>${JSON.stringify(data, null, 2)}</pre>`,
+        html: `<pre>${esc(JSON.stringify(data, null, 2))}</pre>`,
       };
   }
 }

@@ -24,7 +24,7 @@
     }
   },
   "globalHeaders": {
-    "content-security-policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://*.azure.com https://login.microsoftonline.com https://clinicaltrials.gov https://api.resend.com; font-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com; frame-ancestors 'none'"
+    "content-security-policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://*.azure.com https://login.microsoftonline.com https://clinicaltrials.gov https://api.resend.com https://*.ingest.sentry.io https://fhir.epic.com https://*.epic.com; font-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com; frame-ancestors 'none'"
   },
   "mimeTypes": {
     ".json": "application/json",

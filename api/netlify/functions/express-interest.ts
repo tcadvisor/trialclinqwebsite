@@ -81,7 +81,7 @@ const handler: Handler = async (event, context) => {
     const nctIdUpper = nctId.toUpperCase();
 
     // Check if already interested
-    console.log("Checking existing interest for patient:", patientId, "trial:", nctIdUpper);
+    // checking existing interest
 
     try {
       const existing = await query(

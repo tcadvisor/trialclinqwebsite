@@ -1,8 +1,8 @@
 import { Configuration } from '@azure/msal-browser';
 
 const origin = typeof window !== 'undefined' ? window.location.origin : undefined;
-const defaultRedirect = origin ? `${origin}/auth-callback` : 'http://localhost:5173/auth-callback';
-const defaultLogoutRedirect = origin ? `${origin}/` : 'http://localhost:5173/';
+const defaultRedirect = origin ? `${origin}/auth-callback` : 'https://app.trialcliniq.com/auth-callback';
+const defaultLogoutRedirect = origin ? `${origin}/` : 'https://app.trialcliniq.com/';
 
 // Use environment variable if set AND it's not the old ngrok URL
 // Otherwise use the current window origin for better development experience
@@ -36,7 +36,9 @@ export const msalConfig: Configuration = {
     loggerOptions: {
       loggerCallback: (level, message, containsPii) => {
         if (!containsPii) {
-          console.debug(`[MSAL] ${message}`);
+          if (import.meta.env.DEV) {
+            console.debug(`[MSAL] ${message}`);
+          }
         }
       },
       piiLoggingEnabled: false,

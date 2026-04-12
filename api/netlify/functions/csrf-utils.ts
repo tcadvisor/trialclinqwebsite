@@ -161,7 +161,7 @@ export function getCsrfTokenFromHeaders(headers: Record<string, string | string[
  */
 export function corsWithCsrf(statusCode: number, body: any, additionalHeaders: Record<string, string> = {}, requestOrigin?: string) {
   console.warn('[DEPRECATED] corsWithCsrf is deprecated. Use createCorsHandler from cors-utils.ts instead.');
-  const allowedOrigins = (process.env.ALLOWED_ORIGINS || "http://localhost:5173").split(",");
+  const allowedOrigins = (process.env.ALLOWED_ORIGINS || "https://app.trialcliniq.com").split(",");
   const origin = requestOrigin && allowedOrigins.includes(requestOrigin) ? requestOrigin : allowedOrigins[0];
   return {
     statusCode,

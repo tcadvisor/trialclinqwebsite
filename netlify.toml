@@ -1,5 +1,5 @@
 [functions]
-  directory = "netlify/functions"
+  directory = "api/netlify/functions"
 
 # Security headers for all responses
 [[headers]]
@@ -11,7 +11,7 @@
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "camera=(), microphone=(), geolocation=()"
     X-XSS-Protection = "1; mode=block"
-    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://*.azure.com https://login.microsoftonline.com https://clinicaltrials.gov https://api.resend.com; font-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com; frame-ancestors 'none'"
+    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://*.azure.com https://login.microsoftonline.com https://clinicaltrials.gov https://api.resend.com https://*.ingest.sentry.io https://fhir.epic.com https://*.epic.com; font-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com; frame-ancestors 'none'"
 
 [[redirects]]
   from = "/api/*"

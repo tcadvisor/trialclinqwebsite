@@ -1,8 +1,10 @@
+// init Sentry before anything else touches the DOM
+import "./lib/sentry";
+
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
 
-import { AuthProvider } from "./lib/auth";
 import { getAccessToken } from "./lib/entraId";
 import { registerClinicalSummaryUploader } from "./builder/registerClinicalSummaryUploader";
 
@@ -24,8 +26,6 @@ try {
 
 createRoot(document.getElementById("app") as HTMLElement).render(
   <StrictMode>
-    <AuthProvider>
-      <App />
-    </AuthProvider>
+    <App />
   </StrictMode>,
 );

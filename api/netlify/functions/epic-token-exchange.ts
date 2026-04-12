@@ -1,6 +1,13 @@
 import { Handler } from "@netlify/functions";
+import { createCorsHandler } from "./cors-utils";
 
 const handler: Handler = async (event) => {
+  const cors = createCorsHandler(event);
+
+  if (event.httpMethod === "OPTIONS") {
+    return cors.handleOptions("POST,OPTIONS");
+  }
+
   let code: string | null = null;
   let code_verifier: string | null = null;
 
@@ -22,11 +29,7 @@ const handler: Handler = async (event) => {
   }
 
   if (!code) {
-    return {
-      statusCode: 400,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ error: "Missing authorization code" }),
-    };
+    return cors.response(400, { error: "Missing authorization code" });
   }
 
   const clientId = process.env.VITE_EPIC_CLIENT_ID;
@@ -34,11 +37,7 @@ const handler: Handler = async (event) => {
   const redirectUri = process.env.VITE_EPIC_REDIRECT_URI;
 
   if (!clientId || !fhirUrl || !redirectUri) {
-    return {
-      statusCode: 500,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ error: "Missing EPIC configuration" }),
-    };
+    return cors.response(500, { error: "Missing EPIC configuration" });
   }
 
   try {
@@ -95,7 +94,7 @@ const handler: Handler = async (event) => {
         if (patientRes.ok) {
           const patient = await patientRes.json();
 
-          // Fetch allergies, medications, conditions in parallel
+          // Grab allergies, meds, and conditions in one shot
           const [allergiesRes, medicationsRes, conditionsRes] = await Promise.all([
             fetch(`${fhirUrl}AllergyIntolerance?patient=${tokens.patient}`, {
               headers: { Authorization: `Bearer ${tokens.access_token}` },
@@ -125,32 +124,22 @@ const handler: Handler = async (event) => {
     }
 
     // Return tokens and patient data to client
-    return {
-      statusCode: 200,
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        access_token: tokens.access_token,
-        token_type: tokens.token_type,
-        expires_in: tokens.expires_in,
-        refresh_token: tokens.refresh_token,
-        patient: tokens.patient,
-        patientData: patientData,
-      }),
-    };
+    return cors.response(200, {
+      access_token: tokens.access_token,
+      token_type: tokens.token_type,
+      expires_in: tokens.expires_in,
+      refresh_token: tokens.refresh_token,
+      patient: tokens.patient,
+      patientData: patientData,
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error("Token exchange error:", message);
 
-    return {
-      statusCode: 500,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        error: "token_exchange_failed",
-        message: message,
-      }),
-    };
+    return cors.response(500, {
+      error: "token_exchange_failed",
+      message: message,
+    });
   }
 };
 

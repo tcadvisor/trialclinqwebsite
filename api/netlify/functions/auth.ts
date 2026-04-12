@@ -1,7 +1,12 @@
 import type { Handler } from "@netlify/functions";
+import { Resend } from "resend";
 import { query, logAuditEvent, getOrCreateUser } from "./db";
 import { createCorsHandler } from "./cors-utils";
 import crypto from "crypto";
+
+const resend = process.env.RESEND_API_KEY
+  ? new Resend(process.env.RESEND_API_KEY)
+  : null;
 
 // Use bcryptjs for password hashing (pure JS, no native deps)
 // Note: In production, consider using argon2 for better security
@@ -125,9 +130,51 @@ export const handler: Handler = async (event) => {
         event.headers?.["user-agent"]
       );
 
-      // TODO: Send verification email
-      // For now, auto-verify in development
-      if (process.env.NODE_ENV !== "production") {
+      // Send verification email if Resend is configured, otherwise auto-verify (dev fallback)
+      let emailSent = false;
+      if (resend) {
+        const origin =
+          event.headers?.origin ||
+          (process.env.ALLOWED_ORIGINS || "").split(",")[0]?.trim() ||
+          "https://app.trialcliniq.com";
+        const verifyLink = `${origin}/auth-callback?action=verify-email&token=${verificationToken}`;
+        const fromAddress = process.env.EMAIL_FROM || "noreply@trialcliniq.com";
+
+        const result = await resend.emails.send({
+          from: fromAddress,
+          to: normalizedEmail,
+          subject: "Verify your TrialClinIQ account",
+          html: `
+            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 560px; margin: 0 auto; padding: 40px 20px;">
+              <h2 style="color: #111; margin-bottom: 24px;">Verify your email</h2>
+              <p style="color: #333; font-size: 16px; line-height: 1.5;">
+                Thanks for signing up for TrialClinIQ. Click the button below to verify your email address.
+              </p>
+              <a href="${verifyLink}"
+                 style="display: inline-block; background: #2563eb; color: #fff; padding: 12px 28px;
+                        border-radius: 6px; text-decoration: none; font-weight: 600; margin: 24px 0;">
+                Verify Email
+              </a>
+              <p style="color: #666; font-size: 14px; line-height: 1.5;">
+                Or copy and paste this link into your browser:<br/>
+                <a href="${verifyLink}" style="color: #2563eb; word-break: break-all;">${verifyLink}</a>
+              </p>
+              <p style="color: #999; font-size: 13px; margin-top: 32px; border-top: 1px solid #eee; padding-top: 16px;">
+                This link expires in 24 hours. If you didn't create this account, you can ignore this email.
+              </p>
+            </div>
+          `,
+        });
+
+        if (result.error) {
+          console.error("Failed to send verification email:", result.error);
+        } else {
+          emailSent = true;
+        }
+      }
+
+      // No Resend key or email failed -- auto-verify so dev/staging isn't blocked
+      if (!emailSent) {
         await query(
           `UPDATE auth_credentials SET email_verified = true WHERE user_id = $1`,
           [userId]
@@ -136,9 +183,11 @@ export const handler: Handler = async (event) => {
 
       return cors.response(201, {
         ok: true,
-        message: "Account created successfully",
+        message: emailSent
+          ? "Account created. Check your email to verify your address."
+          : "Account created successfully",
         userId,
-        requiresVerification: process.env.NODE_ENV === "production",
+        requiresVerification: emailSent,
       });
     }
 
@@ -230,8 +279,9 @@ export const handler: Handler = async (event) => {
         });
       }
 
-      // Check email verification
-      if (!user.email_verified && process.env.NODE_ENV === "production") {
+      // Block unverified users unless explicitly running in local dev
+      const isDevEnv = process.env.NODE_ENV === "development" || process.env.NETLIFY_DEV === "true";
+      if (!user.email_verified && !isDevEnv) {
         return cors.response(403, {
           ok: false,
           error: "Please verify your email before signing in",
@@ -295,12 +345,13 @@ export const handler: Handler = async (event) => {
         cookieOptions.push("Secure");
       }
 
+      // Use CORS handler to get the validated origin
+      const corsHeaders = cors.getHeaders();
       return {
         statusCode: 200,
         headers: {
           "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": event.headers?.origin || "*",
-          "Access-Control-Allow-Credentials": "true",
+          ...corsHeaders,
           "Set-Cookie": cookieOptions.join("; "),
         },
         body: JSON.stringify({
@@ -334,12 +385,11 @@ export const handler: Handler = async (event) => {
       }
 
       // Clear the cookie
+      const signoutCorsHeaders = cors.getHeaders();
       return {
         statusCode: 200,
         headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": event.headers?.origin || "*",
-          "Access-Control-Allow-Credentials": "true",
+          ...signoutCorsHeaders,
           "Set-Cookie": "session_token=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax",
         },
         body: JSON.stringify({
@@ -422,7 +472,41 @@ export const handler: Handler = async (event) => {
         [resetTokenHash, resetExpires, normalizedEmail]
       );
 
-      // TODO: Send password reset email
+      // Send password reset email if Resend is configured
+      if (resend) {
+        const origin =
+          event.headers?.origin ||
+          (process.env.ALLOWED_ORIGINS || "").split(",")[0]?.trim() ||
+          "https://app.trialcliniq.com";
+        const resetLink = `${origin}/auth-callback?action=reset-password&token=${resetToken}`;
+        const fromAddress = process.env.EMAIL_FROM || "noreply@trialcliniq.com";
+
+        await resend.emails.send({
+          from: fromAddress,
+          to: normalizedEmail,
+          subject: "Reset your TrialClinIQ password",
+          html: `
+            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 560px; margin: 0 auto; padding: 40px 20px;">
+              <h2 style="color: #111; margin-bottom: 24px;">Reset your password</h2>
+              <p style="color: #333; font-size: 16px; line-height: 1.5;">
+                We received a request to reset your TrialClinIQ password. Click the button below to choose a new password.
+              </p>
+              <a href="${resetLink}"
+                 style="display: inline-block; background: #2563eb; color: #fff; padding: 12px 28px;
+                        border-radius: 6px; text-decoration: none; font-weight: 600; margin: 24px 0;">
+                Reset Password
+              </a>
+              <p style="color: #666; font-size: 14px; line-height: 1.5;">
+                Or copy and paste this link:<br/>
+                <a href="${resetLink}" style="color: #2563eb; word-break: break-all;">${resetLink}</a>
+              </p>
+              <p style="color: #999; font-size: 13px; margin-top: 32px; border-top: 1px solid #eee; padding-top: 16px;">
+                This link expires in 1 hour. If you didn't request this, ignore this email.
+              </p>
+            </div>
+          `,
+        }).catch((err) => console.error("Failed to send reset email:", err));
+      }
 
       // Always return success to prevent email enumeration
       return cors.response(200, {

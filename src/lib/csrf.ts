@@ -44,8 +44,6 @@ export async function fetchCsrfToken(): Promise<string> {
     const refreshBufferMs = 5 * 60 * 1000; // 5 minutes
     tokenExpiresAt = Date.now() + expiresInMs - refreshBufferMs;
 
-    console.log('✅ CSRF token fetched successfully');
-
     return csrfToken;
   } catch (error) {
     console.error('Error fetching CSRF token:', error);
@@ -72,7 +70,6 @@ export async function getCsrfToken(): Promise<string> {
 export function clearCsrfToken(): void {
   csrfToken = null;
   tokenExpiresAt = null;
-  console.log('🧹 CSRF token cleared');
 }
 
 /**
@@ -82,7 +79,6 @@ export function clearCsrfToken(): void {
 export async function initializeCsrfProtection(): Promise<void> {
   try {
     await fetchCsrfToken();
-    console.log('✅ CSRF protection initialized');
   } catch (error) {
     console.error('Failed to initialize CSRF protection:', error);
     // Don't throw - allow app to continue, individual requests will fail with proper error

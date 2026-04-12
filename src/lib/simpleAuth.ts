@@ -19,7 +19,9 @@ let useApiAuth = true;
 // CRITICAL: STRICT MODE - DISABLE LOCALSTORAGE FALLBACK IN PRODUCTION
 // ============================================================================
 const IS_PRODUCTION = import.meta.env.PROD || import.meta.env.MODE === 'production';
-const ALLOW_LOCALSTORAGE_FALLBACK = !IS_PRODUCTION; // Only allow in development
+// Only allow localStorage fallback in dev -- production must have a real database behind the API.
+// If the API is down in prod, we'd rather fail loudly than silently store creds in the browser.
+const ALLOW_LOCALSTORAGE_FALLBACK = import.meta.env.DEV;
 
 // Development warning flag
 let _devAuthWarning: string | null = null;

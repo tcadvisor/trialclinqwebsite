@@ -1,7 +1,14 @@
 import { Handler } from "@netlify/functions";
 import { randomBytes, createHash } from "crypto";
+import { createCorsHandler } from "./cors-utils";
 
 const handler: Handler = async (event) => {
+  const cors = createCorsHandler(event);
+
+  if (event.httpMethod === "OPTIONS") {
+    return cors.handleOptions("GET,POST,OPTIONS");
+  }
+
   try {
     const clientId = process.env.VITE_EPIC_CLIENT_ID;
     const redirectUri = process.env.VITE_EPIC_REDIRECT_URI;
@@ -14,45 +21,33 @@ const handler: Handler = async (event) => {
     });
 
     if (!clientId || !redirectUri || !fhirUrl) {
-      return {
-        statusCode: 500,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          error: "Missing EPIC configuration",
-          message: "VITE_EPIC_CLIENT_ID, VITE_EPIC_REDIRECT_URI, or VITE_EPIC_FHIR_URL not set",
-        }),
-      };
+      return cors.response(500, {
+        error: "Missing EPIC configuration",
+        message: "VITE_EPIC_CLIENT_ID, VITE_EPIC_REDIRECT_URI, or VITE_EPIC_FHIR_URL not set",
+      });
     }
 
     console.log("Fetching EPIC SMART configuration...");
-    // Fetch EPIC's SMART configuration to get authorization endpoint
+    // Grab EPIC's SMART config so we know where to send the user
     const wellKnownUrl = `${fhirUrl}.well-known/smart-configuration`;
     const configResponse = await fetch(wellKnownUrl);
 
     if (!configResponse.ok) {
       const errorText = await configResponse.text();
       console.error("EPIC config fetch failed:", errorText);
-      return {
-        statusCode: 500,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          error: "Failed to fetch EPIC configuration",
-          message: `EPIC SMART config returned ${configResponse.status}`,
-        }),
-      };
+      return cors.response(500, {
+        error: "Failed to fetch EPIC configuration",
+        message: `EPIC SMART config returned ${configResponse.status}`,
+      });
     }
 
     const smartConfig = await configResponse.json();
     const authorizationEndpoint = smartConfig.authorization_endpoint;
 
     if (!authorizationEndpoint) {
-      return {
-        statusCode: 500,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          error: "EPIC configuration missing authorization_endpoint",
-        }),
-      };
+      return cors.response(500, {
+        error: "EPIC configuration missing authorization_endpoint",
+      });
     }
 
     console.log("Authorization endpoint:", authorizationEndpoint);
@@ -93,29 +88,19 @@ const handler: Handler = async (event) => {
 
     console.log("Auth URL generated successfully");
 
-    return {
-      statusCode: 200,
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        authUrl: authUrl,
-        codeVerifier: codeVerifier,
-        state: state,
-      }),
-    };
+    return cors.response(200, {
+      authUrl: authUrl,
+      codeVerifier: codeVerifier,
+      state: state,
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error("Epic auth URL generation failed:", message);
 
-    return {
-      statusCode: 500,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        error: "auth_url_generation_failed",
-        message: message,
-      }),
-    };
+    return cors.response(500, {
+      error: "auth_url_generation_failed",
+      message: message,
+    });
   }
 };
 
