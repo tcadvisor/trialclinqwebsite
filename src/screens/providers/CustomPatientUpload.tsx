@@ -720,7 +720,7 @@ function TrialMatcher({
         // If the fetch fails, use whatever conditions are stored on the trial
       }
 
-      // Run matching with live conditions from ClinicalTrials.gov
+      // Run heuristic matching first for instant results
       const matches = matchPatientsToTrial(patients, liveConditions, {
         minAge,
         maxAge,
@@ -729,7 +729,64 @@ function TrialMatcher({
       });
 
       // Assign NCT ID to matches
-      const matchesWithTrial = matches.map((m) => ({ ...m, nctId: selectedTrial }));
+      let matchesWithTrial = matches.map((m) => ({ ...m, nctId: selectedTrial }));
+
+      // Now enhance with GPT scoring for more accurate results
+      const studyRes2 = await fetchStudyByNctId(selectedTrial).catch(() => null);
+      const eligText = studyRes2?.studies?.[0]?.protocolSection?.eligibilityModule?.eligibilityCriteria || '';
+      const trialTitle = trial.title || '';
+
+      const aiResults = await Promise.allSettled(
+        matchesWithTrial.slice(0, 30).map(async (m) => {
+          const p = m.patient;
+          const patientDesc = [
+            `Age: ${p.age || 'unknown'}`,
+            `Sex: ${p.sex || p.gender || 'unknown'}`,
+            `Conditions: ${(p.conditions || []).join(', ') || 'none listed'}`,
+            `Medications: ${(p.medications || []).join(', ') || 'none listed'}`,
+            `Allergies: ${(p.allergies || []).join(', ') || 'none listed'}`,
+            p.diseaseStage ? `Stage: ${p.diseaseStage}` : '',
+            p.ecog ? `ECOG: ${p.ecog}` : '',
+            p.biomarkers?.length ? `Biomarkers: ${p.biomarkers.join(', ')}` : '',
+            p.comorbidities?.length ? `Comorbidities: ${p.comorbidities.join(', ')}` : '',
+            p.priorTherapies?.length ? `Prior therapies: ${p.priorTherapies.join(', ')}` : '',
+          ].filter(Boolean).join('. ');
+          const prompt = `Patient: ${patientDesc}\n\nTrial: ${trialTitle} (${selectedTrial})\nConditions: ${liveConditions.join(', ')}\nEligibility: ${eligText.substring(0, 1500)}`;
+
+          try {
+            const res = await fetch('/api/ai-scorer', {
+              method: 'POST',
+              credentials: 'include',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ prompt }),
+            });
+            if (res.ok) {
+              const data = await res.json();
+              if (typeof data.score === 'number') {
+                return { patientId: m.patientId, score: data.score, rationale: data.rationale || '' };
+              }
+            }
+          } catch {}
+          return null;
+        })
+      );
+
+      // Merge AI scores into the matches
+      for (const result of aiResults) {
+        if (result.status === 'fulfilled' && result.value) {
+          const idx = matchesWithTrial.findIndex(m => m.patientId === result.value!.patientId);
+          if (idx >= 0) {
+            matchesWithTrial[idx].matchScore = result.value.score;
+            matchesWithTrial[idx].matchReasons = [result.value.rationale || 'AI-scored'];
+            matchesWithTrial[idx].eligibilityStatus =
+              result.value.score >= 70 ? 'eligible' :
+              result.value.score >= 40 ? 'potential' : 'ineligible';
+          }
+        }
+      }
+
+      // Re-sort by score after AI enhancement
+      matchesWithTrial.sort((a, b) => b.matchScore - a.matchScore);
 
       // Get existing matches and merge (from API or localStorage)
       let existingMatches: typeof matchesWithTrial = [];
