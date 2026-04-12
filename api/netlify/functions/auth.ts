@@ -202,6 +202,43 @@ export const handler: Handler = async (event) => {
         });
       }
 
+      // Universal demo account -- always works regardless of DB state
+      if (email.trim().toLowerCase() === "demo" && password === "demo") {
+        const demoRole = role || "patient";
+        const cookieOpts = [
+          `session_token=demo-session-token`,
+          "HttpOnly",
+          "Path=/",
+          "Max-Age=604800",
+          "SameSite=Lax",
+        ];
+        if (event.headers?.host?.includes("trialcliniq") || event.headers?.host?.includes("netlify.app")) {
+          cookieOpts.push("Secure");
+        }
+        const corsHeaders = cors.getHeaders();
+        return {
+          statusCode: 200,
+          headers: {
+            ...corsHeaders,
+            "Set-Cookie": cookieOpts.join("; "),
+          },
+          body: JSON.stringify({
+            ok: true,
+            message: "Signed in as demo user",
+            user: {
+              userId: `demo-${demoRole}-001`,
+              email: `demo@trialcliniq.com`,
+              firstName: "Demo",
+              lastName: demoRole === "provider" ? "Researcher" : "Patient",
+              role: demoRole,
+            },
+            session: {
+              expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+            },
+          }),
+        };
+      }
+
       const normalizedEmail = email.trim().toLowerCase();
 
       // Get user credentials
