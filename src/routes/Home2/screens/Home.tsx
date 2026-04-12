@@ -48,7 +48,7 @@ export default function Home() {
       <HomeHeader />
 
       {/* Hero */}
-      <section className="relative overflow-hidden">
+      <section className="relative overflow-visible">
         <div
           className="absolute inset-0 -z-10"
           style={{
