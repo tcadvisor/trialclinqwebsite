@@ -714,16 +714,33 @@ function tokenize(text: string): string[] {
   return text.toLowerCase().split(/[\s,;|]+/).filter(Boolean);
 }
 
+// Medical terms that are too generic to be meaningful on their own
+const GENERIC_MEDICAL_TERMS = new Set([
+  "cancer", "disease", "disorder", "syndrome", "chronic", "acute",
+  "type", "stage", "grade", "advanced", "metastatic", "malignant",
+  "benign", "primary", "secondary", "infection", "failure",
+]);
+
 function fuzzyMatch(a: string, b: string): boolean {
   const aLower = a.toLowerCase();
   const bLower = b.toLowerCase();
-  // Direct contains
+  // Direct substring match (e.g., "breast cancer" contains "breast cancer")
   if (aLower.includes(bLower) || bLower.includes(aLower)) return true;
-  // Token overlap (for multi-word conditions like "Type 2 Diabetes")
+  // Token overlap — require ALL non-generic tokens of the shorter phrase to match.
+  // This prevents "Lung Cancer" matching "Breast Cancer" just because of "cancer".
   const aTokens = tokenize(aLower);
   const bTokens = tokenize(bLower);
-  const overlap = aTokens.filter(t => bTokens.some(bt => bt.includes(t) || t.includes(bt)));
-  return overlap.length >= Math.min(aTokens.length, bTokens.length) * 0.5;
+  // Filter out generic terms so matching hinges on the specific words
+  const aSpecific = aTokens.filter(t => !GENERIC_MEDICAL_TERMS.has(t));
+  const bSpecific = bTokens.filter(t => !GENERIC_MEDICAL_TERMS.has(t));
+  // If one side has no specific tokens (e.g., just "cancer"), fall back to full token match
+  const aCheck = aSpecific.length > 0 ? aSpecific : aTokens;
+  const bCheck = bSpecific.length > 0 ? bSpecific : bTokens;
+  // The shorter list's specific tokens must ALL appear in the longer list
+  const shorter = aCheck.length <= bCheck.length ? aCheck : bCheck;
+  const longer = aCheck.length <= bCheck.length ? bCheck : aCheck;
+  const matched = shorter.filter(t => longer.some(lt => lt.includes(t) || t.includes(lt)));
+  return matched.length >= shorter.length;
 }
 
 export function matchPatientsToTrial(
