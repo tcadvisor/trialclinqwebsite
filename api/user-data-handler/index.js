@@ -17,7 +17,8 @@ function buildNetlifyEvent(context, req) {
   if (req.body) { body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body); }
   else if (req.rawBody) { body = req.rawBody; }
   const method = (req.method || 'GET').toUpperCase();
-  return { httpMethod: method, headers, queryStringParameters, body, isBase64Encoded: false, path: '/api/user-data' };
+  const subPath = context.bindingData && context.bindingData.restOfPath ? '/' + context.bindingData.restOfPath : '';
+  return { httpMethod: method, headers, queryStringParameters, body, isBase64Encoded: false, path: '/api/user-data' + subPath };
 }
 
 module.exports = async function (context, req) {
