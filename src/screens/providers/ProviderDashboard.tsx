@@ -7,11 +7,13 @@ import { getMatchedVolunteers, getMatchedVolunteersAsync, MatchedVolunteer } fro
 import { getTrialInterestedPatients, type InterestedPatient } from "../../lib/trialInterests";
 import { useAuth } from "../../lib/auth";
 import { BarChart3, Users, Calendar, Plus, ArrowRight, Database, Upload } from "lucide-react";
+import { ShimmerCard } from "../../components/ui/shimmer";
 
 export default function ProviderDashboard(): JSX.Element {
   const { user } = useAuth();
   const displayName = user ? `${user.firstName} ${user.lastName}` : "";
   const userId = user?.userId || "";
+  const [loading, setLoading] = React.useState(true);
   const [trials, setTrials] = React.useState<AddedTrial[]>(() =>
     userId ? getAddedTrials(userId) : []
   );
@@ -38,9 +40,11 @@ export default function ProviderDashboard(): JSX.Element {
     window.addEventListener("storage", onStorage);
 
     // pull fresh data from server so dashboard isn't stale
-    getAddedTrialsAsync(userId).then(setTrials).catch(() => {});
-    getAppointmentsAsync(userId).then(setAppointments).catch(() => {});
-    getMatchedVolunteersAsync(userId).then(setMatchedVolunteers).catch(() => {});
+    Promise.allSettled([
+      getAddedTrialsAsync(userId).then(setTrials),
+      getAppointmentsAsync(userId).then(setAppointments),
+      getMatchedVolunteersAsync(userId).then(setMatchedVolunteers),
+    ]).finally(() => setLoading(false));
 
     return () => window.removeEventListener("storage", onStorage);
   }, [userId]);
@@ -146,7 +150,12 @@ export default function ProviderDashboard(): JSX.Element {
         </div>
 
         {/* Stats Cards */}
-        <div className="mt-6 grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {loading ? (
+          <div className="mt-6 grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <ShimmerCard /><ShimmerCard /><ShimmerCard /><ShimmerCard />
+          </div>
+        ) : (
+        <div className="mt-6 grid grid-cols-2 lg:grid-cols-4 gap-4 animate-fade-in">
           <div className="rounded-2xl border bg-white p-5 flex flex-col">
             <div className="text-sm text-gray-500">Trials Managed</div>
             <div className="mt-2 text-3xl font-semibold">{trials.length}</div>
@@ -173,8 +182,9 @@ export default function ProviderDashboard(): JSX.Element {
             <Link to="/providers/volunteers" className="mt-auto pt-3 inline-block text-sm text-blue-600 hover:underline">View patients</Link>
           </div>
         </div>
+        )}
 
-        <div className="mt-6 grid lg:grid-cols-2 gap-4">
+        <div className="mt-6 grid lg:grid-cols-2 gap-4 animate-fade-in">
           <div className="rounded-2xl border bg-white">
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm">
