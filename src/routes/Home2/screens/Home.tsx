@@ -74,7 +74,7 @@ export default function Home() {
             onSubmit={handleSearch}
             className="mt-12 bg-white/80 backdrop-blur rounded-2xl shadow-xl ring-1 ring-black/5 p-5 sm:p-8 max-w-3xl mx-auto"
           >
-            <div className="grid sm:grid-cols-[1fr_1fr_auto] gap-3 sm:gap-4 items-end">
+            <div className="grid sm:grid-cols-2 gap-3 sm:gap-4 items-end">
               <SearchAutocomplete
                 value={query}
                 onChange={setQuery}
@@ -93,16 +93,15 @@ export default function Home() {
                   aria-label="Location"
                 />
               </label>
-              <div>
-                <div className="mb-1 text-xs text-transparent select-none">&nbsp;</div>
-                <button
-                  type="submit"
-                  className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 text-white px-6 py-3 text-sm font-medium hover:bg-blue-700"
-                >
-                  <Search className="h-4 w-4" />
-                  Search
-                </button>
-              </div>
+            </div>
+            <div className="mt-4">
+              <button
+                type="submit"
+                className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-blue-600 text-white px-6 py-3 text-sm font-medium hover:bg-blue-700"
+              >
+                <Search className="h-4 w-4" />
+                Search Clinical Trials
+              </button>
             </div>
           </form>
 
