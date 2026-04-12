@@ -926,18 +926,19 @@ export function matchPatientsToTrial(
       matchReasons.push("Complete contact information");
     }
 
-    // Add to matches if score > 0
-    if (score > 0) {
-      matches.push({
-        patientId: patient.id,
-        patient,
-        nctId: "", // Will be set by caller
-        matchScore: Math.min(score, 100),
-        matchReasons,
-        eligibilityStatus: "potential",
-        updatedAt: new Date().toISOString(),
-      });
+    // Every patient gets a score — even if no fields matched, they still appear in results
+    if (matchReasons.length === 0) {
+      matchReasons.push("Insufficient data for detailed matching");
     }
+    matches.push({
+      patientId: patient.id,
+      patient,
+      nctId: "", // Will be set by caller
+      matchScore: Math.min(Math.max(score, 1), 100), // minimum 1 so they always appear
+      matchReasons,
+      eligibilityStatus: score >= 50 ? "potential" : "potential",
+      updatedAt: new Date().toISOString(),
+    });
   }
 
   // Sort by score descending
