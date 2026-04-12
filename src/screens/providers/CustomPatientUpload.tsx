@@ -35,6 +35,7 @@ import {
   getStatusColor,
   getStatusLabel,
 } from "../../lib/customPatients";
+import { fetchStudyByNctId } from "../../lib/ctgov";
 import {
   Upload,
   FileSpreadsheet,
@@ -685,9 +686,39 @@ function TrialMatcher({
     setMatching(true);
 
     try {
-      // Run matching algorithm
+      // Pull eligibility details from ClinicalTrials.gov so scoring
+      // can factor in age range, sex, and required conditions.
+      let minAge: number | undefined;
+      let maxAge: number | undefined;
+      let gender: string | undefined;
+
+      try {
+        const studyRes = await fetchStudyByNctId(selectedTrial);
+        const study = studyRes?.studies?.[0];
+        const elig = study?.protocolSection?.eligibilityModule;
+
+        if (elig?.minimumAge) {
+          const parsed = parseInt(elig.minimumAge, 10);
+          if (!isNaN(parsed)) minAge = parsed;
+        }
+        if (elig?.maximumAge) {
+          const parsed = parseInt(elig.maximumAge, 10);
+          if (!isNaN(parsed)) maxAge = parsed;
+        }
+        if (elig?.sex && elig.sex.toLowerCase() !== "all") {
+          gender = elig.sex;
+        }
+      } catch {
+        // If the fetch fails, proceed without eligibility — still better
+        // than passing empty criteria since condition matching works either way.
+      }
+
+      // Run matching algorithm with real trial criteria
       const matches = matchPatientsToTrial(patients, trial.conditions || [], {
-        // Could extract from trial eligibility criteria
+        minAge,
+        maxAge,
+        gender,
+        requiredConditions: trial.conditions,
       });
 
       // Assign NCT ID to matches

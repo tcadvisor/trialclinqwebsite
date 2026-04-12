@@ -739,13 +739,14 @@ export function matchPatientsToTrial(
     const matchReasons: string[] = [];
     const exclusionReasons: string[] = [];
     let score = 0;
+    let maxPossible = 0; // track what the best-case score would be
     let excluded = false;
 
     // ========================================================================
-    // EXCLUSION CHECKS (run first - if excluded, skip this patient)
+    // EXCLUSION CHECKS (run first — if excluded, skip this patient)
     // ========================================================================
 
-    // Check excluded medications (e.g., contraindicated drugs)
+    // Check excluded medications
     if (criteria?.excludedMedications && patient.medications) {
       const patientMedsLower = patient.medications.map(m => m.toLowerCase());
       for (const excludedMed of criteria.excludedMedications) {
@@ -761,7 +762,7 @@ export function matchPatientsToTrial(
       }
     }
 
-    // Check excluded allergies (e.g., allergic to trial drug)
+    // Check excluded allergies
     if (!excluded && criteria?.excludedAllergies && patient.allergies) {
       const patientAllergiesLower = patient.allergies.map(a => a.toLowerCase());
       for (const excludedAllergy of criteria.excludedAllergies) {
@@ -777,7 +778,7 @@ export function matchPatientsToTrial(
       }
     }
 
-    // Check excluded conditions (e.g., comorbidities that disqualify)
+    // Check excluded conditions
     if (!excluded && criteria?.excludedConditions && patient.conditions) {
       const patientConditionsLower = patient.conditions.map(c => c.toLowerCase());
       for (const excludedCond of criteria.excludedConditions) {
@@ -805,138 +806,162 @@ export function matchPatientsToTrial(
       }
     }
 
-    // Skip this patient if excluded
     if (excluded) {
       continue;
     }
 
     // ========================================================================
-    // INCLUSION SCORING (higher = better match)
+    // INCLUSION SCORING
+    //
+    // We only award points for categories we can actually evaluate.
+    // maxPossible tracks the ceiling so we can normalize to a percentage
+    // at the end. This prevents patients from clustering at a flat score
+    // when criteria fields are missing.
     // ========================================================================
 
-    // PRIMARY: Condition match (up to 35 points)
-    if (patient.conditions && patient.conditions.length > 0) {
-      const patientConditionsLower = patient.conditions.map((c) => c.toLowerCase());
-      let conditionMatches = 0;
-      for (const condition of conditionsLower) {
-        for (const patientCondition of patientConditionsLower) {
-          if (fuzzyMatch(patientCondition, condition)) {
-            conditionMatches++;
-            matchReasons.push(`Condition match: ${patientCondition}`);
-            break;
+    // ---- PRIMARY: Condition match (worth 50 pts) ----
+    // This is the most important signal — it should dominate the score.
+    if (conditionsLower.length > 0) {
+      maxPossible += 50;
+      if (patient.conditions && patient.conditions.length > 0) {
+        const patientConditionsLower = patient.conditions.map((c) => c.toLowerCase());
+        let conditionMatches = 0;
+        for (const condition of conditionsLower) {
+          for (const patientCondition of patientConditionsLower) {
+            if (fuzzyMatch(patientCondition, condition)) {
+              conditionMatches++;
+              matchReasons.push(`Condition match: ${patientCondition}`);
+              break;
+            }
           }
         }
-      }
-      // Score based on how many trial conditions match
-      if (conditionMatches > 0) {
-        const conditionScore = Math.min(35, conditionMatches * 15);
-        score += conditionScore;
-      }
-    }
-
-    // SECONDARY: Age criteria (up to 20 points)
-    if (patient.age !== undefined) {
-      let ageMatch = true;
-      if (criteria?.minAge && patient.age < criteria.minAge) {
-        ageMatch = false;
-      }
-      if (criteria?.maxAge && patient.age > criteria.maxAge) {
-        ageMatch = false;
-      }
-      if (ageMatch) {
-        score += 20;
-        matchReasons.push(`Age ${patient.age} within range${criteria?.minAge || criteria?.maxAge ? ` (${criteria?.minAge || '?'}-${criteria?.maxAge || '?'})` : ''}`);
-      }
-    } else {
-      // Unknown age - partial credit
-      score += 5;
-      matchReasons.push("Age unknown (partial match)");
-    }
-
-    // SECONDARY: Gender criteria (up to 10 points)
-    if (criteria?.gender && patient.sex) {
-      const genderMatch =
-        criteria.gender.toLowerCase() === "all" ||
-        patient.sex.toLowerCase().startsWith(criteria.gender.toLowerCase()[0]);
-      if (genderMatch) {
-        score += 10;
-        matchReasons.push(`Gender matches: ${patient.sex}`);
-      }
-    } else if (!criteria?.gender) {
-      // No gender requirement
-      score += 10;
-    }
-
-    // TERTIARY: Medications match (up to 15 points)
-    if (criteria?.preferredMedications && patient.medications) {
-      const patientMedsLower = patient.medications.map(m => m.toLowerCase());
-      let medMatches = 0;
-      for (const preferredMed of criteria.preferredMedications) {
-        const preferredLower = preferredMed.toLowerCase();
-        for (const patientMed of patientMedsLower) {
-          if (fuzzyMatch(patientMed, preferredLower)) {
-            medMatches++;
-            matchReasons.push(`Current medication: ${patientMed}`);
-            break;
-          }
+        if (conditionMatches > 0) {
+          // full 50 if all conditions matched, proportional otherwise
+          score += Math.round((conditionMatches / conditionsLower.length) * 50);
         }
       }
-      if (medMatches > 0) {
-        score += Math.min(15, medMatches * 5);
-      }
+      // No conditions on patient = 0 pts; that gap is the whole point.
     }
 
-    // TERTIARY: Location match (up to 10 points)
-    if (criteria?.preferredLocations && (patient.city || patient.state || patient.zipcode)) {
-      const patientLocation = [patient.city, patient.state, patient.zipcode].filter(Boolean).join(" ").toLowerCase();
-      for (const preferredLoc of criteria.preferredLocations) {
-        if (patientLocation.includes(preferredLoc.toLowerCase()) ||
-            preferredLoc.toLowerCase().includes(patientLocation)) {
+    // ---- SECONDARY: Age range (worth 20 pts) ----
+    if (criteria?.minAge || criteria?.maxAge) {
+      maxPossible += 20;
+      if (patient.age !== undefined) {
+        let ageMatch = true;
+        if (criteria.minAge && patient.age < criteria.minAge) ageMatch = false;
+        if (criteria.maxAge && patient.age > criteria.maxAge) ageMatch = false;
+        if (ageMatch) {
+          score += 20;
+          matchReasons.push(`Age ${patient.age} within range (${criteria.minAge || '?'}-${criteria.maxAge || '?'})`);
+        }
+      }
+      // Unknown age + criteria specified = 0 pts (can't confirm eligibility)
+    }
+
+    // ---- SECONDARY: Gender / sex (worth 10 pts) ----
+    if (criteria?.gender) {
+      maxPossible += 10;
+      if (patient.sex) {
+        const genderMatch =
+          criteria.gender.toLowerCase() === "all" ||
+          patient.sex.toLowerCase().startsWith(criteria.gender.toLowerCase()[0]);
+        if (genderMatch) {
           score += 10;
-          matchReasons.push(`Location match: ${patient.city || ''} ${patient.state || ''}`);
-          break;
+          matchReasons.push(`Gender matches: ${patient.sex}`);
         }
       }
     }
 
-    // TERTIARY: Inclusion keywords in notes (up to 10 points)
-    if (criteria?.inclusionKeywords && patient.notes) {
-      const notesLower = patient.notes.toLowerCase();
-      let keywordMatches = 0;
-      for (const keyword of criteria.inclusionKeywords) {
-        if (notesLower.includes(keyword.toLowerCase())) {
-          keywordMatches++;
-          matchReasons.push(`Notes mention: "${keyword}"`);
+    // ---- TERTIARY: Medications (worth 10 pts) ----
+    if (criteria?.preferredMedications && criteria.preferredMedications.length > 0) {
+      maxPossible += 10;
+      if (patient.medications) {
+        const patientMedsLower = patient.medications.map(m => m.toLowerCase());
+        let medMatches = 0;
+        for (const preferredMed of criteria.preferredMedications) {
+          const preferredLower = preferredMed.toLowerCase();
+          for (const patientMed of patientMedsLower) {
+            if (fuzzyMatch(patientMed, preferredLower)) {
+              medMatches++;
+              matchReasons.push(`Current medication: ${patientMed}`);
+              break;
+            }
+          }
         }
-      }
-      if (keywordMatches > 0) {
-        score += Math.min(10, keywordMatches * 3);
+        if (medMatches > 0) {
+          score += Math.min(10, Math.round((medMatches / criteria.preferredMedications.length) * 10));
+        }
       }
     }
 
-    // BONUS: Allergies documented (shows complete medical history) - 5 points
+    // ---- TERTIARY: Location (worth 10 pts) ----
+    if (criteria?.preferredLocations && criteria.preferredLocations.length > 0) {
+      maxPossible += 10;
+      if (patient.city || patient.state || patient.zipcode) {
+        const patientLocation = [patient.city, patient.state, patient.zipcode].filter(Boolean).join(" ").toLowerCase();
+        for (const preferredLoc of criteria.preferredLocations) {
+          if (patientLocation.includes(preferredLoc.toLowerCase()) ||
+              preferredLoc.toLowerCase().includes(patientLocation)) {
+            score += 10;
+            matchReasons.push(`Location match: ${patient.city || ''} ${patient.state || ''}`);
+            break;
+          }
+        }
+      }
+    }
+
+    // ---- TERTIARY: Inclusion keywords in notes (worth 10 pts) ----
+    if (criteria?.inclusionKeywords && criteria.inclusionKeywords.length > 0) {
+      maxPossible += 10;
+      if (patient.notes) {
+        const notesLower = patient.notes.toLowerCase();
+        let keywordMatches = 0;
+        for (const keyword of criteria.inclusionKeywords) {
+          if (notesLower.includes(keyword.toLowerCase())) {
+            keywordMatches++;
+            matchReasons.push(`Notes mention: "${keyword}"`);
+          }
+        }
+        if (keywordMatches > 0) {
+          score += Math.min(10, keywordMatches * 3);
+        }
+      }
+    }
+
+    // ---- BONUS: Data completeness (not part of maxPossible — truly extra) ----
+    let bonus = 0;
     if (patient.allergies && patient.allergies.length > 0) {
-      score += 5;
+      bonus += 3;
       matchReasons.push(`Allergies documented: ${patient.allergies.join(", ")}`);
     }
-
-    // BONUS: Complete contact info - 5 points
     if (patient.email && patient.phone) {
-      score += 5;
+      bonus += 2;
       matchReasons.push("Complete contact information");
     }
 
-    // Every patient gets a score — even if no fields matched, they still appear in results
+    // ---- Normalize to a 0–100 percentage ----
+    // If we had evaluable criteria, scale the earned points to a percentage.
+    // Bonus points are added on top (capped at 100).
+    let finalScore: number;
+    if (maxPossible > 0) {
+      finalScore = Math.round((score / maxPossible) * 95) + bonus;
+    } else {
+      // No evaluable criteria at all — score only on bonuses so patients
+      // don't all get a misleadingly high number.
+      finalScore = bonus;
+    }
+    finalScore = Math.min(Math.max(finalScore, 1), 100);
+
     if (matchReasons.length === 0) {
       matchReasons.push("Insufficient data for detailed matching");
     }
     matches.push({
       patientId: patient.id,
       patient,
-      nctId: "", // Will be set by caller
-      matchScore: Math.min(Math.max(score, 1), 100), // minimum 1 so they always appear
+      nctId: "", // set by caller
+      matchScore: finalScore,
       matchReasons,
-      eligibilityStatus: score >= 50 ? "potential" : "potential",
+      eligibilityStatus: finalScore >= 60 ? "potential" : "potential",
       updatedAt: new Date().toISOString(),
     });
   }
