@@ -33,7 +33,7 @@ function getStorageKey(userId: string): string {
   return `${KEY_PREFIX}${userId}`;
 }
 
-// Local storage helpers for fallback
+// localStorage is just a read cache — DB is the source of truth
 function readLocal(userId: string): Appointment[] {
   try {
     const key = getStorageKey(userId);
@@ -52,7 +52,7 @@ function writeLocal(userId: string, list: Appointment[]): void {
     localStorage.setItem(key, JSON.stringify(list));
     window.dispatchEvent(new StorageEvent("storage", { key }));
   } catch {
-    // ignore
+    // localStorage unavailable, not a big deal since DB has the data
   }
 }
 
@@ -91,7 +91,6 @@ async function fetchAppointmentsFromAPI(
 
     const data = await response.json();
 
-    // Transform API response to local format
     const appointments = (data.appointments || []).map((apt: any) => ({
       id: apt.appointmentId || apt.id,
       appointmentId: apt.appointmentId,
@@ -115,7 +114,7 @@ async function fetchAppointmentsFromAPI(
 
     return { ok: true, appointments };
   } catch (error) {
-    console.warn("Failed to fetch appointments from API, using local storage:", error);
+    console.warn("Failed to fetch appointments from API, falling back to cache:", error);
     return { ok: false, appointments: readLocal(userId) };
   }
 }
@@ -249,7 +248,15 @@ async function cancelAppointmentAPI(
   }
 }
 
-// Public API
+// --- Public API ---
+
+// Read: returns cached data instantly. Callers should also call
+// getAppointmentsAsync() on mount to refresh from DB.
+export function getAppointments(userId: string): Appointment[] {
+  return readLocal(userId);
+}
+
+// Read (async): fetches from DB and updates the cache
 export async function getAppointmentsAsync(
   userId: string,
   filters?: { startDate?: string; endDate?: string; patientId?: string; nctId?: string; status?: string }
@@ -263,62 +270,48 @@ export async function getAppointmentsAsync(
   return appointments;
 }
 
-// Synchronous version for backward compatibility
-export function getAppointments(userId: string): Appointment[] {
-  return readLocal(userId);
-}
-
+// Write: DB first, then update cache on success
 export async function addAppointmentAsync(
   userId: string,
   appointment: Omit<Appointment, "id">
 ): Promise<{ ok: boolean; appointment?: Appointment; error?: string }> {
-  const newId = generateAppointmentId();
-  const newAppointment: Appointment = {
-    ...appointment,
-    id: newId,
-    appointmentId: newId,
-    status: appointment.status || "scheduled",
-    createdAt: new Date().toISOString(),
-  };
-
-  // Optimistic update
-  const list = readLocal(userId);
-  list.push(newAppointment);
-  writeLocal(userId, list);
-
-  // Sync to API
+  // Hit the API first — DB is the source of truth
   const result = await createAppointmentAPI(userId, appointment);
 
-  if (result.ok && result.appointment) {
-    // Update with server-generated ID
-    const updatedList = readLocal(userId);
-    const idx = updatedList.findIndex((a) => a.id === newId);
-    if (idx >= 0) {
-      updatedList[idx] = { ...updatedList[idx], ...result.appointment };
-      writeLocal(userId, updatedList);
-    }
-    return { ok: true, appointment: result.appointment };
+  if (!result.ok) {
+    // Don't cache anything if the DB write failed
+    return result;
   }
 
-  return { ok: true, appointment: newAppointment };
-}
-
-// Synchronous version for backward compatibility
-export function addAppointment(userId: string, appointment: Appointment): void {
+  // DB succeeded, update the local cache with the server-confirmed appointment
+  const saved = result.appointment!;
   const list = readLocal(userId);
-  list.push({ ...appointment, createdAt: new Date().toISOString() });
+  list.push(saved);
   writeLocal(userId, list);
 
-  // Fire and forget API sync
-  createAppointmentAPI(userId, appointment).catch(() => {});
+  return { ok: true, appointment: saved };
 }
 
+// Sync wrapper — just calls through to async version.
+// Kept for backward compat, but callers should migrate to addAppointmentAsync.
+export function addAppointment(userId: string, appointment: Appointment): Promise<{ ok: boolean; appointment?: Appointment; error?: string }> {
+  return addAppointmentAsync(userId, appointment);
+}
+
+// Write: DB first, then update cache on success
 export async function updateAppointmentAsync(
   userId: string,
   appointmentId: string,
   updates: Partial<Appointment>
 ): Promise<{ ok: boolean; error?: string }> {
-  // Optimistic update
+  // Hit the API first
+  const result = await updateAppointmentAPI(userId, appointmentId, updates);
+
+  if (!result.ok) {
+    return result;
+  }
+
+  // DB succeeded, update cache
   const list = readLocal(userId);
   const idx = list.findIndex((a) => a.id === appointmentId || a.appointmentId === appointmentId);
   if (idx >= 0) {
@@ -326,15 +319,21 @@ export async function updateAppointmentAsync(
     writeLocal(userId, list);
   }
 
-  // Sync to API
-  return updateAppointmentAPI(userId, appointmentId, updates);
+  return result;
 }
 
+// Write: DB first, then update cache on success
 export async function cancelAppointmentAsync(
   userId: string,
   appointmentId: string
 ): Promise<{ ok: boolean; error?: string }> {
-  // Optimistic update - mark as cancelled locally
+  const result = await cancelAppointmentAPI(userId, appointmentId);
+
+  if (!result.ok) {
+    return result;
+  }
+
+  // DB succeeded, mark as cancelled in cache
   const list = readLocal(userId);
   const idx = list.findIndex((a) => a.id === appointmentId || a.appointmentId === appointmentId);
   if (idx >= 0) {
@@ -342,16 +341,12 @@ export async function cancelAppointmentAsync(
     writeLocal(userId, list);
   }
 
-  // Sync to API
-  return cancelAppointmentAPI(userId, appointmentId);
+  return result;
 }
 
-export function removeAppointment(userId: string, appointmentId: string): void {
-  const list = readLocal(userId);
-  writeLocal(userId, list.filter((a) => a.id !== appointmentId && a.appointmentId !== appointmentId));
-
-  // Fire and forget API sync
-  cancelAppointmentAPI(userId, appointmentId).catch(() => {});
+// Sync wrapper — just calls through to async version
+export function removeAppointment(userId: string, appointmentId: string): Promise<{ ok: boolean; error?: string }> {
+  return cancelAppointmentAsync(userId, appointmentId);
 }
 
 // Get upcoming appointments

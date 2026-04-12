@@ -20,7 +20,7 @@ function getStorageKey(userId: string): string {
   return `${KEY_PREFIX}${userId}`;
 }
 
-// Local storage helpers for fallback
+// localStorage is just a read cache — DB is the source of truth
 function readLocal(userId: string): AddedTrial[] {
   try {
     const key = getStorageKey(userId);
@@ -39,7 +39,7 @@ function writeLocal(userId: string, list: AddedTrial[]): void {
     localStorage.setItem(key, JSON.stringify(list));
     window.dispatchEvent(new StorageEvent("storage", { key }));
   } catch {
-    // ignore
+    // localStorage unavailable, not a big deal since DB has the data
   }
 }
 
@@ -62,7 +62,7 @@ async function fetchTrialsFromAPI(userId: string): Promise<{ ok: boolean; trials
     const data = await response.json();
     return { ok: true, trials: data.trials || [] };
   } catch (error) {
-    console.warn("Failed to fetch trials from API, using local storage:", error);
+    console.warn("Failed to fetch trials from API, falling back to cache:", error);
     return { ok: false, trials: readLocal(userId) };
   }
 }
@@ -98,7 +98,7 @@ async function addTrialToAPI(
     const data = await response.json();
     return { ok: response.ok, error: data.error };
   } catch (error) {
-    console.warn("Failed to add trial via API, using local storage:", error);
+    console.warn("Failed to add trial via API:", error);
     return { ok: false, error: "API unavailable" };
   }
 }
@@ -122,27 +122,28 @@ async function removeTrialFromAPI(
     const data = await response.json();
     return { ok: response.ok, error: data.error };
   } catch (error) {
-    console.warn("Failed to remove trial via API, using local storage:", error);
+    console.warn("Failed to remove trial via API:", error);
     return { ok: false, error: "API unavailable" };
   }
 }
 
-// Public API - hybrid approach (API first, localStorage fallback)
+// --- Public API ---
+// Read: returns cached data instantly. Callers should also call
+// getAddedTrialsAsync() on mount to refresh from DB.
+export function getAddedTrials(userId: string): AddedTrial[] {
+  return readLocal(userId);
+}
+
+// Read (async): fetches from DB and updates the cache
 export async function getAddedTrialsAsync(userId: string): Promise<AddedTrial[]> {
   const { ok, trials } = await fetchTrialsFromAPI(userId);
 
   if (ok) {
-    // Sync to localStorage for offline access
     writeLocal(userId, trials);
     return trials;
   }
 
-  return trials; // Returns localStorage data if API failed
-}
-
-// Synchronous version for backward compatibility (uses localStorage)
-export function getAddedTrials(userId: string): AddedTrial[] {
-  return readLocal(userId);
+  return trials; // falls back to cached data if API is down
 }
 
 export function isTrialAdded(userId: string, nctId: string): boolean {
@@ -150,62 +151,57 @@ export function isTrialAdded(userId: string, nctId: string): boolean {
   return readLocal(userId).some((t) => (t.nctId || "").trim().toUpperCase() === id);
 }
 
+// Write: DB first, then update cache on success
 export async function addTrialAsync(userId: string, trial: AddedTrial): Promise<{ ok: boolean; error?: string }> {
-  // Update localStorage immediately for optimistic UI
-  const list = readLocal(userId);
   const id = trial.nctId.trim().toUpperCase();
+
+  // Write to DB first — it's the source of truth
+  const result = await addTrialToAPI(userId, { ...trial, nctId: id });
+
+  if (!result.ok) {
+    // Don't update cache if the DB write failed
+    return result;
+  }
+
+  // DB succeeded, now update the local cache
+  const list = readLocal(userId);
   const exists = list.findIndex((t) => (t.nctId || "").trim().toUpperCase() === id);
 
   if (exists >= 0) {
-    list[exists] = { ...list[exists], ...trial };
+    list[exists] = { ...list[exists], ...trial, nctId: id };
   } else {
     list.unshift({ ...trial, nctId: id, addedAt: new Date().toISOString() });
   }
   writeLocal(userId, list);
 
-  // Then sync to API
-  const result = await addTrialToAPI(userId, { ...trial, nctId: id });
+  return result;
+}
+
+// Sync wrapper — just calls through to async version.
+// Kept for backward compat, but callers should migrate to addTrialAsync.
+export function addTrial(userId: string, trial: AddedTrial): Promise<{ ok: boolean; error?: string }> {
+  return addTrialAsync(userId, trial);
+}
+
+// Write: DB first, then update cache on success
+export async function removeTrialAsync(userId: string, nctId: string): Promise<{ ok: boolean; error?: string }> {
+  const id = nctId.trim().toUpperCase();
+
+  const result = await removeTrialFromAPI(userId, id);
 
   if (!result.ok) {
-    console.warn("Failed to sync trial to API:", result.error);
+    return result;
   }
+
+  // DB succeeded, drop it from the cache
+  writeLocal(userId, readLocal(userId).filter((t) => (t.nctId || "").trim().toUpperCase() !== id));
 
   return result;
 }
 
-// Synchronous version for backward compatibility
-export function addTrial(userId: string, trial: AddedTrial): void {
-  const list = readLocal(userId);
-  const id = trial.nctId.trim().toUpperCase();
-  const exists = list.findIndex((t) => (t.nctId || "").trim().toUpperCase() === id);
-  if (exists >= 0) {
-    list[exists] = { ...list[exists], ...trial };
-  } else {
-    list.unshift({ ...trial, nctId: id });
-  }
-  writeLocal(userId, list);
-
-  // Fire and forget API sync
-  addTrialToAPI(userId, { ...trial, nctId: id }).catch(() => {});
-}
-
-export async function removeTrialAsync(userId: string, nctId: string): Promise<{ ok: boolean; error?: string }> {
-  const id = nctId.trim().toUpperCase();
-
-  // Update localStorage immediately
-  writeLocal(userId, readLocal(userId).filter((t) => (t.nctId || "").trim().toUpperCase() !== id));
-
-  // Then sync to API
-  return removeTrialFromAPI(userId, id);
-}
-
-// Synchronous version for backward compatibility
-export function removeTrial(userId: string, nctId: string): void {
-  const id = nctId.trim().toUpperCase();
-  writeLocal(userId, readLocal(userId).filter((t) => (t.nctId || "").trim().toUpperCase() !== id));
-
-  // Fire and forget API sync
-  removeTrialFromAPI(userId, id).catch(() => {});
+// Sync wrapper — just calls through to async version
+export function removeTrial(userId: string, nctId: string): Promise<{ ok: boolean; error?: string }> {
+  return removeTrialAsync(userId, nctId);
 }
 
 // Hook for React components to sync data

@@ -87,34 +87,26 @@ export async function expressInterestInTrial(
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to express interest";
 
-    // Fallback to localStorage when function is unavailable (e.g., in dev without netlify dev)
+    // API failed — report the real error to the caller so the UI can show it.
+    // We still cache locally so the user doesn't lose their click entirely,
+    // but ok: false tells the UI this didn't actually persist to the DB.
     try {
       const interests = getLocalInterests();
       const patientInterests = interests[patientId] || [];
 
-      if (patientInterests.includes(nctId.toUpperCase())) {
-        return {
-          ok: true,
-          alreadyInterested: true,
-          message: "Interest already expressed (local)",
-        };
+      if (!patientInterests.includes(nctId.toUpperCase())) {
+        patientInterests.push(nctId.toUpperCase());
+        interests[patientId] = patientInterests;
+        saveLocalInterests(interests);
       }
-
-      patientInterests.push(nctId.toUpperCase());
-      interests[patientId] = patientInterests;
-      saveLocalInterests(interests);
-
-      return {
-        ok: true,
-        alreadyInterested: false,
-        message: "Interest expressed successfully (local)",
-      };
-    } catch (fallbackErr) {
-      return {
-        ok: false,
-        message: "Could not express interest",
-      };
+    } catch {
+      // local cache write failed too, nothing we can do
     }
+
+    return {
+      ok: false,
+      message: `Failed to save interest: ${message}`,
+    };
   }
 }
 
