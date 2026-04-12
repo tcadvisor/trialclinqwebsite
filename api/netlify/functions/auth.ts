@@ -206,8 +206,28 @@ export const handler: Handler = async (event) => {
       // Universal demo account -- always works regardless of DB state
       if (email.trim().toLowerCase() === "demo@demo.com" && password === "demo") {
         const demoRole = role || "patient";
+        const demoUserId = `demo-${demoRole}-001`;
+        const demoToken = generateToken();
+        const demoTokenHash = hashToken(demoToken);
+        const demoExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+        // Ensure demo user exists in DB and has a real session
+        try {
+          await getOrCreateUser(demoUserId, "demo@trialcliniq.com", null, "Demo",
+            demoRole === "provider" ? "Researcher" : "Patient", demoRole);
+          // Clean old demo sessions and insert a fresh one
+          await query(`DELETE FROM sessions WHERE user_id = $1`, [demoUserId]);
+          await query(
+            `INSERT INTO sessions (session_id, user_id, token_hash, expires_at) VALUES ($1, $2, $3, $4)`,
+            [generateId("sess"), demoUserId, demoTokenHash, demoExpiry]
+          );
+        } catch (dbErr) {
+          // DB might be down -- demo still works without a DB session
+          console.warn("Demo session DB write failed:", dbErr);
+        }
+
         const cookieOpts = [
-          `session_token=demo-session-token`,
+          `session_token=${demoToken}`,
           "HttpOnly",
           "Path=/",
           "Max-Age=604800",
@@ -227,14 +247,14 @@ export const handler: Handler = async (event) => {
             ok: true,
             message: "Signed in as demo user",
             user: {
-              userId: `demo-${demoRole}-001`,
+              userId: demoUserId,
               email: `demo@trialcliniq.com`,
               firstName: "Demo",
               lastName: demoRole === "provider" ? "Researcher" : "Patient",
               role: demoRole,
             },
             session: {
-              expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+              expiresAt: demoExpiry.toISOString(),
             },
           }),
         };

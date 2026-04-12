@@ -978,7 +978,7 @@ export function matchPatientsToTrial(
       nctId: "", // set by caller
       matchScore: finalScore,
       matchReasons,
-      eligibilityStatus: finalScore >= 60 ? "potential" : "potential",
+      eligibilityStatus: finalScore >= 70 ? "eligible" : finalScore >= 40 ? "potential" : "ineligible",
       updatedAt: new Date().toISOString(),
     });
   }

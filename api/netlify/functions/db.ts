@@ -531,7 +531,7 @@ export async function getOrCreateUser(
       VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
       RETURNING id, user_id, azure_oid, email, first_name, last_name, role;
       `,
-      [userId, azureOid, email, firstName || '', lastName || '', role]
+      [userId, azureOid || null, email, firstName || '', lastName || '', role]
     );
 
     console.log('✅ User created:', userId);
