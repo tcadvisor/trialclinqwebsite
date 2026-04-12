@@ -61,7 +61,7 @@ const About = lazy(() => import("./screens/About"));
 
 function LoadingFallback() {
   return (
-    <div className="w-full h-screen flex items-center justify-center bg-white">
+    <div className="w-full h-screen flex items-center justify-center bg-white animate-fade-in">
       <div className="text-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
         <p className="text-gray-600">Loading...</p>
@@ -111,6 +111,7 @@ function AppContent() {
     <Router>
       <Sentry.ErrorBoundary fallback={<ErrorFallback />}>
         <Suspense fallback={<LoadingFallback />}>
+          <div className="animate-fade-in">
           <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/team" element={<TeamPage />} />
@@ -160,6 +161,7 @@ function AppContent() {
             <Route path="/study/:nctId" element={<CtgovStudyDetails />} />
             <Route path="/book-demo" element={<BookDemo />} />
           </Routes>
+          </div>
         </Suspense>
         <ToastContainer toasts={toasts} onDismiss={removeToast} />
       </Sentry.ErrorBoundary>

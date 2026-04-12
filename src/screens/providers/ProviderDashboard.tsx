@@ -78,7 +78,7 @@ export default function ProviderDashboard(): JSX.Element {
         <h1 className="text-2xl font-semibold">Welcome back, {displayName}</h1>
 
         {/* Quick Actions */}
-        <div className="mt-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="mt-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
           <Link
             to="/providers/trials"
             className="flex items-center gap-3 rounded-xl border bg-white p-4 hover:border-gray-300 transition-colors"
@@ -146,38 +146,36 @@ export default function ProviderDashboard(): JSX.Element {
         </div>
 
         {/* Stats Cards */}
-        <div className="mt-6 grid lg:grid-cols-3 gap-4">
-          <div className="rounded-2xl border bg-white p-5">
+        <div className="mt-6 grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="rounded-2xl border bg-white p-5 flex flex-col">
             <div className="text-sm text-gray-500">Trials Managed</div>
             <div className="mt-2 text-3xl font-semibold">{trials.length}</div>
-            <Link to="/providers/trials/all" className="mt-3 inline-block text-sm text-blue-600 hover:underline">View all trials</Link>
+            <Link to="/providers/trials/all" className="mt-auto pt-3 inline-block text-sm text-blue-600 hover:underline">View all trials</Link>
           </div>
 
-          <div className="rounded-2xl border bg-white p-5">
+          <div className="rounded-2xl border bg-white p-5 flex flex-col">
             <div className="text-sm text-gray-500">Pipeline Patients</div>
             <div className="mt-2 text-3xl font-semibold">
               {Array.from(interestedPatientsByTrial.values()).flat().length}
             </div>
-            <Link to="/providers/volunteers" className="mt-3 inline-block text-sm text-blue-600 hover:underline">View pipeline</Link>
+            <Link to="/providers/volunteers" className="mt-auto pt-3 inline-block text-sm text-blue-600 hover:underline">View pipeline</Link>
           </div>
 
-          <div className="rounded-2xl border bg-white p-5">
-            <div className="text-sm text-gray-500">Upcoming Appointments</div>
-            <ul className="mt-3 space-y-2 text-sm">
-              {appointments.length === 0 ? (
-                <li className="rounded-lg border p-3 text-gray-600">No upcoming appointments</li>
-              ) : (
-                appointments.slice(0, 2).map((apt) => (
-                  <li key={apt.id} className="rounded-lg border p-3">{apt.title} — {apt.time} — {apt.location}</li>
-                ))
-              )}
-            </ul>
-            <Link to="/providers/appointments" className="mt-3 w-full inline-block rounded-full border px-4 py-2 text-sm hover:bg-gray-50 text-center">View All Appointments</Link>
+          <div className="rounded-2xl border bg-white p-5 flex flex-col">
+            <div className="text-sm text-gray-500">Appointments</div>
+            <div className="mt-2 text-3xl font-semibold">{appointments.length}</div>
+            <Link to="/providers/appointments" className="mt-auto pt-3 inline-block text-sm text-blue-600 hover:underline">View appointments</Link>
+          </div>
+
+          <div className="rounded-2xl border bg-white p-5 flex flex-col">
+            <div className="text-sm text-gray-500">Interested Patients</div>
+            <div className="mt-2 text-3xl font-semibold">{Array.from(interestedPatientsByTrial.values()).flat().length}</div>
+            <Link to="/providers/volunteers" className="mt-auto pt-3 inline-block text-sm text-blue-600 hover:underline">View patients</Link>
           </div>
         </div>
 
-        <div className="mt-6 grid lg:grid-cols-3 gap-4">
-          <div className="lg:col-span-2 rounded-2xl border bg-white">
+        <div className="mt-6 grid lg:grid-cols-2 gap-4">
+          <div className="rounded-2xl border bg-white">
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm">
                 <thead>
@@ -210,10 +208,10 @@ export default function ProviderDashboard(): JSX.Element {
             </div>
           </div>
 
-          <div className="rounded-2xl border bg-white p-4">
-            <div className="text-sm text-gray-500">Interested Patients</div>
+          <div className="rounded-2xl border bg-white p-4 flex flex-col">
+            <div className="text-sm text-gray-500 px-4 py-3 font-medium">Interested Patients</div>
             {interestedPatientsByTrial.size === 0 ? (
-              <div className="mt-4 text-center text-sm text-gray-600 py-6">
+              <div className="flex-1 flex items-center justify-center text-sm text-gray-600 py-6">
                 No patients have expressed interest yet
               </div>
             ) : (
