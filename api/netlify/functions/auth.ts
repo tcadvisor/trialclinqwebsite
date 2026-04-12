@@ -66,6 +66,7 @@ export const handler: Handler = async (event) => {
     return cors.response(400, { ok: false, error: "Malformed JSON in request body" });
   }
   const { action } = body;
+  console.log("[auth] action:", action, "hasBody:", !!event.body, "bodyLen:", event.body?.length);
 
   try {
     // ==================== SIGNUP ====================
@@ -649,10 +650,11 @@ export const handler: Handler = async (event) => {
 
     return cors.response(400, { ok: false, error: "Invalid action" });
   } catch (error: any) {
-    console.error("Auth error:", error);
+    console.error("Auth error:", error?.message || error, error?.stack?.substring(0, 300));
     return cors.response(500, {
       ok: false,
       error: "An error occurred. Please try again.",
+      debug: process.env.NODE_ENV !== "production" ? error?.message : undefined,
     });
   }
 };
