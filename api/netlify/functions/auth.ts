@@ -108,7 +108,10 @@ export const handler: Handler = async (event) => {
       const verificationToken = generateToken();
       const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
-      // Hash the verification token before storing (same pattern as session tokens)
+      // Create user record first (auth_credentials has a foreign key to users)
+      await getOrCreateUser(userId, normalizedEmail, "", firstName, lastName, role);
+
+      // Then create auth credentials
       const verificationTokenHash = hashToken(verificationToken);
       await query(
         `INSERT INTO auth_credentials (
@@ -116,9 +119,6 @@ export const handler: Handler = async (event) => {
         ) VALUES ($1, $2, $3, $4, $5)`,
         [userId, normalizedEmail, passwordHash, verificationTokenHash, verificationExpires]
       );
-
-      // Create user record
-      await getOrCreateUser(userId, normalizedEmail, "", firstName, lastName, role);
 
       await logAuditEvent(
         userId,
