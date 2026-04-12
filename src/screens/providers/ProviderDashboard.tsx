@@ -132,19 +132,6 @@ export default function ProviderDashboard(): JSX.Element {
           </Link>
 
           <Link
-            to="/providers/elation"
-            className="flex items-center gap-3 rounded-xl border bg-white p-4 hover:border-gray-300 transition-colors"
-          >
-            <div className="h-10 w-10 rounded-full bg-cyan-100 flex items-center justify-center">
-              <Database className="h-5 w-5 text-cyan-600" />
-            </div>
-            <div>
-              <div className="font-medium text-sm">Elation EHR</div>
-              <div className="text-xs text-gray-500">Import patients</div>
-            </div>
-          </Link>
-
-          <Link
             to="/providers/custom-database"
             className="flex items-center gap-3 rounded-xl border bg-white p-4 hover:border-gray-300 transition-colors"
           >
