@@ -198,7 +198,8 @@ export function SearchAutocomplete({
           onKeyDown={handleKeyDown}
           onFocus={() => value.length >= 2 && searchSuggestions(value)}
           placeholder={placeholder}
-          className={`w-full rounded-lg border border-gray-300 px-4 py-3 placeholder:text-gray-400/80 focus:outline-none focus:ring-2 focus:ring-blue-500 ${inputClassName}`}
+          className={`w-full border border-gray-300 px-4 py-3 placeholder:text-gray-400/80 focus:outline-none focus:ring-2 focus:ring-blue-500 ${inputClassName}`}
+          style={{ borderRadius: '0.5rem' }}
           role="combobox"
           aria-expanded={isOpen}
           aria-haspopup="listbox"
