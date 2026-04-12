@@ -33,8 +33,8 @@ export const handler: Handler = async (event) => {
   }
 
   try {
-    // Authenticate user from Azure Entra ID token
-    const authenticatedUser = await getUserFromAuthHeader(authHeader);
+    // Authenticate user — supports both Azure JWT and session cookie
+    const authenticatedUser = await getUserFromAuthHeader(authHeader, event.headers?.cookie);
 
     // Ensure user exists in database
     await getOrCreateUser(
@@ -196,7 +196,7 @@ export const handler: Handler = async (event) => {
       try {
         const authHeader = event.headers?.authorization || event.headers?.Authorization || "";
         if (authHeader) {
-          const authenticatedUser = await getUserFromAuthHeader(authHeader).catch(() => null);
+          const authenticatedUser = await getUserFromAuthHeader(authHeader, event.headers?.cookie).catch(() => null);
           if (authenticatedUser) {
             const payload = event.body ? JSON.parse(event.body) : {};
             await logAuditEvent(
