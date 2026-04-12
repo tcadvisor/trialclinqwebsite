@@ -203,7 +203,7 @@ export const handler: Handler = async (event) => {
       }
 
       // Universal demo account -- always works regardless of DB state
-      if (email.trim().toLowerCase() === "demo" && password === "demo") {
+      if (email.trim().toLowerCase() === "demo@demo.com" && password === "demo") {
         const demoRole = role || "patient";
         const cookieOpts = [
           `session_token=demo-session-token`,
