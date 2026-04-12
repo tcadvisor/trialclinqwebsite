@@ -2,7 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import SiteHeader from "../../components/SiteHeader";
 import { useAuth } from "../../lib/auth";
-import { getAddedTrials, type AddedTrial } from "../../lib/providerTrials";
+import { getAddedTrials, getAddedTrialsAsync, type AddedTrial } from "../../lib/providerTrials";
 import {
   getDatabases,
   getDatabasesAsync,
@@ -950,7 +950,9 @@ export default function CustomPatientUpload(): JSX.Element {
         setDatabases(getDatabases(userId));
         setMatches(getMatches(userId));
       }
+      // Load from cache immediately, then refresh from DB to get full trial data (including conditions)
       setTrials(getAddedTrials(userId));
+      getAddedTrialsAsync(userId).then(fresh => setTrials(fresh)).catch(() => {});
     };
 
     loadData();
