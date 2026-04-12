@@ -19,6 +19,7 @@ export async function saveHealthProfileToServer(profile: any): Promise<boolean> 
   try {
     const csrfToken = await getCsrfToken();
     const response = await fetch(`${USER_DATA_API}/health-profile`, {
+      credentials: "include",
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -48,6 +49,7 @@ export async function saveHealthProfileToServer(profile: any): Promise<boolean> 
 export async function loadHealthProfileFromServer(): Promise<any | null> {
   try {
     const response = await fetch(`${USER_DATA_API}/health-profile`, {
+      credentials: "include",
       method: 'GET',
       credentials: 'include', // Important: sends httpOnly cookie
     });
@@ -84,6 +86,7 @@ export async function savePreferencesToServer(prefs: {
   try {
     const csrfToken = await getCsrfToken();
     const response = await fetch(`${USER_DATA_API}/preferences`, {
+      credentials: "include",
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -124,6 +127,7 @@ export async function loadPreferencesFromServer(): Promise<{
 } | null> {
   try {
     const response = await fetch(`${USER_DATA_API}/preferences`, {
+      credentials: "include",
       method: 'GET',
       credentials: 'include',
     });
@@ -172,6 +176,7 @@ export async function saveEligibilityToServer(eligibility: {
   try {
     const csrfToken = await getCsrfToken();
     const response = await fetch(`${USER_DATA_API}/eligibility`, {
+      credentials: "include",
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -200,6 +205,7 @@ export async function saveEligibilityToServer(eligibility: {
 export async function loadEligibilityFromServer(): Promise<any | null> {
   try {
     const response = await fetch(`${USER_DATA_API}/eligibility`, {
+      credentials: "include",
       method: 'GET',
       credentials: 'include',
     });
@@ -234,6 +240,7 @@ export async function loadAllUserDataFromServer(): Promise<{
 } | null> {
   try {
     const response = await fetch(`${USER_DATA_API}/all`, {
+      credentials: "include",
       method: 'GET',
       credentials: 'include',
     });
@@ -321,6 +328,7 @@ export async function savePatientProfile(profile: HealthProfile, authToken?: str
   });
 
   const response = await fetch(`${API_BASE}/profile-write`, {
+      credentials: "include",
     method: 'POST',
     headers,
     body: JSON.stringify(profile),
@@ -353,6 +361,7 @@ export async function uploadPatientFiles(
   });
 
   const response = await fetch(`${API_BASE}/upload-file`, {
+      credentials: "include",
     method: 'POST',
     headers,
     body: formData,
@@ -371,6 +380,7 @@ export async function uploadPatientFiles(
 export async function getPatientFiles(patientId: string, authToken?: string): Promise<PatientFile[]> {
   const authHeader = toAuthHeader(authToken);
   const response = await fetch(`${API_BASE}/get-patient-files?patientId=${encodeURIComponent(patientId)}`, {
+      credentials: "include",
     method: 'GET',
     headers: {
       'Authorization': authHeader,
@@ -465,6 +475,7 @@ export async function saveProviderProfile(profile: ProviderProfile, authToken?: 
   });
 
   const response = await fetch(`${API_BASE}/provider-write`, {
+      credentials: "include",
     method: 'POST',
     headers,
     body: JSON.stringify(profile),

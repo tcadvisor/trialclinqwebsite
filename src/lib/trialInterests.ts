@@ -50,6 +50,7 @@ export async function expressInterestInTrial(
     });
 
     const response = await fetch("/api/express-interest", {
+      credentials: "include",
       method: "POST",
       headers,
       body: JSON.stringify({

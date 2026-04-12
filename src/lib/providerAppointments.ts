@@ -77,6 +77,7 @@ async function fetchAppointmentsFromAPI(
     const url = `/api/appointments${queryString ? `?${queryString}` : ""}`;
 
     const response = await fetch(url, {
+      credentials: "include",
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -148,6 +149,7 @@ async function createAppointmentAPI(
     });
 
     const response = await fetch("/api/appointments", {
+      credentials: "include",
       method: "POST",
       headers,
       body: JSON.stringify({
@@ -198,6 +200,7 @@ async function updateAppointmentAPI(
     });
 
     const response = await fetch("/api/appointments", {
+      credentials: "include",
       method: "PUT",
       headers,
       body: JSON.stringify({
@@ -236,6 +239,7 @@ async function cancelAppointmentAPI(
     });
 
     const response = await fetch(`/api/appointments?appointmentId=${encodeURIComponent(appointmentId)}`, {
+      credentials: "include",
       method: "DELETE",
       headers,
     });

@@ -34,6 +34,7 @@ function writeCache(userId: string, list: MatchedVolunteer[]): void {
 async function fetchFromServer(userId: string): Promise<MatchedVolunteer[]> {
   try {
     const res = await fetch(API_BASE, {
+      credentials: "include",
       headers: { "x-user-id": userId },
     });
     if (!res.ok) return readCache(userId);
@@ -64,6 +65,7 @@ export async function addMatchedVolunteer(userId: string, volunteer: MatchedVolu
   // persist to DB
   try {
     await fetch(API_BASE, {
+      credentials: "include",
       method: "POST",
       headers: { "Content-Type": "application/json", "x-user-id": userId },
       body: JSON.stringify(volunteer),
@@ -81,6 +83,7 @@ export async function removeMatchedVolunteer(userId: string, volunteerId: string
   // persist to DB
   try {
     await fetch(`${API_BASE}?volunteerId=${encodeURIComponent(volunteerId)}`, {
+      credentials: "include",
       method: "DELETE",
       headers: { "x-user-id": userId },
     });

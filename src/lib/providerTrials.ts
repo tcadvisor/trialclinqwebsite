@@ -47,6 +47,7 @@ function writeLocal(userId: string, list: AddedTrial[]): void {
 async function fetchTrialsFromAPI(userId: string): Promise<{ ok: boolean; trials: AddedTrial[] }> {
   try {
     const response = await fetch("/api/provider-trials", {
+      credentials: "include",
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -79,6 +80,7 @@ async function addTrialToAPI(
     });
 
     const response = await fetch("/api/provider-trials", {
+      credentials: "include",
       method: "POST",
       headers,
       body: JSON.stringify({
@@ -115,6 +117,7 @@ async function removeTrialFromAPI(
     });
 
     const response = await fetch(`/api/provider-trials?nctId=${encodeURIComponent(nctId)}`, {
+      credentials: "include",
       method: "DELETE",
       headers,
     });

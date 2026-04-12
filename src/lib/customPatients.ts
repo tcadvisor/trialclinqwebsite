@@ -59,6 +59,7 @@ async function apiRequest<T>(
     const response = await fetch(url, {
       method,
       headers,
+      credentials: "include",
       body: body ? JSON.stringify(body) : undefined,
     });
 
