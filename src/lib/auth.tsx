@@ -1,6 +1,8 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { getCurrentAuthUser, signOutUser, updateSessionRole } from "./simpleAuth";
+// Try Azure Entra ID (MSAL) first, fall back to simpleAuth session for email/password users
+import { getCurrentAuthUser as getMsalUser, signOutUser as msalSignOut, getAccessToken } from "./entraId";
+import { getCurrentAuthUser as getSimpleAuthUser, signOutUser as simpleSignOut } from "./simpleAuth";
 import { generatePatientId, clearAllPatientData } from "./patientIdUtils";
 
 export type User = { email: string; role: "patient" | "provider"; firstName: string; lastName: string; userId: string };
@@ -206,8 +208,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const loadAuth = async () => {
       try {
-        // Check if there's a valid session
-        const authUser = await getCurrentAuthUser();
+        // Try MSAL (Azure) first, then simpleAuth (tries API then localStorage)
+        let authUser: Awaited<ReturnType<typeof getMsalUser>> = null;
+        try { authUser = await getMsalUser(); } catch (_) { /* MSAL not configured, that's fine */ }
+        if (!authUser) {
+          try { authUser = await getSimpleAuthUser(); } catch (_) { /* simpleAuth failed too */ }
+        }
         if (authUser) {
           const pendingRole = readPendingRole();
           const pending = readPendingSignup();
@@ -241,9 +247,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             role,
           };
 
-          // Update session with the correct role
-          updateSessionRole(role);
-
           clearUserScopedDataIfMismatch({ email: newUser.email, userId: newUser.userId });
           rememberRoleForEmail(newUser.email, newUser.role);
           setUser(newUser);
@@ -264,13 +267,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(next);
   }, []);
   const signOut = useCallback(async () => {
-    try {
-      await signOutUser();
-    } catch (error) {
-      console.error('Error signing out:', error);
-    }
+    // Clear everything -- each call is wrapped individually so one failure
+    // doesn't prevent the others from running
+    try { await msalSignOut(); } catch (_) {}
+    try { await simpleSignOut(); } catch (_) {}
 
-    // Clear all patient-scoped data on sign out for security
+    // Wipe all patient-scoped data for security
     clearAllPatientData();
     setUser(null);
   }, []);
@@ -306,3 +308,6 @@ export function RequireRole({ children, role, redirectTo }: { children: React.Re
   if (!isAuthenticated || user?.role !== role) return <Navigate to={redirectTo} replace state={{ from: location }} />;
   return <>{children}</>;
 }
+
+// Re-export so components can grab Azure JWT tokens for API calls
+export { getAccessToken };

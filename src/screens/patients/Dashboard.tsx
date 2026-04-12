@@ -3,10 +3,12 @@ import { Link } from "react-router-dom";
 import { getRealMatchedTrialsForCurrentUser, type LiteTrial } from "../../lib/matching";
 import PatientHeader from "../../components/PatientHeader";
 import { useAuth } from "../../lib/auth";
-import { computeProfileCompletion } from "../../lib/profile";
+import { computeProfileCompletion, syncProfileFromServer } from "../../lib/profile";
 import { Modal } from "../../components/ui/modal";
 import { useToast } from "../../lib/useToast";
 import { TrialTableSkeleton } from "../../components/skeletons";
+import { uploadPatientFiles } from "../../lib/storage";
+import { generatePatientId } from "../../lib/patientIdUtils";
 
 export default function Dashboard(): JSX.Element {
   const { user } = useAuth();
@@ -60,6 +62,8 @@ export default function Dashboard(): JSX.Element {
   useEffect(() => {
     const update = () => setProgress(computeProfileCompletion());
     update();
+    // backfill localStorage from server on new devices so completion % and consent status are accurate
+    syncProfileFromServer().then(update).catch(() => {});
     window.addEventListener("storage", update);
     window.addEventListener("visibilitychange", update);
     window.addEventListener("focus", update as any);
@@ -102,39 +106,51 @@ export default function Dashboard(): JSX.Element {
               type="file"
               className="hidden"
               aria-label="Upload medical record file"
-              onChange={(e) => {
+              onChange={async (e) => {
                 const f = e.target.files && e.target.files[0];
                 if (!f) return;
-                const reader = new FileReader();
-                reader.onload = () => {
-                  try {
-                    const raw = localStorage.getItem("tc_docs");
-                    const list = raw ? (JSON.parse(raw) as any[]) : [];
-                    const id = `${Date.now()}_${Math.random().toString(36).slice(2)}`;
-                    const uploadedBy = (name || "You").trim() || "You";
-                    const item = {
-                      id,
-                      name: f.name,
-                      type: f.type,
-                      size: f.size,
-                      uploadedBy,
-                      uploadedAt: Date.now(),
-                      category: "Diagnostic Reports",
-                      url: reader.result as string,
-                    };
-                    list.unshift(item);
-                    localStorage.setItem("tc_docs", JSON.stringify(list));
-                    try { window.dispatchEvent(new Event("storage")); } catch {}
-                    toast.success("File added to your records. For detailed summarization, use Health Profile > Documents.");
-                  } catch {}
-                  // reset input
+                try {
+                  // figure out who's uploading and where to put it
+                  const patientId = user ? generatePatientId(user) : null;
+                  const w: any = window as any;
+                  const getTok = w?.getAuthToken;
+                  const token = typeof getTok === "function" ? await Promise.resolve(getTok()) : undefined;
+
+                  if (!patientId || !token) {
+                    toast.error("Please complete your profile before uploading files.");
+                    return;
+                  }
+
+                  // upload to Azure Blob Storage instead of stuffing base64 into localStorage
+                  const uploadedFiles = await uploadPatientFiles(patientId, [f], token);
+                  const uploaded = uploadedFiles[0];
+
+                  // only store lightweight metadata locally
+                  const raw = localStorage.getItem("tc_docs");
+                  const list = raw ? (JSON.parse(raw) as any[]) : [];
+                  const id = `${Date.now()}_${Math.random().toString(36).slice(2)}`;
+                  const uploadedBy = (name || "You").trim() || "You";
+                  const item = {
+                    id,
+                    name: uploaded.filename || f.name,
+                    type: f.type,
+                    size: uploaded.size || f.size,
+                    uploadedBy,
+                    uploadedAt: Date.now(),
+                    category: "Diagnostic Reports",
+                    url: uploaded.url, // blob URL, not base64
+                  };
+                  list.unshift(item);
+                  localStorage.setItem("tc_docs", JSON.stringify(list));
+                  try { window.dispatchEvent(new Event("storage")); } catch {}
+                  toast.success("File added to your records. For detailed summarization, use Health Profile > Documents.");
+                } catch (err: any) {
+                  console.error("Dashboard upload failed:", err);
+                  toast.error(err?.message || "Failed to upload file.");
+                } finally {
+                  // reset input so the same file can be re-selected
                   try { (e.target as HTMLInputElement).value = ""; } catch {}
-                };
-                reader.onerror = () => {
-                  try { (e.target as HTMLInputElement).value = ""; } catch {}
-                  toast.error("Failed to read file.");
-                };
-                reader.readAsDataURL(f);
+                }
               }}
             />
             <button

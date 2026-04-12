@@ -1,3 +1,25 @@
+import { loadAllUserDataFromServer } from './storage';
+
+/**
+ * Pull the user's profile from the server and backfill localStorage
+ * if it's empty. Call this once on app load so profile completion %
+ * works correctly on a new device.
+ */
+export async function syncProfileFromServer(): Promise<void> {
+  // only bother if the local cache looks empty
+  const hasLocal = localStorage.getItem('tc_health_profile_v1')
+    || localStorage.getItem('tc_consent')
+    || localStorage.getItem('tc_eligibility_profile');
+  if (hasLocal) return;
+
+  try {
+    // loadAllUserDataFromServer caches everything into localStorage for us
+    await loadAllUserDataFromServer();
+  } catch (err) {
+    console.warn('syncProfileFromServer: could not reach server, profile completion may be stale', err);
+  }
+}
+
 export type ProfileBreakdown = {
   basics: number; // name + email
   consent: number; // consent checklist

@@ -3,7 +3,7 @@ import SiteHeader from "../../components/SiteHeader";
 import { Link } from "react-router-dom";
 import { getAddedTrials, getAddedTrialsAsync, AddedTrial } from "../../lib/providerTrials";
 import { getAppointments, getAppointmentsAsync, Appointment } from "../../lib/providerAppointments";
-import { getMatchedVolunteers, MatchedVolunteer } from "../../lib/providerMatches";
+import { getMatchedVolunteers, getMatchedVolunteersAsync, MatchedVolunteer } from "../../lib/providerMatches";
 import { getTrialInterestedPatients, type InterestedPatient } from "../../lib/trialInterests";
 import { useAuth } from "../../lib/auth";
 import { BarChart3, Users, Calendar, Plus, ArrowRight, Database, Upload } from "lucide-react";
@@ -36,6 +36,12 @@ export default function ProviderDashboard(): JSX.Element {
       }
     };
     window.addEventListener("storage", onStorage);
+
+    // pull fresh data from server so dashboard isn't stale
+    getAddedTrialsAsync(userId).then(setTrials).catch(() => {});
+    getAppointmentsAsync(userId).then(setAppointments).catch(() => {});
+    getMatchedVolunteersAsync(userId).then(setMatchedVolunteers).catch(() => {});
+
     return () => window.removeEventListener("storage", onStorage);
   }, [userId]);
 

@@ -18,13 +18,14 @@ export const handler: Handler = async (event) => {
   }
 
   const authHeader = event.headers?.authorization || event.headers?.Authorization || "";
-  if (!authHeader) {
-    return cors.response(401, { error: "Missing Authorization header" });
+  const cookieHeader = event.headers?.cookie || "";
+  if (!authHeader && !cookieHeader) {
+    return cors.response(401, { error: "Missing authentication" });
   }
 
   try {
     // Authenticate user and ensure database presence
-    const authenticatedUser = await getUserFromAuthHeader(authHeader);
+    const authenticatedUser = await getUserFromAuthHeader(authHeader, event.headers?.cookie);
     await getOrCreateUser(
       authenticatedUser.userId,
       authenticatedUser.email,

@@ -16,7 +16,7 @@ import {
 import { useAuth } from "../../lib/auth";
 import PatientHeader from "../../components/PatientHeader";
 import { buildMarkdownAppend } from "../../components/ClinicalSummaryUploader";
-import { uploadPatientFiles, getPatientFiles, savePatientProfile } from "../../lib/storage";
+import { uploadPatientFiles, getPatientFiles, savePatientProfile, saveEligibilityToServer } from "../../lib/storage";
 import { formatPhoneNumber, getPhoneValidationError } from "../../lib/phoneValidation";
 import { generatePatientId, isValidProfileForUser } from "../../lib/patientIdUtils";
 import { getEpicPatientData, clearAllEpicData } from "../../lib/tokenManager";
@@ -927,6 +927,14 @@ function HealthProfileContent(): JSX.Element {
       localStorage.setItem("tc_eligibility_profile", JSON.stringify(next));
       window.dispatchEvent(new Event("storage"));
       try { window.dispatchEvent(new CustomEvent("tc_profile_updated", { detail: { source: "HealthProfile", updated: ["loc","radius"] } })); } catch {}
+
+      // persist to server so prefs survive across devices / incognito
+      try {
+        saveEligibilityToServer({ loc: travelLoc.trim(), radius: travelRadius });
+      } catch (err) {
+        console.warn("Server save for travel prefs failed, localStorage still has it:", err);
+      }
+
       setTravelSaveMsg("Preferences saved");
       setTravelSaveState("saved");
       setTimeout(() => setTravelSaveState("idle"), 2000);

@@ -13,6 +13,7 @@ export default function ProviderLogin(): JSX.Element {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
   const authMessage = (location.state as any)?.authMessage as string | undefined;
 
   React.useEffect(() => {

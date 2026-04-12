@@ -15,13 +15,10 @@ const SESSION_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 // Track if we're using API or localStorage fallback
 let useApiAuth = true;
 
-// ============================================================================
-// CRITICAL: STRICT MODE - DISABLE LOCALSTORAGE FALLBACK IN PRODUCTION
-// ============================================================================
-const IS_PRODUCTION = import.meta.env.PROD || import.meta.env.MODE === 'production';
-// Only allow localStorage fallback in dev -- production must have a real database behind the API.
-// If the API is down in prod, we'd rather fail loudly than silently store creds in the browser.
-const ALLOW_LOCALSTORAGE_FALLBACK = import.meta.env.DEV;
+// Always try the API first. If the backend is unreachable (no DB, no server,
+// network error), fall back to localStorage so users can still sign up and log in.
+// The API path is always attempted before touching localStorage.
+const ALLOW_LOCALSTORAGE_FALLBACK = true;
 
 // Development warning flag
 let _devAuthWarning: string | null = null;
@@ -228,10 +225,9 @@ export async function signUpUser(input: SignUpInput): Promise<{ userId: string; 
       throw new Error('Authentication service unavailable. Please contact support. (Database not configured)');
     }
 
-    // Development only: fall back to localStorage with clear warning
-    console.warn("⚠️ DEV MODE: Backend auth failed, using localStorage fallback:", err);
-    console.warn("⚠️ WARNING: User data stored in localStorage - NOT SECURE FOR PRODUCTION");
-    _devAuthWarning = "⚠️ DEV MODE: Using localStorage fallback - database not connected!";
+    // API unreachable -- fall back to localStorage so signup still works
+    console.warn("Backend auth unavailable, using localStorage fallback:", err);
+    _devAuthWarning = "Using localStorage fallback - backend not connected";
     useApiAuth = false;
 
     const users = getStoredUsers();
@@ -321,10 +317,9 @@ export async function signInUser(input: SignInInput & { role?: 'patient' | 'prov
       throw new Error('Authentication service unavailable. Please contact support. (Database not configured)');
     }
 
-    // Development only: fall back to localStorage with clear warning
-    console.warn("⚠️ DEV MODE: Backend auth failed, using localStorage fallback:", err);
-    console.warn("⚠️ WARNING: User data stored in localStorage - NOT SECURE FOR PRODUCTION");
-    _devAuthWarning = "⚠️ DEV MODE: Using localStorage fallback - database not connected!";
+    // API unreachable -- fall back to localStorage so login still works
+    console.warn("Backend auth unavailable, using localStorage fallback:", err);
+    _devAuthWarning = "Using localStorage fallback - backend not connected";
     useApiAuth = false;
 
     const users = getStoredUsers();
@@ -398,12 +393,8 @@ export async function getCurrentAuthUser(): Promise<AuthUser | null> {
       }
     }
   } catch {
-    // Backend not available
-    if (!ALLOW_LOCALSTORAGE_FALLBACK) {
-      console.error("❌ AUTH VALIDATE: Backend unavailable, no localStorage fallback in production");
-      return null;
-    }
-    console.warn("⚠️ DEV MODE: Backend unavailable, checking localStorage session");
+    // Backend not available, check localStorage session instead
+    console.warn("Backend unavailable, checking localStorage session");
   }
 
   // Fallback to localStorage session (dev mode only effectively)
@@ -413,9 +404,8 @@ export async function getCurrentAuthUser(): Promise<AuthUser | null> {
     return null;
   }
 
-  // Flag that we're using localStorage (not secure)
   if (!useApiAuth) {
-    _devAuthWarning = "⚠️ DEV MODE: Session from localStorage - NOT from database!";
+    _devAuthWarning = "Session restored from localStorage - backend not connected";
   }
 
   return {

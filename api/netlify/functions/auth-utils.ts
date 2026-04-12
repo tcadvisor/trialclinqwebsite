@@ -26,6 +26,8 @@
 
 import jwt from 'jsonwebtoken';
 import jwksClient from 'jwks-rsa';
+import crypto from 'crypto';
+import { query } from './db';
 
 export interface AuthenticatedUser {
   userId: string;
@@ -168,14 +170,71 @@ export async function verifyAndDecodeToken(authHeader: string): Promise<Authenti
 }
 
 /**
- * Extract user info from Authorization header
+ * Verify a simpleAuth session token (from httpOnly cookie or Bearer header).
+ * These are random hex tokens hashed with SHA-256 and stored in the sessions table.
  */
-export async function getUserFromAuthHeader(authHeader?: string): Promise<AuthenticatedUser> {
-  if (!authHeader) {
-    throw new Error('Missing Authorization header');
+async function verifySessionToken(token: string): Promise<AuthenticatedUser> {
+  const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
+  const result = await query(
+    `SELECT s.user_id, u.email, u.first_name, u.last_name, u.role
+     FROM sessions s
+     JOIN users u ON s.user_id = u.user_id
+     WHERE s.token_hash = $1 AND s.expires_at > NOW()`,
+    [tokenHash]
+  );
+
+  if (result.rows.length === 0) {
+    throw new Error('Invalid or expired session token');
   }
 
-  return verifyAndDecodeToken(authHeader);
+  const row = result.rows[0];
+  return {
+    userId: row.user_id,
+    email: row.email,
+    firstName: row.first_name || '',
+    lastName: row.last_name || '',
+    role: row.role || 'patient',
+    tenantId: '',
+    oid: '',
+  };
+}
+
+/**
+ * Extract user info from Authorization header or session cookie.
+ * Supports both Azure Entra ID JWTs and simpleAuth session tokens.
+ */
+export async function getUserFromAuthHeader(authHeader?: string, cookieHeader?: string): Promise<AuthenticatedUser> {
+  // Try Bearer token first (could be Azure JWT or simpleAuth token)
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.substring(7);
+
+    // If it looks like a JWT (has dots), try Azure verification
+    if (token.includes('.')) {
+      try {
+        return await verifyAndDecodeToken(authHeader);
+      } catch {
+        // not a valid Azure JWT, fall through
+      }
+    }
+
+    // Otherwise treat it as a simpleAuth session token
+    try {
+      return await verifySessionToken(token);
+    } catch {
+      // fall through to cookie check
+    }
+  }
+
+  // Try session cookie (simpleAuth httpOnly cookie)
+  if (cookieHeader) {
+    const match = cookieHeader.match(/session_token=([^;]+)/);
+    if (match?.[1]) {
+      return await verifySessionToken(match[1]);
+    }
+  }
+
+  throw new Error('Missing or invalid authentication');
 }
 
 /**
@@ -221,16 +280,13 @@ export function generateInternalUserId(azureOid: string): string {
 export async function verifyTokenAndGetUser(eventOrAuthHeader: any): Promise<AuthenticatedUser> {
   // If it's a string, treat it as an auth header
   if (typeof eventOrAuthHeader === 'string') {
-    return verifyAndDecodeToken(eventOrAuthHeader);
+    return getUserFromAuthHeader(eventOrAuthHeader);
   }
 
-  // If it's an event object, extract the auth header
+  // If it's an event object, extract auth header and cookies
   const authHeader = eventOrAuthHeader?.headers?.authorization ||
                      eventOrAuthHeader?.headers?.Authorization || '';
+  const cookieHeader = eventOrAuthHeader?.headers?.cookie || '';
 
-  if (!authHeader) {
-    throw new Error('Missing Authorization header');
-  }
-
-  return verifyAndDecodeToken(authHeader);
+  return getUserFromAuthHeader(authHeader || undefined, cookieHeader || undefined);
 }

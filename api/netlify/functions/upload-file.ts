@@ -129,7 +129,7 @@ export const handler: Handler = async (event: HandlerEvent): Promise<HandlerResp
 
           // Authenticate user
           try {
-            var authenticatedUser = await getUserFromAuthHeader(authHeader);
+            var authenticatedUser = await getUserFromAuthHeader(authHeader, event.headers?.cookie);
           } catch (authError: any) {
             return resolve(cors.response(401, { error: authError.message || "Unauthorized" }));
           }

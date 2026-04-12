@@ -472,6 +472,21 @@ export async function initializeDatabase() {
       CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);
     `);
 
+    // Provider matched volunteers
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS provider_matched_volunteers (
+        id SERIAL PRIMARY KEY,
+        provider_id VARCHAR(255) NOT NULL,
+        volunteer_id VARCHAR(255) NOT NULL,
+        code VARCHAR(255),
+        title VARCHAR(500),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(provider_id, volunteer_id)
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_pmv_provider ON provider_matched_volunteers(provider_id);
+    `);
+
     console.log('✅ Database schema initialized successfully');
   } catch (error: any) {
     console.error('❌ Database initialization error:', error.message);

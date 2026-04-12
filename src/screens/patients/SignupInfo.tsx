@@ -4,6 +4,7 @@ import SiteHeader from "../../components/SiteHeader";
 import { signUpUser } from "../../lib/simpleAuth";
 import { useAuth } from "../../lib/auth";
 import { validateLocation } from "../../lib/addressValidation";
+import { saveHealthProfileToServer, saveEligibilityToServer } from "../../lib/storage";
 
 export default function SignupInfo(): JSX.Element {
   const { search } = useLocation();
@@ -157,6 +158,26 @@ export default function SignupInfo(): JSX.Element {
         userId: result.userId,
         role: "patient",
       });
+
+      // Persist health profile to the database so it's not just in localStorage
+      try {
+        const profileWithId = { ...healthProfile, patientId: result.userId };
+        await saveHealthProfileToServer(profileWithId);
+
+        await saveEligibilityToServer({
+          dob,
+          age: calculatedAge,
+          weight: Number(weight) || undefined,
+          gender,
+          race,
+          language,
+          loc: zip,
+          radius: distance,
+        });
+      } catch (saveErr) {
+        // Don't block signup if the server save fails -- localStorage still has it
+        console.warn("Could not persist profile to server during signup:", saveErr);
+      }
 
       // Clean up pending signup data
       localStorage.removeItem("pending_signup_v1");
@@ -412,7 +433,7 @@ export default function SignupInfo(): JSX.Element {
               disabled={!canSubmit || isLoading}
               className={`w-full rounded-full px-6 py-3 text-white font-medium ${canSubmit && !isLoading ? "bg-[#1033e5] hover:bg-blue-700" : "bg-blue-400 cursor-not-allowed"}`}
             >
-              {isLoading ? "Connecting to Microsoft..." : "Continue"}
+              {isLoading ? "Creating account..." : "Continue"}
             </button>
             <div className="text-center text-xs text-gray-600">Your data stays private and protected with HIPAA-compliant security.</div>
           </div>
