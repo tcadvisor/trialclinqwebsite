@@ -56,7 +56,7 @@ export default function Home() {
               "radial-gradient(1200px 400px at 60% 20%, rgba(16,51,229,0.08), transparent 60%), radial-gradient(600px 300px at 30% 50%, rgba(16,229,157,0.08), transparent 60%)",
           }}
         />
-        <div className="max-w-5xl mx-auto px-4 pt-14 pb-16 text-center">
+        <div className="max-w-5xl mx-auto px-4 pt-20 pb-24 text-center">
           <div className="inline-flex items-center gap-2 bg-gray-100 rounded-full px-3 py-1 text-xs font-medium">
             <span>Privacy First</span>
             <span className="text-gray-500">HIPAA-secure, patient-approved.</span>
@@ -72,7 +72,7 @@ export default function Home() {
 
           <form
             onSubmit={handleSearch}
-            className="mt-10 bg-white/80 backdrop-blur rounded-2xl shadow-xl ring-1 ring-black/5 p-5 sm:p-7 max-w-3xl mx-auto"
+            className="mt-12 bg-white/80 backdrop-blur rounded-2xl shadow-xl ring-1 ring-black/5 p-5 sm:p-8 max-w-3xl mx-auto"
           >
             <div className="grid sm:grid-cols-[1fr_1fr_auto] gap-3 sm:gap-4 items-end">
               <SearchAutocomplete
@@ -106,29 +106,9 @@ export default function Home() {
             </div>
           </form>
 
-          <div className="mt-4 max-w-3xl mx-auto text-left">
-            <div className="rounded-2xl border bg-white/70 backdrop-blur p-4 sm:p-6 flex items-start gap-3">
-              <div className="shrink-0 rounded-full bg-blue-50 p-2"><Shield className="h-5 w-5 text-blue-700" /></div>
-              <div className="text-sm">
-                <div className="font-semibold">Match your Electronic Health Record (EHR) to trials</div>
-                <div className="text-gray-600">Import your EHR to browse trials that fit your medical history and lab results — securely and with your consent.</div>
-              </div>
-              {user ? (
-                <Link to="/patients/ehr" className="ml-auto inline-flex items-center gap-2 rounded-full bg-gray-900 px-4 py-2 text-white text-sm hover:bg-black">
-                  Connect to Trial Portal
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              ) : (
-                <button
-                  onClick={() => setShowSignupModal(true)}
-                  className="ml-auto inline-flex items-center gap-2 rounded-full bg-gray-900 px-4 py-2 text-white text-sm hover:bg-black"
-                >
-                  Connect to Trial Portal
-                  <ArrowRight className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-          </div>
+          <p className="mt-6 text-center text-sm text-gray-500 max-w-md mx-auto">
+            Search over 400,000 clinical trials from ClinicalTrials.gov matched to your profile with AI.
+          </p>
         </div>
       </section>
 
