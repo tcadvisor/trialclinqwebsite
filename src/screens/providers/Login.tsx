@@ -94,7 +94,7 @@ export default function ProviderLogin(): JSX.Element {
           </div>
           {error && <div className="text-sm text-red-600">{error}</div>}
           <button
-            className="w-full px-4 py-2 rounded bg-gray-900 text-white hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full px-4 py-2 rounded-full bg-gray-900 text-white hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed"
             type="submit"
             disabled={isLoading}
           >

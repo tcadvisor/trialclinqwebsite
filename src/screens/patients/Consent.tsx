@@ -118,7 +118,7 @@ export default function Consent(): JSX.Element {
         </div>
         <div className="border-t">
           <div className="max-w-6xl mx-auto px-4 py-4 text-xs text-gray-500 flex items-center justify-between">
-            <span>Copyright © 2025 TrialCliniq.</span>
+            <span>Copyright © {new Date().getFullYear()} TrialClinIQ.</span>
             <span>Website by Apperr</span>
             <a href="#" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="hover:text-gray-700 cursor-pointer">Back to top</a>
           </div>

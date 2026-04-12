@@ -53,7 +53,7 @@ export default function Settings(): JSX.Element {
 
       <footer className="w-full border-t mt-16">
         <div className="w-full max-w-[1200px] mx-auto px-4 py-6 text-sm text-gray-600 flex items-center justify-between">
-          <span>Copyright © 2025 TrialCliniq.</span>
+          <span>Copyright © {new Date().getFullYear()} TrialClinIQ.</span>
           <span>Terms · Privacy</span>
         </div>
       </footer>

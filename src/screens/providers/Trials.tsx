@@ -179,7 +179,7 @@ export default function ProviderTrials(): JSX.Element {
                         setSelected([]);
                       }
                     }}
-                    className="w-full inline-flex items-center justify-center rounded-full bg-[#1033e5] px-4 py-3 text-white text-sm font-medium hover:bg-blue-700"
+                    className="w-full inline-flex items-center justify-center rounded-full bg-blue-600 px-4 py-3 text-white text-sm font-medium hover:bg-blue-700"
                   >
                     Confirm & Add Trials
                   </button>

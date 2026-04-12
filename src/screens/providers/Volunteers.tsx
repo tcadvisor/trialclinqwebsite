@@ -370,6 +370,7 @@ export default function Volunteers(): JSX.Element {
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 placeholder="Search by Patient ID, email, condition, or trial"
+                aria-label="Search volunteers"
                 className="w-full rounded-full border px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>

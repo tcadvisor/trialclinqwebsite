@@ -209,9 +209,9 @@ export default function EligibleTrials(): JSX.Element {
             <tbody>
               {pageItems.map((t) => (
                 <tr key={t.slug} className="border-t">
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 max-w-[300px]">
                     <Link to={`/study/${t.nctId}`} state={{ score: t.aiScore, rationale: t.aiRationale || t.reason }} className="text-gray-900 hover:underline">
-                      {t.title}
+                      <span className="line-clamp-2">{t.title}</span>
                     </Link>
                   </td>
                   <td className="px-4 py-3 text-gray-600">{t.nctId}</td>
@@ -345,7 +345,7 @@ export default function EligibleTrials(): JSX.Element {
 
       <footer className="w-full border-t mt-16">
         <div className="w-full max-w-[1200px] mx-auto px-4 py-6 text-sm text-gray-600 flex items-center justify-between">
-          <span>Copyright © 2025 TrialCliniq.</span>
+          <span>Copyright © {new Date().getFullYear()} TrialClinIQ.</span>
           <span>Terms · Privacy</span>
         </div>
       </footer>

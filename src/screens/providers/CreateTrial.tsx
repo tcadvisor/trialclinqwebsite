@@ -647,7 +647,7 @@ export default function CreateTrial(): JSX.Element {
               className="flex items-center gap-2 px-4 py-2 border rounded-lg text-sm hover:bg-gray-50 disabled:opacity-50"
             >
               <Save className="h-4 w-4" />
-              Save Draft
+              {saving ? "Saving..." : "Save Draft"}
             </button>
             <button
               onClick={() => handleSave(true)}
@@ -655,7 +655,7 @@ export default function CreateTrial(): JSX.Element {
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50"
             >
               <Eye className="h-4 w-4" />
-              Publish Trial
+              {saving ? "Publishing..." : "Publish Trial"}
             </button>
           </div>
         </div>

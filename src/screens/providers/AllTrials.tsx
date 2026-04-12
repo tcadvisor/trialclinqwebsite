@@ -68,6 +68,7 @@ export default function AllTrials(): JSX.Element {
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Search trial title"
+              aria-label="Search trials"
               className="w-full rounded-full border px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>

@@ -279,6 +279,7 @@ export default function EhrDirectory(): JSX.Element {
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Search healthcare systems or providers"
+              aria-label="Search healthcare systems"
               className="w-full rounded-full border px-4 py-2 pl-10"
             />
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔎</span>

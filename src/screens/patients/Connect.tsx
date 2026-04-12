@@ -35,7 +35,7 @@ export default function Connect(): JSX.Element {
   const [dob, setDob] = React.useState("");
   const [zip, setZip] = React.useState("");
   const [distance, setDistance] = React.useState("");
-  const [gender, setGender] = React.useState<"Male" | "Female" | "">("");
+  const [gender, setGender] = React.useState("");
   const [race, setRace] = React.useState("");
   const [language, setLanguage] = React.useState("");
   const [agree1, setAgree1] = React.useState(false);
@@ -98,10 +98,13 @@ export default function Connect(): JSX.Element {
               </div>
               <div>
                 <label className="block text-sm font-medium">Biological Gender*</label>
-                <div className="mt-2 inline-flex items-center gap-2">
-                  <button type="button" onClick={()=>setGender("Male")} className={`px-4 py-2 rounded-full border ${gender === "Male" ? "bg-gray-900 text-white" : "bg-white"}`}>Male</button>
-                  <button type="button" onClick={()=>setGender("Female")} className={`px-4 py-2 rounded-full border ${gender === "Female" ? "bg-gray-900 text-white" : "bg-white"}`}>Female</button>
-                </div>
+                <select value={gender} onChange={(e)=>setGender(e.target.value)} className="mt-2 w-full rounded-full border px-4 py-2">
+                  <option value="">Select gender</option>
+                  <option value="Female">Female</option>
+                  <option value="Male">Male</option>
+                  <option value="Non-binary">Non-binary</option>
+                  <option value="Prefer not to say">Prefer not to say</option>
+                </select>
               </div>
             </div>
             <div className="grid sm:grid-cols-2 gap-4">

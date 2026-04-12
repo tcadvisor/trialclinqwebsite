@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import SiteHeader from "../../components/SiteHeader";
+import HomeHeader from "../../components/HomeHeader";
 import { formatPhoneNumber, getPhoneValidationError } from "../../lib/phoneValidation";
 import { signUpUser } from "../../lib/simpleAuth";
 import { useAuth } from "../../lib/auth";
@@ -157,7 +157,7 @@ export default function InvestigatorInformation(): JSX.Element {
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
-      <SiteHeader active={undefined} />
+      <HomeHeader />
       <main className="max-w-3xl mx-auto px-4 py-10">
         <h1 className="text-3xl md:text-4xl font-semibold text-center">Investigator Information</h1>
         <p className="text-center text-gray-600 mt-2">Enter your site's contact and location details for trial coordination</p>

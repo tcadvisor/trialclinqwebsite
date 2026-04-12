@@ -14,7 +14,7 @@ const TabButton: React.FC<{ active: boolean; onClick: () => void; children: Reac
   <button
     type="button"
     onClick={onClick}
-    className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px ${active ? 'border-[#1033e5] text-gray-900' : 'border-transparent text-gray-600 hover:text-gray-900'}`}
+    className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px ${active ? 'border-blue-600 text-gray-900' : 'border-transparent text-gray-600 hover:text-gray-900'}`}
   >
     {children}
   </button>
@@ -55,7 +55,7 @@ export default function TrialDetails(): JSX.Element {
             />
           </Link>
           <div className="inline-flex items-center gap-2">
-            <Link to="/search-results"><Button variant="outline" className="rounded-full border-[#1033e5] text-[#1033e5]">Search results</Button></Link>
+            <Link to="/search-results"><Button variant="outline" className="rounded-full border-blue-600 text-blue-600">Search results</Button></Link>
           </div>
         </nav>
       </header>
@@ -81,7 +81,7 @@ export default function TrialDetails(): JSX.Element {
           <MapPinIcon className="w-4 h-4 text-gray-500" />
           <span className="text-gray-700">{trial.center}</span>
           {trial.otherCentersCount > 0 && (
-            <button onClick={() => setTab("centers")} className="text-sm text-[#1033e5] hover:underline">See other centers</button>
+            <button onClick={() => setTab("centers")} className="text-sm text-blue-600 hover:underline">See other centers</button>
           )}
         </div>
 
@@ -93,13 +93,13 @@ export default function TrialDetails(): JSX.Element {
         </div>
 
         <div className="flex items-center gap-2 text-sm text-gray-700 mb-6">
-          <CheckCircle2 className="w-4 h-4 text-[#1033e5]" />
+          <CheckCircle2 className="w-4 h-4 text-blue-600" />
           {isAuthenticated ? (
             <span>{trial.aiScore}% TrialCliniq AI Score</span>
           ) : (
             <button
               onClick={() => navigate("/patients/volunteer")}
-              className="text-[#1033e5] hover:underline font-medium"
+              className="text-blue-600 hover:underline font-medium"
             >
               See Matching Score
             </button>
@@ -215,7 +215,7 @@ export default function TrialDetails(): JSX.Element {
               <Card>
                 <CardContent className="p-6 space-y-3">
                   <div className="flex items-start gap-2">
-                    <InfoIcon className="w-5 h-5 text-[#1033e5] mt-0.5" />
+                    <InfoIcon className="w-5 h-5 text-blue-600 mt-0.5" />
                     <div>
                       <h3 className="text-lg font-semibold mb-1">AI Match Report</h3>
                       <p className="text-gray-700">Your AI match score is an estimate based on the eligibility criteria and your profile. Please review criteria and consult the study team for confirmation.</p>
@@ -247,7 +247,7 @@ export default function TrialDetails(): JSX.Element {
       {/* Footer */}
       <footer className="w-full border-t mt-16">
         <div className="w-full max-w-[1200px] mx-auto px-4 py-6 text-sm text-gray-600 flex items-center justify-between">
-          <span>Copyright © 2025 TrialCliniq.</span>
+          <span>Copyright © {new Date().getFullYear()} TrialClinIQ.</span>
           <span><Link to="/patients/privacy" className="hover:text-gray-900">Terms</Link> · <Link to="/patients/privacy" className="hover:text-gray-900">Privacy</Link></span>
         </div>
       </footer>

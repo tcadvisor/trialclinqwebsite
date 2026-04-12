@@ -428,7 +428,7 @@ export default function Home() {
         </div>
         <div className="border-t">
           <div className="max-w-6xl mx-auto px-4 py-4 text-xs text-gray-500 flex items-center justify-between">
-            <span>Copyright © 2025 TrialCliniq.</span>
+            <span>Copyright © 2025 TrialClinIQ.</span>
             <span>Website by Apperr</span>
             <a href="#top" className="hover:text-gray-700">Back to top</a>
           </div>
