@@ -42,6 +42,10 @@ export interface PatientProfile {
   medications: Medication[];
   vitals?: Vitals;
   labResults?: LabResult[];
+  biomarkers?: string[];
+  ecogStatus?: number | null;
+  cancerStage?: string | null;
+  priorTherapies?: string[];
 }
 
 export interface Problem {
@@ -426,7 +430,7 @@ List ALL missing information that would help refine the assessment.`;
     const aiResult = JSON.parse(content);
     const result: MatchResult & { _aiActuallyUsed?: boolean; _scoringMethod?: string } = {
       patientId: patient.id,
-      patientName: `${patient.firstName} ${patient.lastName}`,
+      patientName: `Patient ${patient.id}`,
       overallScore: Math.min(100, Math.max(0, aiResult.overallScore || 0)),
       eligibilityStatus: aiResult.eligibilityStatus || "potentially_eligible",
       confidence: aiResult.confidence || 50,
@@ -566,12 +570,20 @@ function createExclusionResult(patient: PatientProfile, reason: string): MatchRe
 function buildPatientSummary(patient: PatientProfile): string {
   const sections: string[] = [];
 
-  // Demographics
+  // Demographics -- no names or DOB sent to the model (HIPAA)
   sections.push(`DEMOGRAPHICS:
-- Name: ${patient.firstName} ${patient.lastName}
+- Patient: [De-identified]
 - Age: ${patient.age} years
 - Sex: ${patient.sex}
 - Location: ${patient.location?.city ? `${patient.location.city}, ${patient.location.state}` : "Not specified"}`);
+
+  // Oncology-specific fields when available
+  const oncoLines: string[] = [];
+  if (patient.biomarkers && patient.biomarkers.length) oncoLines.push(`- Biomarkers: ${patient.biomarkers.join(", ")}`);
+  if (typeof patient.ecogStatus === "number") oncoLines.push(`- ECOG Performance Status: ${patient.ecogStatus}`);
+  if (patient.cancerStage) oncoLines.push(`- Disease Stage: ${patient.cancerStage}`);
+  if (patient.priorTherapies && patient.priorTherapies.length) oncoLines.push(`- Prior Therapies: ${patient.priorTherapies.join(", ")}`);
+  if (oncoLines.length) sections.push(`\nCLINICAL STAGING:\n${oncoLines.join("\n")}`);
 
   // Medical conditions
   if (patient.problems.length > 0) {

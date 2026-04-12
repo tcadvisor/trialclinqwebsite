@@ -89,6 +89,8 @@ export interface CustomPatient {
   age?: number;
   sex?: string;
   gender?: string;
+  race?: string;
+  language?: string;
   location?: string;
   address?: string;
   city?: string;
@@ -98,6 +100,12 @@ export interface CustomPatient {
   conditions?: string[];
   medications?: string[];
   allergies?: string[];
+  diagnosisYear?: string;
+  diseaseStage?: string;
+  ecog?: string;
+  biomarkers?: string[];
+  priorTherapies?: string[];
+  comorbidities?: string[];
   notes?: string;
   source: string; // filename or "manual"
   importedAt: string;
@@ -149,6 +157,8 @@ export interface ColumnMapping {
   age?: string;
   sex?: string;
   gender?: string;
+  race?: string;
+  language?: string;
   location?: string;
   address?: string;
   city?: string;
@@ -158,6 +168,12 @@ export interface ColumnMapping {
   conditions?: string;
   medications?: string;
   allergies?: string;
+  diagnosisYear?: string;
+  diseaseStage?: string;
+  ecog?: string;
+  biomarkers?: string;
+  priorTherapies?: string;
+  comorbidities?: string;
   notes?: string;
 }
 
@@ -298,19 +314,34 @@ function generateId(): string {
 }
 
 function normalizeColumnName(name: string): string {
-  return name
+  let col = name
     .toLowerCase()
     .trim()
-    .replace(/[^a-z0-9]/g, "")
-    .replace(/date_?of_?birth|birthdate|birth_?date|dateofbirth/g, "dob")
-    .replace(/firstname|first_?name/g, "firstname")
-    .replace(/lastname|last_?name/g, "lastname")
-    .replace(/email_?address|emailaddress/g, "email")
-    .replace(/phone_?number|phonenumber|telephone/g, "phone")
-    .replace(/zipcode|zip_?code|postal_?code|postalcode/g, "zipcode")
-    .replace(/gender|sex/g, "sex")
-    .replace(/medical_?conditions|condition|diagnosis|diagnoses/g, "conditions")
-    .replace(/current_?medications|medication|meds/g, "medications");
+    .replace(/[^a-z0-9]/g, "");
+
+  // Map common aliases to canonical names.
+  // Order matters -- more specific patterns go first to avoid partial re-matching.
+  const rules: [RegExp, string][] = [
+    [/^dateofbirth$|^birthdate$|^dob$/, "dob"],
+    [/^firstname$/, "firstname"],
+    [/^lastname$/, "lastname"],
+    [/^emailaddress$|^email$/, "email"],
+    [/^phonenumber$|^telephone$|^phone$/, "phone"],
+    [/^zip$|^zipcode$|^postalcode$/, "zipcode"],
+    [/^gender$|^sex$/, "sex"],
+    [/^primarycondition$|^primaryconditions$/, "conditions"],
+    [/^medicalconditions?$|^condition$|^conditions$|^diagnosis$|^diagnoses$/, "conditions"],
+    [/^currentmedications?$|^medications?$|^meds$/, "medications"],
+  ];
+
+  for (const [pattern, replacement] of rules) {
+    if (pattern.test(col)) {
+      col = replacement;
+      break;
+    }
+  }
+
+  return col;
 }
 
 function autoMapColumns(headers: string[]): ColumnMapping {
@@ -334,6 +365,14 @@ function autoMapColumns(headers: string[]): ColumnMapping {
     { pattern: /^conditions$/, field: "conditions" },
     { pattern: /^medications$/, field: "medications" },
     { pattern: /^allergies$/, field: "allergies" },
+    { pattern: /^race$/, field: "race" },
+    { pattern: /^language$/, field: "language" },
+    { pattern: /^diagnosisyear$|^diagnosis_?year$|^yearofdiagnosis$/, field: "diagnosisYear" },
+    { pattern: /^diseasestage$|^disease_?stage$|^stage$/, field: "diseaseStage" },
+    { pattern: /^ecog$|^ecogscore$|^ecog_?score$|^performancestatus$/, field: "ecog" },
+    { pattern: /^biomarkers?$/, field: "biomarkers" },
+    { pattern: /^priortherapies$|^prior_?therapies$|^previoustreatments?$/, field: "priorTherapies" },
+    { pattern: /^comorbidities$|^comorbidity$/, field: "comorbidities" },
     { pattern: /^notes?$/, field: "notes" },
   ];
 
@@ -406,7 +445,9 @@ function parseRow(row: Record<string, unknown>, mapping: ColumnMapping, source: 
     dob: dobStr,
     age,
     sex: getValue("sex"),
-    gender: getValue("sex"), // Alias
+    gender: getValue("sex"), // alias
+    race: getValue("race"),
+    language: getValue("language"),
     location: getValue("location"),
     address: getValue("address"),
     city: getValue("city"),
@@ -416,6 +457,12 @@ function parseRow(row: Record<string, unknown>, mapping: ColumnMapping, source: 
     conditions: getArrayValue("conditions"),
     medications: getArrayValue("medications"),
     allergies: getArrayValue("allergies"),
+    diagnosisYear: getValue("diagnosisYear"),
+    diseaseStage: getValue("diseaseStage"),
+    ecog: getValue("ecog"),
+    biomarkers: getArrayValue("biomarkers"),
+    priorTherapies: getArrayValue("priorTherapies"),
+    comorbidities: getArrayValue("comorbidities"),
     notes: getValue("notes"),
     source,
     importedAt: new Date().toISOString(),

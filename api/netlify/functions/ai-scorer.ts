@@ -53,7 +53,16 @@ export const handler: Handler = async (event) => {
     const data = await res.json();
     const content: string | undefined = data?.choices?.[0]?.message?.content;
     let out: any = {};
-    try { out = content ? JSON.parse(content) : {}; } catch { out = {}; }
+    try {
+      out = content ? JSON.parse(content) : {};
+    } catch {
+      // GPT returned something we can't parse -- surface this instead of silently returning 0
+      console.error("ai-scorer: failed to parse GPT response:", content?.slice(0, 200));
+      return cors.response(502, { error: "Unparseable response from scoring model", raw: content?.slice(0, 300) });
+    }
+    if (typeof out.score === "undefined") {
+      return cors.response(502, { error: "Model response missing score field", raw: content?.slice(0, 300) });
+    }
     const scoreNum = clamp(Math.round(Number(out.score)), 0, 100);
     const rationale = String(out.rationale || "");
 

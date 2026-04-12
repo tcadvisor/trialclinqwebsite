@@ -8,6 +8,10 @@ type MinimalProfile = {
   medications?: string[];
   allergies?: string[];
   additionalInfo?: string | null;
+  biomarkers?: string[];
+  ecogStatus?: number | null;
+  cancerStage?: string | null;
+  priorTherapies?: string[];
 };
 
 export type AiScoreResult = {
@@ -62,6 +66,10 @@ function profileFingerprint(p: MinimalProfile): string {
     meds: (p.medications || []).map((m) => String(m)).sort(),
     allergies: (p.allergies || []).map((a) => String(a)).sort(),
     info: (p.additionalInfo || '').toLowerCase(),
+    biomarkers: (p.biomarkers || []).map((b) => String(b).toLowerCase()).sort(),
+    ecog: p.ecogStatus ?? null,
+    stage: (p.cancerStage || '').toLowerCase(),
+    priorTherapies: (p.priorTherapies || []).map((t) => String(t).toLowerCase()).sort(),
   });
   return hash(canonical);
 }
@@ -75,6 +83,10 @@ export function getCachedAiScore(nctId: string, profile: Partial<MinimalProfile>
       meds: (profile.medications || []).map((m) => String(m)).sort(),
       allergies: (profile.allergies || []).map((a) => String(a)).sort(),
       info: (profile.additionalInfo || '').toLowerCase(),
+      biomarkers: (profile.biomarkers || []).map((b) => String(b).toLowerCase()).sort(),
+      ecog: profile.ecogStatus ?? null,
+      stage: (profile.cancerStage || '').toLowerCase(),
+      priorTherapies: (profile.priorTherapies || []).map((t) => String(t).toLowerCase()).sort(),
     });
     const fp = hash(canonical);
     const key = `${fp}|${nctId}`;
@@ -94,6 +106,10 @@ function profileToText(p: MinimalProfile): string {
   if (p.primaryCondition) lines.push(`Primary condition: ${p.primaryCondition}`);
   if (p.medications && p.medications.length) lines.push(`Current medications: ${p.medications.join(', ')}`);
   if (p.allergies && p.allergies.length) lines.push(`Allergies: ${p.allergies.join(', ')}`);
+  if (p.biomarkers && p.biomarkers.length) lines.push(`Biomarkers: ${p.biomarkers.join(', ')}`);
+  if (typeof p.ecogStatus === 'number') lines.push(`ECOG Performance Status: ${p.ecogStatus}`);
+  if (p.cancerStage) lines.push(`Disease Stage: ${p.cancerStage}`);
+  if (p.priorTherapies && p.priorTherapies.length) lines.push(`Prior Therapies: ${p.priorTherapies.join(', ')}`);
   if (p.additionalInfo) lines.push(`Additional info: ${p.additionalInfo}`);
   const lp = readLocPref();
   if (lp.loc) lines.push(`Home location: ${lp.loc}`);
@@ -263,11 +279,13 @@ export async function scoreStudyWithAI(
 2. Demographics (0-15 pts): Age in range=15, Near boundary=10, Outside=0
 3. Exclusions (0-20 pts): None triggered=20, Minor concerns=10-15, Major exclusion=0
 4. Medications (0-10 pts): Compatible=10, Minor issues=5, Contraindicated=0
-5. Location (0-10 pts): Within radius=10, Moderate distance=5, Far=0
-6. Trial Status (0-5 pts): Recruiting=5, Other=2
+5. Biomarker Compatibility (0-10 pts): Required biomarkers present=10, Partial=5, Missing/incompatible=0
+6. Stage Match (0-5 pts): Stage matches trial criteria=5, Adjacent stage=3, Mismatch=0
+7. Location (0-10 pts): Within radius=10, Moderate distance=5, Far=0
+8. Trial Status (0-5 pts): Recruiting=5, Other=2
 
 IMPORTANT: Calculate each component separately, then SUM them for final score.
-Example: 35+15+20+10+8+5=93
+Example: 35+15+20+10+10+5+8+5=108 (cap at 100)
 
 Penalties:
 - Age outside eligibility range: Cap total score at 5-10

@@ -145,11 +145,48 @@ type AgeRange = { min?: number; max?: number; maxExclusive?: boolean };
 
 function tokenize(s: string | null | undefined): string[] {
   if (!s) return [];
-  return s
+  // preserve biomarker polarity: ER+ → er_pos, HER2- → her2_neg
+  const polNorm = s.replace(/([a-zA-Z0-9])\+/g, '$1_pos').replace(/([a-zA-Z0-9])-/g, '$1_neg');
+  return polNorm
     .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/[^a-z0-9_\s]/g, " ")
     .split(/\s+/)
     .filter((w) => w && !STOPWORDS.has(w));
+}
+
+// maps common medical terms to their synonyms so we catch
+// "breast carcinoma" matching against "breast cancer", etc.
+const CONDITION_SYNONYMS: Record<string, string[]> = {
+  "cancer": ["carcinoma", "neoplasm", "malignancy", "tumor", "tumour"],
+  "carcinoma": ["cancer", "neoplasm", "malignancy"],
+  "breast": ["mammary"],
+  "lung": ["pulmonary"],
+  "heart": ["cardiac", "cardiovascular"],
+  "kidney": ["renal"],
+  "liver": ["hepatic"],
+  "diabetes": ["diabetic", "dm"],
+  "hypertension": ["htn"],
+  "depression": ["depressive", "mdd"],
+  "arthritis": ["arthritic"],
+  "sclerosis": ["ms"],
+  "alzheimer": ["alzheimers", "dementia"],
+  "epilepsy": ["seizure", "seizures"],
+  "asthma": ["asthmatic"],
+  "colitis": ["uc", "ibd"],
+  "crohn": ["crohns", "ibd"],
+  "lupus": ["sle"],
+  "psoriatic": ["psoriasis", "psa"],
+  "copd": ["emphysema", "chronic obstructive"],
+};
+
+// expand a token list with known medical synonyms
+function expandWithSynonyms(tokens: string[]): string[] {
+  const expanded = new Set(tokens);
+  for (const t of tokens) {
+    const syns = CONDITION_SYNONYMS[t];
+    if (syns) for (const s of syns) expanded.add(s);
+  }
+  return Array.from(expanded);
 }
 
 function matchesQuery(s: string, tokens: string[]): boolean {
@@ -212,9 +249,11 @@ export function computeTrialMatchScore(trial: Trial, profile: MinimalProfile): {
   // Base favors recruiting over non-recruiting
   const base = trial.status === "Now Recruiting" ? 20 : trial.status === "Active" ? 12 : 5;
 
-  // Condition/title similarity
-  const condOverlap = intersectCount(condTokens, trialTextTokens);
-  const addlOverlap = intersectCount(addlTokens, trialTextTokens);
+  // Condition/title similarity — expand both sides with medical synonyms
+  const expandedCond = expandWithSynonyms(condTokens);
+  const expandedTrial = expandWithSynonyms(trialTextTokens);
+  const condOverlap = intersectCount(expandedCond, expandedTrial);
+  const addlOverlap = intersectCount(expandWithSynonyms(addlTokens), expandedTrial);
   const condMaxRef = Math.max(1, condTokens.length);
   const condRatio = clamp(((condOverlap + 0.5 * addlOverlap) / condMaxRef) * 100, 0, 100);
   const condition = Math.round(0.40 * (condRatio)); // up to 40
@@ -411,7 +450,10 @@ export function computeStudyScore(study: CtgovStudy, profile: MinimalProfile): n
   const studyCondToks = tokenizeArray(studyConds);
   const condToks = tokenize(profile.primaryCondition || "");
   const addlToks = tokenize(profile.additionalInfo || "");
-  const condOverlap = intersectCount(titleToks.concat(studyCondToks), condToks.concat(addlToks));
+  // expand both sides with medical synonyms so "cancer" matches "carcinoma" etc.
+  const expandedPatient = expandWithSynonyms(condToks.concat(addlToks));
+  const expandedTrial = expandWithSynonyms(titleToks.concat(studyCondToks));
+  const condOverlap = intersectCount(expandedTrial, expandedPatient);
   const condMaxRef = Math.max(1, condToks.length + addlToks.length);
   const condRatio = clamp((condOverlap / condMaxRef) * 100, 0, 100);
   const condition = Math.round(0.6 * condRatio); // up to 60
@@ -516,6 +558,49 @@ function evaluateAdvancedEligibility(profile: MinimalProfile, study: CtgovStudy,
   // NG tube retention POD1 exclusion
   if (hasAny(combined, ['ng tube retention', 'nasogastric tube retention', 'pod1'])) {
     if (hasAny(info, ['ng tube planned', 'nasogastric tube retention'])) return { ok: false, reason: 'NG tube retention planned' };
+  }
+
+  // ECOG performance status gate
+  // pull patient ECOG from additionalInfo (written as "ECOG: 2" or similar)
+  const ecogMatch = info.match(/ecog[:\s]*(\d)/);
+  if (ecogMatch) {
+    const patientEcog = Number(ecogMatch[1]);
+    // look for max allowed ECOG in eligibility text, e.g. "ECOG ≤ 1" or "ECOG 0-1"
+    const ecogReq = combined.match(/ecog\s*(?:performance\s*status\s*)?(?:(?:of|score|ps|status|≤|<=)\s*(\d)|\b(\d)\s*[-–]\s*(\d))/);
+    if (ecogReq) {
+      const maxAllowed = ecogReq[1] ? Number(ecogReq[1]) : ecogReq[3] ? Number(ecogReq[3]) : null;
+      if (maxAllowed != null && patientEcog > maxAllowed) {
+        return { ok: false, reason: `ECOG ${patientEcog} exceeds trial maximum of ${maxAllowed}` };
+      }
+    }
+  }
+
+  // Disease stage gate
+  // pull patient stage from additionalInfo (written as "Stage: III" or "Stage/Subtype: IV")
+  const stageMatch = info.match(/stage[:/\s]*(?:stage\s*)?(iv|iii|ii|i|4|3|2|1|[0-4][a-c]?)\b/i);
+  if (stageMatch) {
+    const patientStage = stageMatch[1].toLowerCase();
+    // check if the trial specifies required stages like "stage III or IV" or "stage 2-3"
+    const stageReqs = combined.match(/(?:must have|eligible|required|diagnosis of|with)\s+stage\s+((?:(?:iv|iii|ii|i|[0-4])\s*(?:or|,|and|[-–])\s*)*(?:iv|iii|ii|i|[0-4]))/i);
+    if (stageReqs) {
+      const raw = stageReqs[1].toLowerCase();
+      // normalize roman numerals for comparison
+      const romanToNum: Record<string, string> = { 'i': '1', 'ii': '2', 'iii': '3', 'iv': '4' };
+      const numToRoman: Record<string, string> = { '1': 'i', '2': 'ii', '3': 'iii', '4': 'iv' };
+      const normalizedPatient = romanToNum[patientStage] || patientStage.replace(/[a-c]$/, '');
+      // extract all mentioned stages from the requirement
+      const allowedStages = new Set<string>();
+      const stageTokens = raw.match(/iv|iii|ii|i|[0-4]/g) || [];
+      for (const st of stageTokens) {
+        const n = romanToNum[st] || st;
+        allowedStages.add(n);
+        // also add roman form
+        if (numToRoman[n]) allowedStages.add(numToRoman[n]);
+      }
+      if (allowedStages.size > 0 && !allowedStages.has(normalizedPatient)) {
+        return { ok: false, reason: `Patient stage ${patientStage.toUpperCase()} not in trial required stages` };
+      }
+    }
   }
 
   return { ok: true };
