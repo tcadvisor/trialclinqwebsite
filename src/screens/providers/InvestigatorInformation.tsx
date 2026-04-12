@@ -4,6 +4,7 @@ import HomeHeader from "../../components/HomeHeader";
 import { formatPhoneNumber, getPhoneValidationError } from "../../lib/phoneValidation";
 import { signUpUser } from "../../lib/simpleAuth";
 import { useAuth } from "../../lib/auth";
+import { saveProviderProfile } from "../../lib/storage";
 
 export default function InvestigatorInformation(): JSX.Element {
   const navigate = useNavigate();
@@ -141,6 +142,22 @@ export default function InvestigatorInformation(): JSX.Element {
         userId: result.userId,
         role: "provider",
       });
+
+      // Now that we have an account, persist the full provider profile to the DB
+      try {
+        const w = window as any;
+        const token = typeof w.getAuthToken === "function" ? await w.getAuthToken() : "";
+        if (token) {
+          const fullProfile = {
+            ...profile,
+            providerId: result.userId,
+            email: pending.email || "",
+          };
+          await saveProviderProfile(fullProfile, token);
+        }
+      } catch {
+        // Non-blocking -- profile is in localStorage and can be synced later
+      }
 
       // Clean up pending signup data
       localStorage.removeItem("pending_signup_v1");

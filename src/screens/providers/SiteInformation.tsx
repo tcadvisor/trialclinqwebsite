@@ -3,6 +3,7 @@ import HomeHeader from "../../components/HomeHeader";
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { X, ChevronDown } from "lucide-react";
 import { validatePostalCode } from "../../lib/addressValidation";
+import { saveProviderProfile } from "../../lib/storage";
 
 const US_STATES_AND_TERRITORIES = [
   "Alabama",
@@ -405,7 +406,7 @@ export default function SiteInformation(): JSX.Element {
     }
   }, []);
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const nextErrors: { conditions?: string; languages?: string } = {};
     if (conditions.length === 0) nextErrors.conditions = "Please add at least one condition.";
@@ -433,7 +434,18 @@ export default function SiteInformation(): JSX.Element {
         languages,
       };
       localStorage.setItem("tc_provider_profile_v1", JSON.stringify(profile));
-      console.log("✅ Site information saved to localStorage");
+      console.log("Site information saved to localStorage");
+
+      // Also persist to server if the user is already authenticated
+      try {
+        const w = window as any;
+        const token = typeof w.getAuthToken === "function" ? await w.getAuthToken() : "";
+        if (token) {
+          await saveProviderProfile(profile, token);
+        }
+      } catch {
+        // Expected to fail during initial signup (no auth yet) -- will be saved in the next step
+      }
     } catch (err) {
       console.error("Error saving site information:", err);
     }

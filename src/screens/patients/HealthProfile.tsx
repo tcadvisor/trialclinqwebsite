@@ -16,7 +16,7 @@ import {
 import { useAuth } from "../../lib/auth";
 import PatientHeader from "../../components/PatientHeader";
 import { buildMarkdownAppend } from "../../components/ClinicalSummaryUploader";
-import { uploadPatientFiles, getPatientFiles, savePatientProfile, saveEligibilityToServer } from "../../lib/storage";
+import { uploadPatientFiles, getPatientFiles, savePatientProfile, saveEligibilityToServer, saveHealthProfileToServer } from "../../lib/storage";
 import { formatPhoneNumber, getPhoneValidationError } from "../../lib/phoneValidation";
 import { generatePatientId, isValidProfileForUser } from "../../lib/patientIdUtils";
 import { getEpicPatientData, clearAllEpicData } from "../../lib/tokenManager";
@@ -853,12 +853,25 @@ function HealthProfileContent(): JSX.Element {
     });
   }, [user]);
 
+  // Debounce server saves so rapid edits don't spam the API
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Persist changes
   useEffect(() => {
     try { localStorage.setItem(PROFILE_KEY, JSON.stringify(profile)); } catch {}
     try { localStorage.setItem(PROFILE_METADATA_KEY, JSON.stringify(metadata)); } catch {}
     try { window.dispatchEvent(new Event('storage')); } catch {}
     try { window.dispatchEvent(new CustomEvent('tc_profile_updated', { detail: { source: 'HealthProfile' } })); } catch {}
+
+    // Also push to the database, batched every 2s
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      saveHealthProfileToServer(profile).catch(() => {});
+    }, 2000);
+
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
   }, [profile, metadata]);
 
   // Refresh from storage when uploader saves
