@@ -74,16 +74,16 @@ export default function Home() {
             onSubmit={handleSearch}
             className="mt-10 bg-white/80 backdrop-blur rounded-2xl shadow-xl ring-1 ring-black/5 p-5 sm:p-7 max-w-3xl mx-auto"
           >
-            <div className="grid sm:grid-cols-3 gap-3 sm:gap-4 items-end">
+            <div className="grid sm:grid-cols-[1fr_1fr_auto] gap-3 sm:gap-4 items-end">
               <SearchAutocomplete
                 value={query}
                 onChange={setQuery}
                 placeholder="Breast Cancer, Diabetes, COPD..."
-                label="I'm looking for a clinical trial"
-                className="text-left sm:col-span-1"
+                label="Condition"
+                className="text-left"
               />
-              <label className="text-left text-xs text-gray-600 sm:col-span-1">
-                <div className="mb-1">Near</div>
+              <label className="text-left text-xs text-gray-600">
+                <div className="mb-1">Location</div>
                 <input
                   type="text"
                   value={location}
@@ -93,11 +93,11 @@ export default function Home() {
                   aria-label="Location"
                 />
               </label>
-              <div className="sm:col-span-1">
+              <div>
                 <div className="mb-1 text-xs text-transparent select-none">&nbsp;</div>
                 <button
                   type="submit"
-                  className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 text-white px-4 py-3 text-sm font-medium hover:bg-blue-700"
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 text-white px-6 py-3 text-sm font-medium hover:bg-blue-700"
                 >
                   <Search className="h-4 w-4" />
                   Search
