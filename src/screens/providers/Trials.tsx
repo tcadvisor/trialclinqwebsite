@@ -2,7 +2,7 @@ import React from "react";
 import { Search, Loader2, Plus, Trash2 } from "lucide-react";
 import SiteHeader from "../../components/SiteHeader";
 import { CtgovStudy, fetchStudies, ctgovStudyDetailUrl, formatNearestSitePreview, fetchStudyByNctId } from "../../lib/ctgov";
-import { addTrial, getAddedTrials, isTrialAdded } from "../../lib/providerTrials";
+import { addTrialAsync, getAddedTrials, getAddedTrialsAsync, isTrialAdded } from "../../lib/providerTrials";
 import { buildSmartCondQuery, buildLooseCondQuery } from "../../lib/searchQuery";
 import { useAuth } from "../../lib/auth";
 
@@ -170,14 +170,28 @@ export default function ProviderTrials(): JSX.Element {
                 <div className="mt-4">
                   <button
                     type="button"
-                    onClick={() => {
-                      if (userId) {
-                        selected.forEach((t) => addTrial(userId, { nctId: t.nctId, title: t.title, status: t.status }));
-                        const map: Record<string, boolean> = {};
-                        selected.forEach((t) => { map[t.nctId] = true; });
-                        setAdded((m) => ({ ...m, ...map }));
-                        setSelected([]);
+                    onClick={async () => {
+                      if (!userId) return;
+                      const map: Record<string, boolean> = {};
+                      for (const t of selected) {
+                        const result = await addTrialAsync(userId, {
+                          nctId: t.nctId,
+                          title: t.title,
+                          status: t.status,
+                          phase: (t as any).phase,
+                          sponsor: (t as any).sponsor,
+                          conditions: (t as any).conditions,
+                        });
+                        if (result.ok) {
+                          map[t.nctId] = true;
+                        } else {
+                          console.error("Failed to add trial:", t.nctId, result.error);
+                        }
                       }
+                      setAdded((m) => ({ ...m, ...map }));
+                      setSelected([]);
+                      // refresh from DB so dashboard picks up the changes
+                      getAddedTrialsAsync(userId).catch(() => {});
                     }}
                     className="w-full inline-flex items-center justify-center rounded-full bg-blue-600 px-4 py-3 text-white text-sm font-medium hover:bg-blue-700"
                   >
