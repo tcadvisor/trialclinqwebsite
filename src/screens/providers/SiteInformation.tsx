@@ -345,7 +345,7 @@ export default function SiteInformation(): JSX.Element {
   const [organizationAbbrev, setOrganizationAbbrev] = useState("");
   const [parentOrg, setParentOrg] = useState("");
   const [siteName, setSiteName] = useState("");
-  const [country, setCountry] = useState("");
+  const [country, setCountry] = useState("United States");
   const [usState, setUsState] = useState("");
   const [address, setAddress] = useState("");
   const [zipcode, setZipcode] = useState("");
