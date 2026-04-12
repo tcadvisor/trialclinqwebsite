@@ -686,16 +686,24 @@ function TrialMatcher({
     setMatching(true);
 
     try {
-      // Pull eligibility details from ClinicalTrials.gov so scoring
-      // can factor in age range, sex, and required conditions.
+      // Pull eligibility AND conditions from ClinicalTrials.gov.
+      // The stored trial may have empty conditions (legacy data), so we
+      // always fetch fresh from the source.
       let minAge: number | undefined;
       let maxAge: number | undefined;
       let gender: string | undefined;
+      let liveConditions: string[] = trial.conditions || [];
 
       try {
         const studyRes = await fetchStudyByNctId(selectedTrial);
         const study = studyRes?.studies?.[0];
         const elig = study?.protocolSection?.eligibilityModule;
+        const conds = study?.protocolSection?.conditionsModule?.conditions;
+
+        // Always prefer live conditions from ClinicalTrials.gov
+        if (conds && conds.length > 0) {
+          liveConditions = conds;
+        }
 
         if (elig?.minimumAge) {
           const parsed = parseInt(elig.minimumAge, 10);
@@ -709,16 +717,15 @@ function TrialMatcher({
           gender = elig.sex;
         }
       } catch {
-        // If the fetch fails, proceed without eligibility — still better
-        // than passing empty criteria since condition matching works either way.
+        // If the fetch fails, use whatever conditions are stored on the trial
       }
 
-      // Run matching algorithm with real trial criteria
-      const matches = matchPatientsToTrial(patients, trial.conditions || [], {
+      // Run matching with live conditions from ClinicalTrials.gov
+      const matches = matchPatientsToTrial(patients, liveConditions, {
         minAge,
         maxAge,
         gender,
-        requiredConditions: trial.conditions,
+        requiredConditions: liveConditions,
       });
 
       // Assign NCT ID to matches

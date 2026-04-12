@@ -26,6 +26,10 @@ export const handler: Handler = async (event) => {
         'protocolSection.sponsorCollaboratorsModule.leadSponsor',
         'protocolSection.descriptionModule.briefSummary',
         'protocolSection.eligibilityModule.eligibilityCriteria',
+        'protocolSection.eligibilityModule.minimumAge',
+        'protocolSection.eligibilityModule.maximumAge',
+        'protocolSection.eligibilityModule.sex',
+        'protocolSection.armsInterventionsModule.interventions',
       ].join(',');
       const url = `${CT_BASE}/studies/${encodeURIComponent(nctId)}?format=json&fields=${encodeURIComponent(fields)}`;
       const res = await fetch(url);
