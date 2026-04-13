@@ -1,5 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { useAuth } from "../lib/auth";
 import HeaderActions from "./HeaderActions";
 
 type ActiveKey = "home" | "find" | "faq" | "contact" | undefined;
@@ -17,10 +18,14 @@ function NavItem({ to, label, active }: { to: string; label: string; active: boo
 }
 
 export default function SiteHeader({ active }: { active?: ActiveKey }) {
+  const { user } = useAuth();
+  // Logo goes to dashboard for logged-in users, landing page for visitors
+  const logoHref = user?.role === "provider" ? "/providers/dashboard" : user ? "/patients/dashboard" : "/";
+
   return (
     <header className="border-b bg-white/80 backdrop-blur sticky top-0 z-30">
       <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2">
+        <Link to={logoHref} className="flex items-center gap-2">
           <img
             alt="TrialCliniq"
             className="h-8 w-auto"

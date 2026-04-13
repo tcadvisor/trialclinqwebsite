@@ -1040,6 +1040,23 @@ function HealthProfileContent(): JSX.Element {
           <button onClick={() => setActiveTab("ehr")} className={`relative pb-2 ${activeTab === "ehr" ? "border-b-2 border-[#1033e5] text-gray-900" : "text-gray-600"}`}>Connected Medical Records</button>
         </div>
 
+        {/* completion bar -- sits below tabs so it's always visible on the overview */}
+        {activeTab === "overview" && (() => {
+          const fields = [profile.weight, profile.gender, profile.phone, profile.age, profile.race, profile.language, profile.bloodGroup, profile.genotype, profile.primaryCondition, profile.diagnosed, profile.ecog, profile.diseaseStage];
+          const listFields = [(profile.allergies || []).length > 0, (profile.medications || []).length > 0];
+          const filled = fields.filter(Boolean).length + listFields.filter(Boolean).length;
+          const total = fields.length + listFields.length;
+          const pct = Math.round((filled / total) * 100);
+          return (
+            <div className="mt-4 flex items-center gap-3">
+              <div className="flex-1 h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                <div className={`h-full rounded-full transition-all ${pct === 100 ? 'bg-emerald-500' : 'bg-[#1033e5]'}`} style={{ width: `${pct}%` }} />
+              </div>
+              <span className="text-xs text-gray-500 whitespace-nowrap">{pct === 100 ? 'Profile complete' : `${pct}% complete`}</span>
+            </div>
+          );
+        })()}
+
         {activeTab === "overview" && (
           <>
             {/* row 1: personal details + health profile */}
@@ -1146,6 +1163,114 @@ function HealthProfileContent(): JSX.Element {
               </div>
 
               <div>
+                <Section title="Health Profile" right={
+                  editingHealth ? (
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => setEditingHealth(false)} className="inline-flex items-center gap-1 text-sm rounded-full border px-3 py-1.5">Cancel</button>
+                      <button onClick={() => setEditingHealth(false)} className="inline-flex items-center gap-1 text-sm rounded-full bg-gray-900 text-white px-3 py-1.5">Save</button>
+                    </div>
+                  ) : (
+                    <button onClick={() => setEditingHealth(true)} className="inline-flex items-center gap-1 text-sm rounded-full border px-3 py-1.5"><PencilIcon className="w-4 h-4" /> Edit</button>
+                  )
+                }>
+                  {editingHealth ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <label className="text-sm text-gray-700">Blood Group
+                        <select value={profile.bloodGroup} onChange={(e)=>setProfile(p=>({...p, bloodGroup:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2 bg-white">
+                          {['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(b=> <option key={b}>{b}</option>)}
+                        </select>
+                      </label>
+                      <label className="text-sm text-gray-700">Genotype
+                        <input value={profile.genotype} onChange={(e)=>setProfile(p=>({...p, genotype:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2" />
+                      </label>
+                      <label className="text-sm text-gray-700">Hearing Impaired
+                        <select value={profile.hearingImpaired ? 'Yes' : 'No'} onChange={(e)=>setProfile(p=>({...p, hearingImpaired:e.target.value==='Yes'}))} className="mt-1 w-full rounded-md border px-3 py-2 bg-white">
+                          <option>No</option>
+                          <option>Yes</option>
+                        </select>
+                      </label>
+                      <label className="text-sm text-gray-700">Vision Impaired
+                        <select value={profile.visionImpaired ? 'Yes' : 'No'} onChange={(e)=>setProfile(p=>({...p, visionImpaired:e.target.value==='Yes'}))} className="mt-1 w-full rounded-md border px-3 py-2 bg-white">
+                          <option>No</option>
+                          <option>Yes</option>
+                        </select>
+                      </label>
+                      <label className="text-sm text-gray-700">Primary Condition
+                        <input value={profile.primaryCondition} onChange={(e)=>setProfile(p=>({...p, primaryCondition:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2" />
+                      </label>
+                      <label className="text-sm text-gray-700">Diagnosed
+                        <input value={profile.diagnosed} onChange={(e)=>setProfile(p=>({...p, diagnosed:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2" />
+                      </label>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
+                      <Row label="Blood Group" value={profile.bloodGroup} missing={!profile.bloodGroup} epicSyncedAt={metadata.fieldSources.bloodGroup?.syncedAt} />
+                      <Row label="Genotype" value={profile.genotype} missing={!profile.genotype} epicSyncedAt={metadata.fieldSources.genotype?.syncedAt} />
+                      <Row label="Hearing Impaired" value={profile.hearingImpaired ? 'Yes' : 'No'} epicSyncedAt={metadata.fieldSources.hearingImpaired?.syncedAt} />
+                      <Row label="Vision Impaired" value={profile.visionImpaired ? 'Yes' : 'No'} epicSyncedAt={metadata.fieldSources.visionImpaired?.syncedAt} />
+                      <Row label="Primary Condition" value={profile.primaryCondition} missing={!profile.primaryCondition} epicSyncedAt={metadata.fieldSources.primaryCondition?.syncedAt} />
+                      <Row label="Diagnosed" value={profile.diagnosed} missing={!profile.diagnosed} epicSyncedAt={metadata.fieldSources.diagnosed?.syncedAt} />
+                    </div>
+                  )}
+                </Section>
+              </div>
+            </div>
+
+            {/* row 2: medications + allergies */}
+            <div className="mt-4 grid md:grid-cols-2 gap-4">
+              <div>
+                <Section title="Medications" right={<div className="flex items-center gap-2">
+                  {(profile.medications || []).length === 0 && (<span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-gray-500 text-xs">Not set</span>)}
+                  {metadata.fieldSources.medications?.syncedAt && <EpicBadge syncedAt={metadata.fieldSources.medications.syncedAt} />}
+                </div>}>
+                  <ul className="divide-y">
+                    {(profile?.medications || []).map((m, i) => (
+                      <li key={`med-${i}-${m.name}`} className="py-3 flex items-start justify-between">
+                        <div>
+                          <div className="text-sm font-medium">{m.name}</div>
+                          {(m.dose || m.amountDaily || m.schedule) && (
+                            <div className="text-xs text-gray-600">{[m.dose, m.amountDaily ? `${m.amountDaily} per day` : "", m.schedule].filter(Boolean).join(" • ")}</div>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 text-gray-500">
+                          <button onClick={()=>editMedication(i)} aria-label="edit"><PencilIcon className="w-4 h-4" /></button>
+                          <button onClick={()=>removeMedication(i)} aria-label="delete"><Trash2Icon className="w-4 h-4" /></button>
+                        </div>
+                      </li>
+                    ))}
+                    {(profile.medications || []).length === 0 && (
+                      <li className="py-3 text-sm text-gray-600">No medications listed</li>
+                    )}
+                  </ul>
+
+                  {addingMedication && (
+                    <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                      <label className="text-gray-700">Medication Name
+                        <input value={newMedication.name} onChange={(e)=>setNewMedication(m=>({...m, name:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2" />
+                      </label>
+                      <label className="text-gray-700">Dose
+                        <input value={newMedication.dose || ""} onChange={(e)=>setNewMedication(m=>({...m, dose:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2" />
+                      </label>
+                      <label className="text-gray-700">Amount taken daily
+                        <input value={newMedication.amountDaily || ""} onChange={(e)=>setNewMedication(m=>({...m, amountDaily:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2" />
+                      </label>
+                      <label className="text-gray-700">Schedule
+                        <input value={newMedication.schedule || ""} onChange={(e)=>setNewMedication(m=>({...m, schedule:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2" />
+                      </label>
+                      <div className="sm:col-span-2 flex items-center gap-2">
+                        <button onClick={cancelNewMedication} className="inline-flex items-center gap-1 text-sm rounded-full border px-3 py-1.5">Cancel</button>
+                        <button onClick={saveNewMedication} disabled={!newMedication.name.trim()} className={`inline-flex items-center gap-1 text-sm rounded-full px-3 py-1.5 ${newMedication.name.trim()?"bg-gray-900 text-white":"bg-gray-200 text-gray-500 cursor-not-allowed"}`}>Save</button>
+                      </div>
+                    </div>
+                  )}
+
+                  {!addingMedication && (
+                    <button onClick={addMedication} className="mt-3 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm"><PlusIcon className="w-4 h-4" /> Add another medication</button>
+                  )}
+                </Section>
+              </div>
+
+              <div>
                 <Section title="Allergies" right={<div className="flex items-center gap-2">
                   {(profile.allergies || []).length === 0 && (<span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-gray-500 text-xs">Not set</span>)}
                   {metadata.fieldSources.allergies?.syncedAt && <EpicBadge syncedAt={metadata.fieldSources.allergies.syncedAt} />}
@@ -1204,138 +1329,9 @@ function HealthProfileContent(): JSX.Element {
               </div>
             </div>
 
-            {/* row 2: travel + medications | health profile */}
+            {/* row 3: clinical details + prior treatments */}
             <div className="mt-4 grid md:grid-cols-2 gap-4">
-              <div className="space-y-4">
-                <Section title="Travel Preferences">
-                  <div className="grid grid-cols-1 gap-3 text-sm">
-                    <label className="text-gray-700">Home location (City, State or ZIP)
-                      <input value={travelLoc} onChange={(e)=>setTravelLoc(e.target.value)} className="mt-1 w-full rounded-md border px-3 py-2" placeholder="e.g. 10001 or Buffalo, NY" />
-                    </label>
-                    <label className="text-gray-700">Travel radius
-                      <select value={travelRadius} onChange={(e)=>setTravelRadius(e.target.value)} className="mt-1 w-full rounded-md border px-3 py-2 bg-white">
-                        {["25mi","50mi","100mi","200mi","300mi","500mi","1000mi"].map(r => <option key={r} value={r}>{r}</option>)}
-                      </select>
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <button onClick={saveTravelPrefs} disabled={travelSaveState==='saving'} className={`inline-flex items-center gap-1 text-sm rounded-full px-3 py-1.5 ${travelSaveState==='saving' ? 'bg-gray-400 text-white cursor-wait' : 'bg-gray-900 text-white'}`}>{travelSaveState==='saving' ? 'Saving…' : 'Save'}</button>
-                      {travelSaveState==='saved' && (
-                        <span className="inline-flex items-center gap-1 text-xs text-emerald-700"><CheckCircle2 className="w-4 h-4"/> {travelSaveMsg}</span>
-                      )}
-                      {travelSaveState==='error' && (
-                        <span className="inline-flex items-center gap-1 text-xs text-red-600"><AlertTriangle className="w-4 h-4"/> {travelSaveMsg}</span>
-                      )}
-                    </div>
-                  </div>
-                </Section>
-
-                <Section title="Medications" right={<div className="flex items-center gap-2">
-                  {(profile.medications || []).length === 0 && (<span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-gray-500 text-xs">Not set</span>)}
-                  {metadata.fieldSources.medications?.syncedAt && <EpicBadge syncedAt={metadata.fieldSources.medications.syncedAt} />}
-                </div>}>
-                  <ul className="divide-y">
-                    {(profile?.medications || []).map((m, i) => (
-                      <li key={`med-${i}-${m.name}`} className="py-3 flex items-start justify-between">
-                        <div>
-                          <div className="text-sm font-medium">{m.name}</div>
-                          {(m.dose || m.amountDaily || m.schedule) && (
-                            <div className="text-xs text-gray-600">{[m.dose, m.amountDaily ? `${m.amountDaily} per day` : "", m.schedule].filter(Boolean).join(" • ")}</div>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 text-gray-500">
-                          <button onClick={()=>editMedication(i)} aria-label="edit"><PencilIcon className="w-4 h-4" /></button>
-                          <button onClick={()=>removeMedication(i)} aria-label="delete"><Trash2Icon className="w-4 h-4" /></button>
-                        </div>
-                      </li>
-                    ))}
-                    {(profile.medications || []).length === 0 && (
-                      <li className="py-3 text-sm text-gray-600">No medications listed</li>
-                    )}
-                  </ul>
-
-                  {addingMedication && (
-                    <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                      <label className="text-gray-700">Medication Name
-                        <input value={newMedication.name} onChange={(e)=>setNewMedication(m=>({...m, name:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2" />
-                      </label>
-                      <label className="text-gray-700">Dose
-                        <input value={newMedication.dose || ""} onChange={(e)=>setNewMedication(m=>({...m, dose:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2" />
-                      </label>
-                      <label className="text-gray-700">Amount taken daily
-                        <input value={newMedication.amountDaily || ""} onChange={(e)=>setNewMedication(m=>({...m, amountDaily:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2" />
-                      </label>
-                      <label className="text-gray-700">Schedule
-                        <input value={newMedication.schedule || ""} onChange={(e)=>setNewMedication(m=>({...m, schedule:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2" />
-                      </label>
-                      <div className="sm:col-span-2 flex items-center gap-2">
-                        <button onClick={cancelNewMedication} className="inline-flex items-center gap-1 text-sm rounded-full border px-3 py-1.5">Cancel</button>
-                        <button onClick={saveNewMedication} disabled={!newMedication.name.trim()} className={`inline-flex items-center gap-1 text-sm rounded-full px-3 py-1.5 ${newMedication.name.trim()?"bg-gray-900 text-white":"bg-gray-200 text-gray-500 cursor-not-allowed"}`}>Save</button>
-                      </div>
-                    </div>
-                  )}
-
-                  {!addingMedication && (
-                    <button onClick={addMedication} className="mt-3 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm"><PlusIcon className="w-4 h-4" /> Add another medication</button>
-                  )}
-                </Section>
-              </div>
-
               <div>
-                <Section title="Health Profile" right={
-                  editingHealth ? (
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => setEditingHealth(false)} className="inline-flex items-center gap-1 text-sm rounded-full border px-3 py-1.5">Cancel</button>
-                      <button onClick={() => setEditingHealth(false)} className="inline-flex items-center gap-1 text-sm rounded-full bg-gray-900 text-white px-3 py-1.5">Save</button>
-                    </div>
-                  ) : (
-                    <button onClick={() => setEditingHealth(true)} className="inline-flex items-center gap-1 text-sm rounded-full border px-3 py-1.5"><PencilIcon className="w-4 h-4" /> Edit</button>
-                  )
-                }>
-                  {editingHealth ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <label className="text-sm text-gray-700">Blood Group
-                        <select value={profile.bloodGroup} onChange={(e)=>setProfile(p=>({...p, bloodGroup:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2 bg-white">
-                          {['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(b=> <option key={b}>{b}</option>)}
-                        </select>
-                      </label>
-                      <label className="text-sm text-gray-700">Genotype
-                        <input value={profile.genotype} onChange={(e)=>setProfile(p=>({...p, genotype:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2" />
-                      </label>
-                      <label className="text-sm text-gray-700">Hearing Impaired
-                        <select value={profile.hearingImpaired ? 'Yes' : 'No'} onChange={(e)=>setProfile(p=>({...p, hearingImpaired:e.target.value==='Yes'}))} className="mt-1 w-full rounded-md border px-3 py-2 bg-white">
-                          <option>No</option>
-                          <option>Yes</option>
-                        </select>
-                      </label>
-                      <label className="text-sm text-gray-700">Vision Impaired
-                        <select value={profile.visionImpaired ? 'Yes' : 'No'} onChange={(e)=>setProfile(p=>({...p, visionImpaired:e.target.value==='Yes'}))} className="mt-1 w-full rounded-md border px-3 py-2 bg-white">
-                          <option>No</option>
-                          <option>Yes</option>
-                        </select>
-                      </label>
-                      <label className="text-sm text-gray-700">Primary Condition
-                        <input value={profile.primaryCondition} onChange={(e)=>setProfile(p=>({...p, primaryCondition:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2" />
-                      </label>
-                      <label className="text-sm text-gray-700">Diagnosed
-                        <input value={profile.diagnosed} onChange={(e)=>setProfile(p=>({...p, diagnosed:e.target.value}))} className="mt-1 w-full rounded-md border px-3 py-2" />
-                      </label>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
-                      <Row label="Blood Group" value={profile.bloodGroup} missing={!profile.bloodGroup} epicSyncedAt={metadata.fieldSources.bloodGroup?.syncedAt} />
-                      <Row label="Genotype" value={profile.genotype} missing={!profile.genotype} epicSyncedAt={metadata.fieldSources.genotype?.syncedAt} />
-                      <Row label="Hearing Impaired" value={profile.hearingImpaired ? 'Yes' : 'No'} epicSyncedAt={metadata.fieldSources.hearingImpaired?.syncedAt} />
-                      <Row label="Vision Impaired" value={profile.visionImpaired ? 'Yes' : 'No'} epicSyncedAt={metadata.fieldSources.visionImpaired?.syncedAt} />
-                      <Row label="Primary Condition" value={profile.primaryCondition} missing={!profile.primaryCondition} epicSyncedAt={metadata.fieldSources.primaryCondition?.syncedAt} />
-                      <Row label="Diagnosed" value={profile.diagnosed} missing={!profile.diagnosed} epicSyncedAt={metadata.fieldSources.diagnosed?.syncedAt} />
-                    </div>
-                  )}
-                </Section>
-              </div>
-            </div>
-
-            <div className="mt-4 grid md:grid-cols-3 gap-4">
-              <div className="md:col-span-2">
                 <Section title="Clinical Details" right={
                   editingClinical ? (
                     <div className="flex items-center gap-2">
@@ -1388,10 +1384,8 @@ function HealthProfileContent(): JSX.Element {
                   )}
                 </Section>
               </div>
-            </div>
 
-            <div className="mt-4 grid md:grid-cols-3 gap-4">
-              <div className="md:col-span-2">
+              <div>
                 <Section title="Prior Treatments">
                   <ul className="divide-y">
                     {(profile.priorTherapies || []).map((t, i) => (
@@ -1432,39 +1426,51 @@ function HealthProfileContent(): JSX.Element {
               </div>
             </div>
 
-            <div className="mt-4">
-              <Section title="Additional Information" right={
-                editingAdditional ? (
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => setEditingAdditional(false)} className="inline-flex items-center gap-1 text-sm rounded-full border px-3 py-1.5">Cancel</button>
-                    <button onClick={() => setEditingAdditional(false)} className="inline-flex items-center gap-1 text-sm rounded-full bg-gray-900 text-white px-3 py-1.5">Save</button>
+            {/* row 4: travel preferences + additional info */}
+            <div className="mt-4 grid md:grid-cols-2 gap-4">
+              <div>
+                <Section title="Travel Preferences">
+                  <div className="grid grid-cols-1 gap-3 text-sm">
+                    <label className="text-gray-700">Home location (City, State or ZIP)
+                      <input value={travelLoc} onChange={(e)=>setTravelLoc(e.target.value)} className="mt-1 w-full rounded-md border px-3 py-2" placeholder="e.g. 10001 or Buffalo, NY" />
+                    </label>
+                    <label className="text-gray-700">Travel radius
+                      <select value={travelRadius} onChange={(e)=>setTravelRadius(e.target.value)} className="mt-1 w-full rounded-md border px-3 py-2 bg-white">
+                        {["25mi","50mi","100mi","200mi","300mi","500mi","1000mi"].map(r => <option key={r} value={r}>{r}</option>)}
+                      </select>
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <button onClick={saveTravelPrefs} disabled={travelSaveState==='saving'} className={`inline-flex items-center gap-1 text-sm rounded-full px-3 py-1.5 ${travelSaveState==='saving' ? 'bg-gray-400 text-white cursor-wait' : 'bg-gray-900 text-white'}`}>{travelSaveState==='saving' ? 'Saving...' : 'Save'}</button>
+                      {travelSaveState==='saved' && (
+                        <span className="inline-flex items-center gap-1 text-xs text-emerald-700"><CheckCircle2 className="w-4 h-4"/> {travelSaveMsg}</span>
+                      )}
+                      {travelSaveState==='error' && (
+                        <span className="inline-flex items-center gap-1 text-xs text-red-600"><AlertTriangle className="w-4 h-4"/> {travelSaveMsg}</span>
+                      )}
+                    </div>
                   </div>
-                ) : (
-                  <button onClick={() => setEditingAdditional(true)} className="inline-flex items-center gap-1 text-sm rounded-full border px-3 py-1.5"><PencilIcon className="w-4 h-4" /> Edit</button>
-                )
-              }>
-                {editingAdditional ? (
-                  <textarea value={profile.additionalInfo} onChange={(e)=>setProfile(p=>({...p, additionalInfo:e.target.value}))} rows={4} className="w-full rounded-md border px-3 py-2 text-sm" placeholder="Any important details you'd like us to know..."/>
-                ) : (
-                  <div className="text-sm text-gray-700 min-h-[20px]">{profile.additionalInfo || "No additional information yet"}</div>
-                )}
-              </Section>
-            </div>
+                </Section>
+              </div>
 
-            {(() => {
-              const needs = !profile.weight || !profile.gender || !profile.phone || !profile.age || !profile.race || !profile.language || !profile.bloodGroup || !profile.genotype || !profile.primaryCondition || !profile.diagnosed || (profile.allergies || []).length === 0 || (profile.medications || []).length === 0 || !profile.ecog || !profile.diseaseStage;
-              return needs ? (
-                <div className="mt-6 text-sm text-red-600 flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4" />
-                  <span>Some details are missing. Please complete your profile.</span>
-                </div>
-              ) : (
-                <div className="mt-6 text-sm text-gray-600 flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                  <span>Profile is up to date</span>
-                </div>
-              );
-            })()}
+              <div>
+                <Section title="Additional Information" right={
+                  editingAdditional ? (
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => setEditingAdditional(false)} className="inline-flex items-center gap-1 text-sm rounded-full border px-3 py-1.5">Cancel</button>
+                      <button onClick={() => setEditingAdditional(false)} className="inline-flex items-center gap-1 text-sm rounded-full bg-gray-900 text-white px-3 py-1.5">Save</button>
+                    </div>
+                  ) : (
+                    <button onClick={() => setEditingAdditional(true)} className="inline-flex items-center gap-1 text-sm rounded-full border px-3 py-1.5"><PencilIcon className="w-4 h-4" /> Edit</button>
+                  )
+                }>
+                  {editingAdditional ? (
+                    <textarea value={profile.additionalInfo} onChange={(e)=>setProfile(p=>({...p, additionalInfo:e.target.value}))} rows={4} className="w-full rounded-md border px-3 py-2 text-sm" placeholder="Any important details you'd like us to know..."/>
+                  ) : (
+                    <div className="text-sm text-gray-700 min-h-[20px]">{profile.additionalInfo || "No additional information yet"}</div>
+                  )}
+                </Section>
+              </div>
+            </div>
           </>
         )}
 
