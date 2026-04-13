@@ -188,7 +188,7 @@ const Row: React.FC<{
       <span className="text-sm">{label}</span>
     </div>
     <div className="flex items-center gap-2">
-      <div className={`text-sm ${missing ? "text-red-600" : "text-gray-900"}`}>{value || (missing ? "Required" : "")}</div>
+      <div className={`text-sm ${missing ? "text-gray-400 italic" : "text-gray-900"}`}>{value || (missing ? "Not set" : "")}</div>
       {epicSyncedAt && <EpicBadge syncedAt={epicSyncedAt} />}
     </div>
   </div>
@@ -1042,8 +1042,9 @@ function HealthProfileContent(): JSX.Element {
 
         {activeTab === "overview" && (
           <>
-            <div className="mt-6 grid md:grid-cols-3 gap-4">
-              <div className="md:col-span-2">
+            {/* row 1: personal details + health profile */}
+            <div className="mt-6 grid md:grid-cols-2 gap-4">
+              <div>
                 <Section title="Personal Details" right={
                   editingPersonal ? (
                     <div className="flex items-center gap-2">
@@ -1146,7 +1147,7 @@ function HealthProfileContent(): JSX.Element {
 
               <div>
                 <Section title="Allergies" right={<div className="flex items-center gap-2">
-                  {(profile.allergies || []).length === 0 && (<span className="text-red-600 text-xs">Required</span>)}
+                  {(profile.allergies || []).length === 0 && (<span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-gray-500 text-xs">Not set</span>)}
                   {metadata.fieldSources.allergies?.syncedAt && <EpicBadge syncedAt={metadata.fieldSources.allergies.syncedAt} />}
                 </div>}>
                   <ul className="divide-y">
@@ -1203,8 +1204,9 @@ function HealthProfileContent(): JSX.Element {
               </div>
             </div>
 
-            <div className="mt-4 grid md:grid-cols-3 gap-4">
-              <div>
+            {/* row 2: travel + medications | health profile */}
+            <div className="mt-4 grid md:grid-cols-2 gap-4">
+              <div className="space-y-4">
                 <Section title="Travel Preferences">
                   <div className="grid grid-cols-1 gap-3 text-sm">
                     <label className="text-gray-700">Home location (City, State or ZIP)
@@ -1228,7 +1230,7 @@ function HealthProfileContent(): JSX.Element {
                 </Section>
 
                 <Section title="Medications" right={<div className="flex items-center gap-2">
-                  {(profile.medications || []).length === 0 && (<span className="text-red-600 text-xs">Required</span>)}
+                  {(profile.medications || []).length === 0 && (<span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-gray-500 text-xs">Not set</span>)}
                   {metadata.fieldSources.medications?.syncedAt && <EpicBadge syncedAt={metadata.fieldSources.medications.syncedAt} />}
                 </div>}>
                   <ul className="divide-y">
@@ -1278,7 +1280,7 @@ function HealthProfileContent(): JSX.Element {
                 </Section>
               </div>
 
-              <div className="md:col-span-2">
+              <div>
                 <Section title="Health Profile" right={
                   editingHealth ? (
                     <div className="flex items-center gap-2">
