@@ -810,14 +810,14 @@ function TrialMatcher({
   };
 
   return (
-    <div className="bg-white border rounded-2xl p-6">
+    <div className="bg-white border rounded-2xl p-5 max-w-2xl">
       <div className="flex items-center gap-3 mb-4">
-        <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center">
-          <Zap className="h-5 w-5 text-purple-600" />
+        <div className="h-9 w-9 rounded-full bg-purple-100 flex items-center justify-center shrink-0">
+          <Zap className="h-4 w-4 text-purple-600" />
         </div>
         <div>
-          <h3 className="font-semibold">Match Patients to Trial</h3>
-          <p className="text-sm text-gray-600">
+          <h3 className="font-semibold text-sm">Match Patients to Trial</h3>
+          <p className="text-xs text-gray-600">
             Find eligible patients from your custom database
           </p>
         </div>
@@ -827,7 +827,7 @@ function TrialMatcher({
         <select
           value={selectedTrial}
           onChange={(e) => setSelectedTrial(e.target.value)}
-          className="flex-1 border rounded-lg px-3 py-2 text-sm"
+          className="flex-1 min-w-0 border rounded-lg px-3 py-2 text-sm truncate"
         >
           <option value="">Select a trial...</option>
           {trials.map((trial) => (
